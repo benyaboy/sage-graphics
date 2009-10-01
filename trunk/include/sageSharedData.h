@@ -1,0 +1,84 @@
+/******************************************************************************
+ * SAGE - Scalable Adaptive Graphics Environment
+ *
+ * Module: sageSharedData.h
+ * Author : Byungil Jeong
+ *
+ * Copyright (C) 2004 Electronic Visualization Laboratory,
+ * University of Illinois at Chicago
+ *
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ *  * Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above
+ *    copyright notice, this list of conditions and the following disclaimer
+ *    in the documentation and/or other materials provided with the distribution.
+ *  * Neither the name of the University of Illinois at Chicago nor
+ *    the names of its contributors may be used to endorse or promote
+ *    products derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF 88ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or 
+ * http://www.evl.uic.edu/cavern/forum/
+ *
+ *****************************************************************************/
+
+#ifndef SAGE_SHARED_DATA_H_
+#define SAGE_SHARED_DATA_H_
+
+#include "sageBase.h"
+
+class sageDisplay;
+class sageSyncServer;
+class sageSyncClient;
+class sageMemory;
+class sageEventQueue;
+class displayContext;
+class streamProtocol;
+
+class rcvSharedData {
+public:
+   int nodeID;
+   int bufSize;
+   sageEventQueue *eventQueue;
+   sageSyncClient *syncClientObj;
+      
+   int nodeNum;
+      
+   rcvSharedData();
+   ~rcvSharedData();
+};
+
+class dispSharedData : public rcvSharedData {
+public:
+   displayContext *context;
+   sageDisplay   *displayObj;
+   
+   dispSharedData() : displayObj(NULL), context(NULL) {}
+   ~dispSharedData();
+};
+
+class bridgeSharedData : public rcvSharedData {
+public:
+   streamProtocol *sendObj;
+   bool frameDrop;
+   bridgeSharedData() : sendObj(NULL), frameDrop(true) {}
+   ~bridgeSharedData();
+};
+
+#endif

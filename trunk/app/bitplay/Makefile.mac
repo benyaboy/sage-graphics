@@ -1,0 +1,54 @@
+CC = g++
+COPTS = -g
+
+GLUTDIR = /usr
+GLUTDEFS =  -FGLUT -FOpenGL
+GLUTLIBS =  -framework GLUT -framework OpenGL -lobjc
+
+DEFS = ${GLUTDEFS}
+CFLAGS = ${COPTS} ${DEFS}
+LIBS = -lpthread
+
+IMGLIB = ./libimg
+IMAGELIB = ./libimage
+IMGLIBS = -L${IMGLIB} -limg -L${IMAGELIB} -limage -ltiff -ljpeg -lm
+IMGINCS = -I${IMGLIB} 
+GLLIBS  = ${GLUTLIBS} -L../../lib -lsail
+GLINCS  = -I../../include
+
+PROGS = bplay img2bmv bpio onethread
+
+default: bplay
+
+install: default
+	/bin/cp -f bplay ../../bin
+
+all: ${PROGS}
+
+clean:
+	cd ${IMGLIB} && make clean
+	cd ${IMAGELIB} && make clean
+	rm -f ${PROGS} *.o
+
+bplay:	bplay.o bpio.o 
+	cd ${IMGLIB} && make
+	cd ${IMAGELIB} && make
+	${CC} -o $@ bplay.o bpio.o ${GLLIBS} ${LIBS}
+
+bplay.o: bplay.c bpio.h bpmovie.h
+	${CC} -c bplay.c ${COPTS} ${DEFS} ${GLINCS}
+
+img2bmv: img2bmv.c bpmovie.h ${IMGLIB}/libimg.a ${IMAGELIB}/libimage.a 
+	${CC} -c ${CFLAGS} ${IMGINCS} img2bmv.c
+	${CC} -o $@ $@.o ${COPTS} ${IMGLIBS}
+
+txspeed: txspeed.c
+	${CC} -o $@ $@.c -g -O ${GLINCS} ${GLLIBS}
+
+bpio:	bpiotest.o bpio.o
+	${CC} -o $@ bpiotest.o bpio.o ${COPTS} ${LIBS}
+
+bpio.o bpiotest.o:	bpio.h
+
+onethread: onethread.o
+	${CC} -o $@ onethread.o ${COPTS}

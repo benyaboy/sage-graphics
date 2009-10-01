@@ -1,0 +1,14 @@
+QUANTA_DIR=/home/arun/local
+CXXFLAGS=-Wno-deprecated -I$(QUANTA_DIR)/include `wx-config --cflags`
+LDFLAGS=-L$(QUANTA_DIR)/lib -lquanta_32 `wx-config --libs`
+CXX=g++
+CC=$(CXX)
+
+JuxtaSCUI: JuxtaSCUI.o main.o
+
+JuxtaSCUI.o: JuxtaSCUI.cpp
+main.o: main.cpp
+
+clean:
+	rm -rf *.o *~ JuxtaSCUI
+

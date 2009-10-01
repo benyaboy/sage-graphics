@@ -1,0 +1,7 @@
+#aspect ratio of the display
+#XINDI
+forall killall volvis
+mpirun -np 9 $PWD/volvis -v Protein optiLocal.dat -a 2.2 -d 64 64 64 -n $PWD/machines.dat.xindi
+#scylla
+#mpirun -np 9 $PWD/volvis -v Protein localhost -a 2.08 -d 64 64 64 -n $PWD/machines.dat
+
