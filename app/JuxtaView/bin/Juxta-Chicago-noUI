@@ -1,0 +1,4 @@
+#!/bin/sh
+
+mpirun -machinefile machine.yorda.dat -np 9 JuxtaView juxtaconfig-chicago.conf juxtadata.conf juxtalayout.conf ui5201.conf Chicago 1 30 &
+

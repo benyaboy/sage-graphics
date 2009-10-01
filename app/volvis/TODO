@@ -1,0 +1,7 @@
+do the switch of vp like in stereo
+addded an array to store the vp and frustums
+changed the machines.dat file to store the vp with the frustum as %s
+
+
+in vNet.cpp
+need to add vp in readTileConfig

@@ -1,0 +1,9 @@
+
+float4 C2E2f_passthrough(float3 texCoord0 : TEXCOORD0,
+                       uniform sampler3D texture0,
+                       uniform sampler1D texture1                       
+                       ) : COLOR
+{
+    float tex0 = tex3D(texture0, texCoord0).a;
+    return tex1D(texture1, tex0);
+}

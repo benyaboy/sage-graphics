@@ -1,0 +1,31 @@
+# Makefile for  cluster volvis
+# The slaves run the volvis with their respective frustum using MPI
+# Master does the interaction (MPI) 
+# The transfer-fn UI communicates with the master (QUANTA), and master broadcasts this to slaves(MPI)
+#QUANTA_HOME=/home/cavern/Q2
+QUANTA_HOME=${HOME}/Q2
+#QUANTA_HOME=/home/luc/Q2
+
+INCLUDE_DIR 	= -I/usr/local/include -I../OptiStore 
+LIBRARY_DIR 	= -L/usr/lib -L/usr/X11R6/lib -L${QUANTA_HOME}/lib -Wl,-rpath ${QUANTA_HOME}/lib
+LIBRARIES 	= -lCgGL -lCg -lglut -lGLU -lGL -lXi -lXmu -lXext -lX11 -lm -lquanta_32
+CXXFLAGS 	= -O3 -DADDCGGL -DV_NETTF -DV_DISTRIBUTED -DV_NETDATA $(COMPILER_FLAGS) -I${QUANTA_HOME}/include/QUANTA -I${QUANTA_HOME}/include $(INCLUDE_DIR) 
+CXX		= mpiCC 
+CXXINCLUDE	= $(QUANTA_CFLAGS) 
+COMPILER 	= mpiCC -O3
+
+VOLOBJ_FILES 	= CCmdLine.o glUE.o main.o Trackball.o vCG.o vCut.o mmap.o vFPSText.o vNet.o vSliceView.o \
+		 vPrimitive.o vRenderer.o vTF.o vUI.o vVolume.o vOptiVolume.o vFileVolume.o vGeometry.o 
+
+OBJ_FILES	= $(VOLOBJ_FILES) ../OptiStore/directions.o ../OptiStore/caDataManagerClient.o
+
+EXEC 		= volvis
+
+$(EXEC):	$(OBJ_FILES)
+		$(COMPILER) $(COMPILER_FLAGS) -o $(EXEC) $(OBJ_FILES) \
+			$(LIBRARY_DIR) $(LIBRARIES) -lpthread
+
+
+clean:
+		\rm -f $(VOLOBJ_FILES) $(EXEC)
+

@@ -1,0 +1,3 @@
+mpirun -machinefile machine.dat -np 4 VRA &
+
+./VRA_UI &

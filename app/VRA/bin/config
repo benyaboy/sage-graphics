@@ -1,0 +1,12 @@
+10001
+10002
+-5.0 5.0
+1536 512
+45.0
+0 0 512 512 0.00000 0.33333 0.0 1.00 0
+0 0 512 512 0.33333 0.66667 0.0 1.00 0
+0 0 512 512 0.66667 1.00000 0.0 1.00 0
+3
+NCMIR-Small /home/evl/schwarz/data/ncmir-small/ncmir-small_D-2048x4096x128_B-128x256x128 ncmir-small_D-2048x4096x128_B-128x256x128.meta
+Rock /home/evl/schwarz/data/06ET-2B/06ET-2B_D-1024x1024x4096_B-64x64x256 06ET-2B_D-1024x1024x4096_B-64x64x256.meta
+Visible-Female /home/evl/schwarz/data/visible-female/visible-female_D-512x512x2048_B-64x64x256 visible-female_D-512x512x2048_B-64x64x256.meta

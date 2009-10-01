@@ -1,0 +1,21 @@
+# juxtaview skin file format
+# <background image>
+# for each function: <function> <raised button image> <depressed button image> <position e.g. (0,0)>
+# order of buttons: 
+# pan up, down, left, right
+# fast pan up, fast pan down, fast pan left, fast pan right
+# zoom in, out
+# close
+#
+./Skins/default/jux_back.jpg
+pan_up ./Skins/default/pan_up.jpg ./Skins/default/pan_up_down.jpg (160,80)
+pan_down ./Skins/default/pan_down.jpg ./Skins/default/pan_down_down.jpg (160,260)
+pan_left ./Skins/default/pan_left.jpg ./Skins/default/pan_left_down.jpg (80,160)
+pan_right ./Skins/default/pan_right.jpg ./Skins/default/pan_right_down.jpg (260,160)
+fast_pan_up ./Skins/default/fast_pan_up.jpg ./Skins/default/fast_pan_up_down.jpg (140,0)
+fast_pan_down ./Skins/default/fast_pan_down.jpg ./Skins/default/fast_pan_down_down.jpg (140,320)
+fast_pan_left ./Skins/default/fast_pan_left.jpg ./Skins/default/fast_pan_left_down.jpg (0,140)
+fast_pan_right ./Skins/default/fast_pan_right.jpg ./Skins/default/fast_pan_right_down.jpg (320,140)
+zoom_in ./Skins/default/zoom_in.jpg ./Skins/default/zoom_in_down.jpg (160,140)
+zoom_out ./Skins/default/zoom_out.jpg ./Skins/default/zoom_out_down.jpg (140,200)
+close ./Skins/default/close_down.jpg ./Skins/default/close.jpg (340,340)

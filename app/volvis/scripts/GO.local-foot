@@ -1,0 +1,20 @@
+#!/bin/sh
+
+
+cd  /home/evl/luc/Dev/volatile/volvis
+
+killall -9 volvis
+forall killall -9 volvis
+
+mpirun -machinefile .gige -np 9  /home/evl/luc/Dev/volatile/volvis/volvis -v Foot optiLocalIP.dat Foot -d 128 128 128 -n $PWD/machines.dat.nico &
+
+sleep 80
+
+cd ../tfUI
+./RUN.arad &
+
+wait
+
+killall -9 volvis
+forall killall -9 volvis
+

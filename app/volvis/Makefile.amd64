@@ -1,0 +1,33 @@
+#Makefile for a Geowall type configuration
+#ie the volvis runs on the geowall and the transfer-fn UI runs on a remote machine
+
+QUANTA_HOME=${HOME}/QUANTA64
+
+
+INCLUDE_DIR 	= -I/usr/local/include -I../OptiStore   
+LIBRARY_DIR 	= -L/usr/X11R6/lib64 -L${QUANTA_HOME}/lib64 -Wl,-rpath ${QUANTA_HOME}/lib64
+#LIBRARIES 	= -L${GLUT_HOME}/lib -lglut -lGLU -lGL -lXi -lXmu -lXext -lX11 -lm -lquanta_64
+LIBRARIES 	= -lCgGL -lCg -lglut -lGLU -lGL -lXi -lXmu -lXext -lX11 -lm -lquanta_64
+CXXFLAGS 	= -O3 -DADDCGGL -DV_NETTF -DV_DISTRIBUTED -DV_NETDATA -I${QUANTA_HOME}/include/QUANTA -I${QUANTA_HOME}/include $(COMPILER_FLAGS) $(INCLUDE_DIR) 
+#CXXFLAGS 	= -O3 -DADDARBGL -DV_NETTF -DV_NETDATA -I${QUANTA_HOME}/include/QUANTA -I${QUANTA_HOME}/include $(COMPILER_FLAGS) $(INCLUDE_DIR) -Wno-deprecated
+# -DADDARBGL
+CXXINCLUDE	= $(QUANTA_CFLAGS) 
+COMPILER 	= mpiCC -O3
+CXX             = mpiCC -O3
+
+
+VOLOBJ_FILES 	= CCmdLine.o glUE.o main.o Trackball.o vARB.o vCG.o vCut.o mmap.o vFPSText.o vNet.o vSliceView.o \
+		 vPrimitive.o vRenderer.o vTF.o vUI.o vVolume.o vOptiVolume.o vFileVolume.o vGeometry.o
+
+OBJ_FILES	= $(VOLOBJ_FILES) ../OptiStore/directions.o ../OptiStore/caDataManagerClient.o
+
+EXEC 		= volvis
+
+$(EXEC):	$(OBJ_FILES)
+		$(COMPILER) $(COMPILER_FLAGS) -o $(EXEC) $(OBJ_FILES) \
+			$(LIBRARY_DIR) $(LIBRARIES) -lpthread
+
+
+clean:
+		\rm -f $(VOLOBJ_FILES) $(EXEC)
+
