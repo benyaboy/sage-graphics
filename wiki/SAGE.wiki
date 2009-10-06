@@ -14,9 +14,10 @@ To subscribe the SAGE user mailing list:
 The address to post your question is sage_users at uic.edu. 
 
 
-= Details =
+== Documentation ==
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+===Installation===
+  * [http://www.evl.uic.edu/cavern/sage/download.php Download SAGE]
+    : You can download SAGE source,UI, and Applications here.
+  * [Building and Installation instructions]
+    : Compiling and installing SAGE from source.
