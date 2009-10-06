@@ -1,8 +1,4 @@
-#summary Introduction of Scalable Adaptive Graphics Environment (SAGE).
-
-= Introduction =
-
-Scalable Adaptive Graphics Environment (SAGE) is an open source, multi-platform software system to support collaborative scientific visualization of large-scale data in a distributed visualization environment that includes ultra-high resolution scalable tiled displays. SAGE enables real-time streaming of extremely high-resolution graphics and high-definition video from remotely distributed rendering and storage clusters to scalable display walls over ultra high-speed networks.
+*Scalable Adaptive Graphics Environment (SAGE)* is an open source, multi-platform software system to support collaborative scientific visualization of large-scale data in a distributed visualization environment that includes ultra-high resolution scalable tiled displays. SAGE enables real-time streaming of extremely high-resolution graphics and high-definition video from remotely distributed rendering and storage clusters to scalable display walls over ultra high-speed networks.
 
 SAGE is an “operating system” for tiled-display environments, letting users launch distributed visualization applications on remote clusters of computers and stream the visualizations directly to their tiled displays, where they can be viewed and manipulated. The uniqueness of SAGE lies in its ability to enable multiple parallel rendered applications that run on separate and distantly located computer clusters to stream the visualizations to any portion of a tiled display as individually managed windows. This ability allows multitasking on tiled displays. SAGE has been developed on Linux platform and was ported and tested on Mac OS X and Windows.
 
