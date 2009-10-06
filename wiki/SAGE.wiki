@@ -4,7 +4,7 @@ SAGE is an “operating system” for tiled-display environments, letting users 
 
 This Wiki is aimed to provide SAGE developers and users with a place to share their knowledge about SAGE so to maintain up-to-date documentation about recent changes and development of SAGE and its applications. You can find out more information about SAGE on the SAGE web site: http://www.evl.uic.edu/cavern/sage.
 
-For more help, check out the SAGE user mailing list: http://listserv.uic.edu/archive/sage_users.html.
+For more help, check out the SAGE user mailing list: http://listserv.uic.edu/archives/sage_users.html.
 
 To subscribe the SAGE user mailing list:
 
