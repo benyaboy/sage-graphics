@@ -8,8 +8,8 @@ For more help, check out the SAGE user mailing list: http://listserv.uic.edu/arc
 
 To subscribe the SAGE user mailing list:
 
-send an email to listserv at listserv.uic.edu 
-with the message body: subscribe sage_users firstName LastName
+  send an email to listserv at listserv.uic.edu<br>
+  with the message body: subscribe sage_users firstName LastName
 
 The address to post your question is sage_users at uic.edu. 
 
