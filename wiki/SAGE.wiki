@@ -1,0 +1,26 @@
+#summary Introduction of Scalable Adaptive Graphics Environment (SAGE).
+
+= Introduction =
+
+Scalable Adaptive Graphics Environment (SAGE) is an open source, multi-platform software system to support collaborative scientific visualization of large-scale data in a distributed visualization environment that includes ultra-high resolution scalable tiled displays. SAGE enables real-time streaming of extremely high-resolution graphics and high-definition video from remotely distributed rendering and storage clusters to scalable display walls over ultra high-speed networks.
+
+SAGE is an “operating system” for tiled-display environments, letting users launch distributed visualization applications on remote clusters of computers and stream the visualizations directly to their tiled displays, where they can be viewed and manipulated. The uniqueness of SAGE lies in its ability to enable multiple parallel rendered applications that run on separate and distantly located computer clusters to stream the visualizations to any portion of a tiled display as individually managed windows. This ability allows multitasking on tiled displays. SAGE has been developed on Linux platform and was ported and tested on Mac OS X and Windows.
+
+This Wiki is aimed to provide SAGE developers and users with a place to share their knowledge about SAGE so to maintain up-to-date documentation about recent changes and development of SAGE and its applications. You can find out more information about SAGE on the SAGE web site: http://www.evl.uic.edu/cavern/sage.
+
+For more help, check out the SAGE user mailing list: http://listserv.uic.edu/archive/sage_users.html.
+
+To subscribe the SAGE user mailing list:
+
+send an email to listserv at listserv.uic.edu 
+with the message body: subscribe sage_users firstName LastName
+
+The address to post your question is sage_users at uic.edu. 
+
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
