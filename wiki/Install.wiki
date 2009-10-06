@@ -1,27 +1,24 @@
 #summary instructions to build and install SAGE on Unix-type systems: Linux, Mac OS X, and Solaris.
 
 == Prerequisite ==
-
+----
 For SAGE: the runtime and development packages of the following libraries
 
     * SDL 1.2.8 or later : http://www.libsdl.org 
-
     Most Linux distributions include the SDL runtime package in default and the development package as an option. 
 
     * readline 5.0 or later : http://tiswww.case.edu/php/chet/readline/rltop.html 
-
     Most Linux distributions include the readline runtime package in default and the development package as an option. 
 
 
 For SageLauncher, SageProxy, AppLauncher, FileServer:
-
     * python 2.3 or later
     * wxPython 2.6.2 or later
     * Numpy or Numeric 
 
 
 == Setup environment ==
-
+----
 1. Set an environment variable SAGE_DIRECTORY in your login profile: .profile, .bashrc, .tcshrc, and so on.
 
 setenv SAGE_DIRECTORY sage_path (for tcsh or similar)
@@ -36,16 +33,18 @@ set path=($SAGE_DIRECTORY/bin $path)   (for tcsh or similar)
 export PATH=$SAGE_DIRECTORY/bin:$PATH  (for bash or similar)
 
 == Modify build configuration ==
-
-1. Open config.mk in SAGE_DIRECTORY
-2.
+----
+  1. Open config.mk in SAGE_DIRECTORY
+  2.
 
 
 == Compile ==
-1. Execute make in SAGE_DIRECTORY
-2. If you get errors, check include paths and library paths in make files in subdirectories
-3. Execute make install in SAGE_DIRECTORY
+----
+  1. Execute make in SAGE_DIRECTORY
+  2. If you get errors, check include paths and library paths in make files in subdirectories
+  3. Execute make install in SAGE_DIRECTORY
 
 
 == Links to other pages ==
+----
 [SAGE Home]
