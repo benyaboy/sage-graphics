@@ -2,7 +2,7 @@
 
 ----
 
-== Prerequisite ==
+=== Prerequisite ===
 For SAGE: the runtime and development packages of the following libraries
 
     * SDL 1.2.8 or later : http://www.libsdl.org 
@@ -19,7 +19,7 @@ For SAGE UI components:
 
 ----
 
-== Setup environment ==
+=== Setup environment ===
  # Set an environment variable SAGE_DIRECTORY in your login profile: .profile, .bashrc, .tcshrc, and so on.
 {{{
   setenv SAGE_DIRECTORY sage_path (for tcsh or similar)
@@ -35,14 +35,13 @@ For SAGE UI components:
 }}}
 ----
 
-== Modify build configuration ==
+=== Modify build configuration ===
 
  # Open config.mk in SAGE_DIRECTORY
- #
 
 ----
 
-== Compile ==
+=== Compile ===
 
  # Execute make in SAGE_DIRECTORY
  # If you get errors, check include paths and library paths in make files in subdirectories
