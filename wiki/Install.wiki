@@ -12,7 +12,7 @@ For SAGE: the runtime and development packages of the following libraries
     Most Linux distributions include the readline runtime package in default and the development package as an option. 
 
 
-For SageLauncher, SageProxy, AppLauncher, FileServer:
+For SAGE UI components:
     * python 2.3 or later
     * wxPython 2.6.2 or later
     * Numpy or Numeric 
