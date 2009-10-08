@@ -13,6 +13,7 @@ To subscribe the SAGE user mailing list:
 
 The address to post your question is sage_users at uic.edu. 
 
+----
 
 == Documentation ==
 
