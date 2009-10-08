@@ -17,18 +17,18 @@ The address to post your question is sage_users at uic.edu.
 
 == Documentation ==
 
-===Installation===
+=== Installation ===
  * [http://www.evl.uic.edu/cavern/sage/download.php Download SAGE]<br>You can download SAGE source,UI, and Applications here.
 
  * [Building Build SAGE]<br>Compiling and installing SAGE from source.
 
  * [Configuration Configure SAGE]<br>Instructions for configuring SAGE for your tiled display cluster
 
-===Use SAGE===
+
+=== Use SAGE ===
 
 
-===Applications===
+=== Applications ===
 
 
-===SAGE Internal===
-
+=== SAGE Internal ===
