@@ -20,5 +20,5 @@ The address to post your question is sage_users at uic.edu.
 ===Installation===
  * [http://www.evl.uic.edu/cavern/sage/download.php Download SAGE]
  You can download SAGE source,UI, and Applications here.
- * [Install Building and Installation instructions]
+ * [Building Building instructions]
  Compiling and installing SAGE from source.
