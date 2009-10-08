@@ -5,11 +5,9 @@
 === Prerequisite ===
 For SAGE: the runtime and development packages of the following libraries
 
-    * SDL 1.2.8 or later : http://www.libsdl.org 
-    Most Linux distributions include the SDL runtime package in default and the development package as an option. 
+    * SDL 1.2.8 or later : http://www.libsdl.org<br>Most Linux distributions include the SDL runtime package in default and the development package as an option. 
 
-    * readline 5.0 or later : http://tiswww.case.edu/php/chet/readline/rltop.html 
-    Most Linux distributions include the readline runtime package in default and the development package as an option. 
+    * readline 5.0 or later : http://tiswww.case.edu/php/chet/readline/rltop.html<br>Most Linux distributions include the readline runtime package in default and the development package as an option. 
 
 
 For SAGE UI components:
