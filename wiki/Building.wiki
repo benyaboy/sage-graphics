@@ -1,4 +1,4 @@
-#summary instructions to build and install SAGE on Unix-type systems: Linux, Mac OS X, and Solaris.
+#summary instructions to compile and install SAGE on Unix-type systems: Linux, Mac OS X, and Solaris.
 
 ----
 
