@@ -249,7 +249,8 @@ int sageBridge::initMaster(char *cFile)
    launchSlaves();
    initNetworks();
    
-   audioBridge = new sageAudioBridge(masterIP, audioPort, msgInf, shared);
+   // TEMPORALLY BLOCK, but no problem - H
+   //audioBridge = new sageAudioBridge(masterIP, audioPort, msgInf, shared);
 
    return 0;
 }
@@ -1065,6 +1066,11 @@ void sageBridge::mainLoop()
 
 int main(int argc, char **argv)
 {
+#ifdef WIN32
+   sage::win32Init();
+#endif
+   sage::initUtil();
+   
    sageBridge bridge(argc, argv);
    bridge.mainLoop();
    _exit(0);
