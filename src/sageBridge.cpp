@@ -1067,9 +1067,9 @@ void sageBridge::mainLoop()
 int main(int argc, char **argv)
 {
 #ifdef WIN32
-   sage::win32Init();
+	sage::win32Init();
 #endif
-   sage::initUtil();
+	sage::initUtil();
    
    sageBridge bridge(argc, argv);
    bridge.mainLoop();
