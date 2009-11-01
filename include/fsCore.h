@@ -67,12 +67,14 @@ public:
    int sendAppInfo(int clientID);
    int sendAppInfo(int appID, int clientID);
    int sendDisplayInfo(int clientID);
-   int initDisp();
+   int initDisp(appInExec* app);
    int initAudio();
+
    int windowChanged(int winID);
    int bringToFront(int winID);
    int rotateWindow(char *msgStr);
    void clearAppInstance(int id);
+	appInExec* findApp(int id, int& index);
 };
 
 #endif

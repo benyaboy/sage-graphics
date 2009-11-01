@@ -65,12 +65,22 @@ sageDisplayManager::~sageDisplayManager()
    if (syncServerObj)
       delete syncServerObj;
 
-   for (int i=0; i<MAX_INST_NUM; i++) {
-      if (downloaderList[i])
-         delete downloaderList[i];
-      if (reconfigStr[i])
-         delete [] reconfigStr[i];
-   }
+	std::vector<pixelDownloader*>::iterator iter;
+	std::vector<char*>::iterator iter_str= reconfigStr.begin();
+
+	pixelDownloader* temp_app= NULL;
+	char* temp_str= NULL;
+	for(iter = downloaderList.begin(); iter != downloaderList.end(); iter++, iter_str++)
+	{
+		temp_app = (pixelDownloader*) *iter;
+		if(!temp_app) continue;
+		delete temp_app;
+		temp_str = (char*) *iter_str;
+		if(!temp_str) continue;
+		delete temp_str;
+	}
+	downloaderList.clear();
+	reconfigStr.clear();
 }
 
 sageDisplayManager::sageDisplayManager(int argc, char **argv)
@@ -96,14 +106,6 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
 
    syncPort = atoi(argv[4]);
    displayID = atoi(argv[5]);
-
-   /**
-    * init container
-    */
-   for (int i=0; i<MAX_INST_NUM; i++) {
-      downloaderList[i] = NULL;
-      reconfigStr[i] = NULL;
-   }
 
    /**
     * 0th node (67.58.62.93) will become the syncMaster
@@ -437,12 +439,18 @@ int sageDisplayManager::initStreams(char *msg, streamProtocol *nwObj)
    /**
     * if pixelDownloader object for this application hasn't created before, then create one
 	*/
-   if (downloaderList[instID]) {
-      downloaderList[instID]->addStream(senderID); // EVENT_APP_CONNECTED will be arisen
+	int index;
+	pixelDownloader*  loader = findApp(instID, index);
+	std::cout << "------------- init : " << instID << " " << index << std::endl;
+
+   if (loader) {
+      loader->addStream(senderID); // EVENT_APP_CONNECTED will be arisen
    }
    else {
 	   //creates pixelDownloader if it's not there.
       pixelDownloader *dwloader = new pixelDownloader;
+		int index = downloaderList.size();
+		dwloader->instID = instID;
 
       switch(streamType) {
          case SAGE_BLOCK_NO_SYNC : {
@@ -479,35 +487,74 @@ int sageDisplayManager::initStreams(char *msg, streamProtocol *nwObj)
          }
       }
 
-      if (reconfigStr[instID])
-         dwloader->enqueConfig(reconfigStr[instID]);
+		std::cout << " reconfigStr " << reconfigStr.size() << std::endl;
+		index = reconfigStr.size() -1;
+      if (reconfigStr[index])
+         dwloader->enqueConfig(reconfigStr[index]);
 
       dwloader->addStream(senderID);
-      downloaderList[instID] = dwloader;
+		downloaderList.push_back(dwloader);
+		std::cout << "end----" << std::endl;
    }
 
    return 0;
 }
 
+pixelDownloader* sageDisplayManager::findApp(int id, int& index)
+{
+	pixelDownloader* temp_app= NULL;
+	std::vector<pixelDownloader*>::iterator iter;
+	index = 0;
+	for(iter = downloaderList.begin(); iter != downloaderList.end(); iter++, index)
+	{
+		if ((*iter)->instID == id)
+		{
+			temp_app =(pixelDownloader*) *iter;
+			break;
+		}
+	}
+	return temp_app;
+}
+
 int sageDisplayManager::shutdownApp(int instID)
 {
    bool appShutdown = false;
+	pixelDownloader* temp_app= NULL;
+	char* temp_str= NULL;
 
    if (instID == -1) {
       sage::printLog("sageDisplayManager is shutting down applications");
 
-      for (int i=0; i<MAX_INST_NUM; i++) {
-         if (downloaderList[i]) {
-            delete downloaderList[i];
-            downloaderList[i] = NULL;
-            appShutdown = true;
-         }
-      }
+		std::vector<pixelDownloader*>::iterator iter;
+		std::vector<char*>::iterator iter_str = reconfigStr.begin();
+		for(iter = downloaderList.begin(); iter != downloaderList.end(); iter++,iter_str++)
+		{
+			temp_app =(pixelDownloader*) *iter;
+			delete temp_app;
+			temp_app = NULL;
+			temp_str =(char*) *iter_str;
+			delete temp_str;
+			temp_str = NULL;
+		}
+		if(downloaderList.size() > 0)
+			appShutdown = true;
+		downloaderList.clear();
+		reconfigStr.clear();
    }
-   else if (instID >= 0 && downloaderList[instID]) {
-      delete downloaderList[instID];
-      downloaderList[instID] = NULL;
-      appShutdown = true;
+   else if (instID >= 0) {
+		int index;
+		temp_app = findApp(instID, index);
+		if (temp_app)
+		{
+			delete temp_app;
+			temp_app = NULL;
+			temp_str = (char*) reconfigStr[index];
+			delete temp_str;
+			temp_str = NULL;
+			downloaderList.erase(downloaderList.begin() + index);
+			reconfigStr.erase(reconfigStr.begin() + index);
+      	appShutdown = true;
+		}
    }
 
    if (appShutdown)
@@ -525,19 +572,25 @@ int sageDisplayManager::updateDisplay(char *msg)
    int instID;
    sscanf(msg, "%d", &instID);
    char *updateInfo = sage::tokenSeek(msg, 1);
-   if (downloaderList[instID]) {
-      downloaderList[instID]->enqueConfig(updateInfo);
-      if (downloaderList[instID]->getStatus() == PDL_WAIT_CONFIG)
-         downloaderList[instID]->fetchSageBlocks();
+	int index;
+	pixelDownloader* temp_app = findApp(instID, index);
+
+	if (temp_app) {
+      temp_app->enqueConfig(updateInfo);
+      if (temp_app->getStatus() == PDL_WAIT_CONFIG)
+         temp_app->fetchSageBlocks();
    }
    else {
-      if (reconfigStr[instID]) {
+		/*
+      if (reconfigStr[index]) {
          sage::printLog("sageDisplayManager::updateDisplay : invalid instance ID");
          return -1;
       }
+		*/
 
-      reconfigStr[instID] = new char[strlen(updateInfo)+1];
-      strcpy(reconfigStr[instID], updateInfo);
+		char* str_config = new char[strlen(updateInfo)+1];
+      strcpy(str_config, updateInfo);
+		reconfigStr.push_back(str_config);
    }
 
    return 0;
@@ -545,16 +598,24 @@ int sageDisplayManager::updateDisplay(char *msg)
 
 int sageDisplayManager::clearDisplay(int instID)
 {
-   if (downloaderList[instID])
-      downloaderList[instID]->enqueConfig(CLEAR_STR);
-   else {
+	int index;
+	pixelDownloader*  temp_app = findApp(instID, index);
+
+   if (temp_app)
+	{
+      temp_app->enqueConfig(CLEAR_STR);
+   }
+	else {
+		/*
       if (reconfigStr[instID]) {
          sage::printLog("sageDisplayManager::clearDisplay : invalid instance ID");
          return -1;
       }
+		*/
 
-      reconfigStr[instID] = new char[strlen(CLEAR_STR)+1];
-      strcpy(reconfigStr[instID], CLEAR_STR);
+		char* str_config = new char[strlen(CLEAR_STR)+1];
+      strcpy(str_config, CLEAR_STR);
+		reconfigStr.push_back(str_config);
    }
 }
 
@@ -579,8 +640,10 @@ int sageDisplayManager::changeDepth(sageMessage *msg)
    int numOfChange = atoi(token);
    bool zOrderChange = false;
 
+	int index;
+	pixelDownloader*  temp_app;
+	int instID, zValue;
    for (int i=0; i<numOfChange; i++) {
-      int instID, zValue;
 
       if (tokenNum > 0) {
          tokenNum = getToken(depthStr, token);
@@ -600,9 +663,10 @@ int sageDisplayManager::changeDepth(sageMessage *msg)
          return -1;
       }
 
-      if (downloaderList[instID]) {
+		temp_app = findApp(instID, index);
+      if (temp_app) {
          float depth = 1.0f + zValue - 0.01f*instID;
-         downloaderList[instID]->setDepth(depth);
+         temp_app->setDepth(depth);
          zOrderChange = true;
       }
    }
@@ -632,6 +696,7 @@ int sageDisplayManager::parseEvent(sageEvent *event)
       }
 
       case EVENT_SYNC_MESSAGE : {
+			std::cout << "sync message " << std::endl;
          processSync((char *)event->eventMsg);
          break;
       }
@@ -647,16 +712,25 @@ int sageDisplayManager::parseEvent(sageEvent *event)
 
       case EVENT_READ_BLOCK : {
          int instID = atoi((char *)event->eventMsg);
-         if (0 <= instID && instID < MAX_INST_NUM && downloaderList[instID]) {
-            if (downloaderList[instID]->getStatus() == PDL_WAIT_DATA)
-               downloaderList[instID]->fetchSageBlocks();
+			if (0 > instID) break;
+
+			int index;
+			pixelDownloader*  temp_app = findApp(instID, index);
+			if (temp_app) {
+            if (temp_app->getStatus() == PDL_WAIT_DATA)
+               temp_app->fetchSageBlocks();
          }
          break;
       }
 
 		case EVENT_APP_CONNECTED : {
          int instID = atoi((char *)event->eventMsg);
-         if (0 <= instID && instID < MAX_INST_NUM && downloaderList[instID]) {
+			if (0 > instID) break;
+
+			int index;
+			pixelDownloader*  temp_app = findApp(instID, index);
+
+			if (temp_app) { 
             sendMessage(DISP_APP_CONNECTED, instID);
          }
          break;
@@ -765,10 +839,12 @@ int sageDisplayManager::processSync(char *msg)
    int groupID, syncFrame, dataLen, cmd;
    sscanf(msg, "%d %d %d %d", &groupID, &syncFrame, &dataLen, &cmd);
 
-   if (downloaderList[groupID]) {
-      downloaderList[groupID]->processSync(syncFrame, cmd);
-      if (downloaderList[groupID]->getStatus() == PDL_WAIT_SYNC)
-         downloaderList[groupID]->fetchSageBlocks();
+	int index;
+	pixelDownloader *loader = findApp(groupID, index);
+   if (loader) {
+      loader->processSync(syncFrame, cmd);
+      if (loader->getStatus() == PDL_WAIT_SYNC)
+         loader->fetchSageBlocks();
       //else
       //   sage::printLog("sageDisplayManager::processSync : error in pixel downloader status");
    }
@@ -787,11 +863,17 @@ void sageDisplayManager::mainLoop()
 
 int sageDisplayManager::perfReport()
 {
-   for (int i=0; i<MAX_INST_NUM; i++) {
-      if (downloaderList[i]) {
-         char *frameStr = NULL;
-         char *bandStr = NULL;
-         downloaderList[i]->evalPerformance(&frameStr, &bandStr);
+	std::vector<pixelDownloader*>::iterator iter;
+	pixelDownloader* temp_app= NULL;
+	char *frameStr = NULL;
+	char *bandStr = NULL;
+	for (iter =downloaderList.begin(); iter != downloaderList.end(); iter++) {
+		temp_app = (pixelDownloader*) *iter;
+
+		if (temp_app) {
+         frameStr = NULL;
+         bandStr = NULL;
+         temp_app->evalPerformance(&frameStr, &bandStr);
          if (frameStr) {
             sendMessage(DISP_RCV_FRATE_RPT, frameStr);
             //std::cout << "send frame rate " << frameStr << std::endl;
@@ -817,7 +899,8 @@ int sageDisplayManager::startPerformanceReport(sageMessage *msg)
 
    //std::cout << "start perf report " << rate << std::endl;
 
-   pixelDownloader *loader = downloaderList[instID];
+	int index;
+	pixelDownloader *loader = findApp(instID, index);
    if (loader) {
       //loader->setReportRate(rate);
       //loader->resetTimer();
@@ -837,7 +920,9 @@ int sageDisplayManager::stopPerformanceReport(sageMessage *msg)
 /*
    int instID = atoi((char *)msg->getData());
 
-   pixelDownloader *loader = downloaderList[instID];
+	int index;
+	pixelDownloader *loader = findApp(instID, index);
+
    if (loader) {
       loader->setReportRate(0);
    }

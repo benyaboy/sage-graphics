@@ -67,6 +67,8 @@ public:
 };
 
 class appInstance : public appInExec {
+public:
+   int instID;
 protected:
    bridgeSharedData *shared;
    sagePixelReceiver *recv;
@@ -77,7 +79,6 @@ protected:
    streamerConfig sConfig;
    
    bool initialized;
-   int instID;
    int nodeNum;
    int blockSize, groupSize;
    int blockX, blockY;

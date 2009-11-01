@@ -107,8 +107,9 @@ public:
  * \brief class pixelDownloader (per application). It reads pixel data from buffer and downloads into texture memory.
  */
 class pixelDownloader {
-protected:
+public:
    int instID;
+protected:
    int streamNum;
    int tileNum;
    int updatedFrame, curFrame, syncFrame;
