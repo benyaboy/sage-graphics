@@ -82,7 +82,7 @@ protected:
    int slaveList[MAX_BRIDGE_NODE];
    
    messageInterface *msgInf;
-   appInstance *appInstList[MAX_INST_NUM];
+   std::vector<appInstance*> appInstList;
    int instNum;
    sageSyncServer *syncServerObj;   
    //sageSyncClient *syncClientObj;
@@ -98,6 +98,8 @@ protected:
    int connectApp(appInstance *inst);
    int sendStreamInfo(appInstance *inst);
    
+	appInstance* findApp(int id, int& index);
+
    int connectToFSManager(appInstance *inst);
    int connectToFSManager(appInstance *inst, char *ip, int port);
    syncGroup* addSyncGroup();

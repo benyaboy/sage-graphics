@@ -54,6 +54,8 @@ class connectionInfo;
  * class displayInstance
  */
 class displayInstance {
+public:
+   int winID;
 private:
    fsManager *fsm;
    appInExec *appExec;
@@ -62,7 +64,6 @@ private:
    std::vector<int> receiverList;
    streamGroup streamGrp;
 
-   int winID;
    int tileNum;
    int dispNodeNum;
    int streamNum;
@@ -90,7 +91,7 @@ private:
    int shutdownApp();
    
 public:
-   displayInstance(fsManager *f, int id);
+   displayInstance(fsManager *f, int id, appInExec* app);
    ~displayInstance() {}
    int getReceiverNum() { return receiverList.size(); }
    int getReceiver(int i) { return receiverList[i]; }

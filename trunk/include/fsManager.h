@@ -81,6 +81,8 @@ private:
    fsCore *core;
    fsServer *server;
 
+	int m_execIndex;
+
    rcvInfo rInfo;
    sageNwConfig *nwInfo;
    std::vector<appInExec *> execList;

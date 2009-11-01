@@ -56,6 +56,7 @@ fsManager::fsManager() : NRM(false), fsmClose(false), globalSync(true), useLocal
    
    winTime = 100;
    winStep = 0;
+	m_execIndex = 0;
 }
 
 fsManager::~fsManager()
@@ -357,17 +358,28 @@ int fsManager::msgToDisp(sageMessage &msg, int clientID)
       getToken((char *)msg.getData(), token);
       int winId = atoi(token);
       //      std::cout << "disp message win id " << winId << std::endl;
-      if (winId >= dispNum) {
-         sage::printLog("fsManager::msgToDisp : window ID is out of scope");
-         return -1;
-      }
+      //if (winId >= dispNum) {
+      //   sage::printLog("fsManager::msgToDisp : window ID is out of scope");
+      //   return -1;
+      //}
          
-      if (!dispList[winId]) {
+		displayInstance* disp = NULL;
+		std::vector<displayInstance*>::iterator iter_disp;
+		for(iter_disp = dispList.begin(); iter_disp != dispList.end(); iter_disp++)
+		{
+			if ((*iter_disp)->winID == winId)
+			{
+				disp = (displayInstance*) *iter_disp;
+				break;
+			}
+		}
+
+		if (!disp) {
          sage::printLog("fsManager::msgToDisp : window %d doesn't exist", winId);
          return -1;
       }
    
-      return dispList[winId]->parseMsg(msg);
+		return disp->parseMsg(msg);
    }
       
    return 0;

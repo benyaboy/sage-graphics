@@ -79,8 +79,8 @@ private:
    sageSyncServer *syncServerObj; /**< instantiated if syncMaster is true */
 
    //sageReceiver *receiverList[MAX_INST_NUM];
-   pixelDownloader *downloaderList[MAX_INST_NUM]; /**< pixelDownloader object for each application */
-   char *reconfigStr[MAX_INST_NUM];
+   std::vector<pixelDownloader *> downloaderList; /**< pixelDownloader object for each application */
+   std::vector<char *> reconfigStr;
 
    int syncPort; /**< syncServer's port */
    int streamPort;
@@ -176,6 +176,8 @@ private:
 	* It keeps sending EVENT_REFRESH_SCREEN event. it causes calling sageDisplay::updateScreen()
 	*/
    static void* refreshThread(void *args);
+
+	pixelDownloader* findApp(int id, int& index);
 
 public:
    /**
