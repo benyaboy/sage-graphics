@@ -140,6 +140,7 @@ void fsCore::clearAppInstance(int id)
       }
    }	
 
+	fsm->m_execIDList[id] = 0;
    // release data structure
   	delete app;
 	app = NULL;
@@ -152,6 +153,16 @@ void fsCore::clearAppInstance(int id)
    }
 	//std::cout << "FsCore : " << id << " app instance is cleared (index:  " << index << ")" << std::endl;	
 
+}
+
+int fsCore::getAvailableInstID(void)
+{
+	for(int i=0; i<MAX_INST_NUM; i++)
+	{
+		if (fsm->m_execIDList[i] == 0)
+			return i;
+	}
+	return -1;
 }
 
 appInExec* fsCore::findApp(int id, int& index)
@@ -212,7 +223,12 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
 
          char sailInitMsg[TOKEN_LEN];
          memset(sailInitMsg, 0, TOKEN_LEN);
+
+			fsm->m_execIndex = getAvailableInstID();
+			fsm->m_execIDList[fsm->m_execIndex] = 1;
 			app->fsInstID  = fsm->m_execIndex;
+			std::cout << "[fsCore::parseMessage] inst id : " << app->fsInstID << std::endl;
+
          sprintf(sailInitMsg, "%d %d %d %d", fsm->m_execIndex, fsm->nwInfo->rcvBufSize,
                fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize);
          
@@ -250,7 +266,7 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
                
             //windowChanged(fsm->execList.size()-1);
             //bringToFront(fsm->execList.size()-1);
-				fsm->m_execIndex++;
+				//fsm->m_execIndex++;
          }   
          
          break;
@@ -1229,7 +1245,7 @@ int fsCore::bringToFront(int winID)
          continue;
 
       displayInstance *disp = fsm->dispList[i];
-      if (i != winID)
+      if (app->fsInstID != winID)
          disp->increaseZ();
       else
          disp->setZValue(0);

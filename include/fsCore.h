@@ -75,6 +75,8 @@ public:
    int rotateWindow(char *msgStr);
    void clearAppInstance(int id);
 	appInExec* findApp(int id, int& index);
+	int getAvailableInstID(void);
+
 };
 
 #endif
