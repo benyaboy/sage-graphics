@@ -208,6 +208,11 @@ int fsManager::init(char *conf_file)
          tokenIdx = getToken(fileFsConf, token);
    }
 
+	for(int i=0; i<MAX_INST_NUM; i++)
+	{
+		m_execIDList[i] = 0;
+	}
+
    server = new fsServer;
    server->init(this);
 

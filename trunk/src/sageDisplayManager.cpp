@@ -505,7 +505,7 @@ pixelDownloader* sageDisplayManager::findApp(int id, int& index)
 	pixelDownloader* temp_app= NULL;
 	std::vector<pixelDownloader*>::iterator iter;
 	index = 0;
-	for(iter = downloaderList.begin(); iter != downloaderList.end(); iter++, index)
+	for(iter = downloaderList.begin(); iter != downloaderList.end(); iter++, index++)
 	{
 		if ((*iter)->instID == id)
 		{

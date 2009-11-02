@@ -82,6 +82,7 @@ private:
    fsServer *server;
 
 	int m_execIndex;
+	int m_execIDList[MAX_INST_NUM];
 
    rcvInfo rInfo;
    sageNwConfig *nwInfo;
