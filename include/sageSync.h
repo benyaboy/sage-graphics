@@ -197,6 +197,7 @@ protected:
    fd_set slaveFds;
 
    pthread_t   syncThreadID;
+   pthread_t   groupThreadID;
    std::vector<syncSlaveData> syncSlaves; /**< a list of sync slaves */
    //syncGroup *syncGroupArray[MAX_SYNC_GROUP]; /**< an array of sync groups */
    std::vector<syncGroup *> syncGroupArray; /**< an array of sync groups */
@@ -217,6 +218,7 @@ protected:
     * The period is defined in the syncGroup.interval
     */
    static void* managerThread(void*);
+   static void* managerConstantThread(void*);
 
    /**
     * It seems that each syncGroup has corresponding managerThread.<BR>

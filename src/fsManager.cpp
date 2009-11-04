@@ -56,7 +56,7 @@ fsManager::fsManager() : NRM(false), fsmClose(false), globalSync(true), useLocal
    
    winTime = 100;
    winStep = 0;
-	m_execIndex = 0;
+	m_execIndex = 200;
 }
 
 fsManager::~fsManager()
