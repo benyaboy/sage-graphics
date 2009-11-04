@@ -106,7 +106,8 @@ montagePair::~montagePair()
 pixelDownloader::pixelDownloader() : reportRate(1), updatedFrame(0), curFrame(0), recv(NULL),
    streamNum(0), bandWidth(0), montageList(NULL), configID(0), frameCheck(false),
    syncFrame(0), updateType(SAGE_UPDATE_FOLLOW), activeRcvs(0), passiveUpdate(false),
-   dispConfigID(0), displayActive(false), status(PDL_WAIT_DATA), frameBlockNum(0), frameSize(0)
+   dispConfigID(0), displayActive(false), status(PDL_WAIT_DATA), frameBlockNum(0), frameSize(0),
+	m_initialized(false)
 {
    perfTimer.reset();
 }
@@ -143,6 +144,7 @@ int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, 
 
    blockBuf = new sageBlockBuf(shared->bufSize, groupSize, blockSize, BUF_MEM_ALLOC | BUF_CTRL_GROUP);
    recv = new sagePixelReceiver(msg, (rcvSharedData *)shared, nwObj, blockBuf);
+	m_initialized = true;
 
    return 0;
 }

@@ -440,19 +440,23 @@ int sageDisplayManager::initStreams(char *msg, streamProtocol *nwObj)
     * if pixelDownloader object for this application hasn't created before, then create one
 	*/
 	int index;
-	pixelDownloader*  loader = findApp(instID, index);
-	std::cout << "------------- init : " << instID << " " << index << std::endl;
+	pixelDownloader*  dwloader = findApp(instID, index);
 
-   if (loader) {
-      loader->addStream(senderID); // EVENT_APP_CONNECTED will be arisen
+   if (dwloader) {
+		if (dwloader->isInitialized() == true)  {
+      	dwloader->addStream(senderID); // EVENT_APP_CONNECTED will be arisen
+			return 0;
+		}
    }
    else {
-	   //creates pixelDownloader if it's not there.
-      pixelDownloader *dwloader = new pixelDownloader;
-		int index = downloaderList.size();
+		dwloader = new pixelDownloader;
 		dwloader->instID = instID;
+		downloaderList.push_back(dwloader);
+		reconfigStr.push_back(NULL);
+		index = downloaderList.size()-1;
+	}
 
-      switch(streamType) {
+	switch(streamType) {
          case SAGE_BLOCK_NO_SYNC : {
             sage::printLog("stream type : SAGE_BLOCK_NO_SYNC");
             dwloader->init(msg, shared, nwObj, false);
@@ -485,18 +489,12 @@ int sageDisplayManager::initStreams(char *msg, streamProtocol *nwObj)
             }
             break;
          }
-      }
+	}
 
-		std::cout << " reconfigStr " << reconfigStr.size() << std::endl;
-		index = reconfigStr.size() -1;
-      if (reconfigStr[index])
-         dwloader->enqueConfig(reconfigStr[index]);
+	if (reconfigStr[index])
+		dwloader->enqueConfig(reconfigStr[index]);
 
-      dwloader->addStream(senderID);
-		downloaderList.push_back(dwloader);
-		std::cout << "end----" << std::endl;
-   }
-
+	dwloader->addStream(senderID);
    return 0;
 }
 
@@ -554,6 +552,7 @@ int sageDisplayManager::shutdownApp(int instID)
 			downloaderList.erase(downloaderList.begin() + index);
 			reconfigStr.erase(reconfigStr.begin() + index);
       	appShutdown = true;
+			//shared->displayObj->onAppShutdown(instID);
 		}
    }
 
@@ -587,6 +586,9 @@ int sageDisplayManager::updateDisplay(char *msg)
          return -1;
       }
 		*/
+		pixelDownloader *dwloader = new pixelDownloader;
+		dwloader->instID = instID;
+		downloaderList.push_back(dwloader);
 
 		char* str_config = new char[strlen(updateInfo)+1];
       strcpy(str_config, updateInfo);
@@ -612,6 +614,9 @@ int sageDisplayManager::clearDisplay(int instID)
          return -1;
       }
 		*/
+		pixelDownloader *dwloader = new pixelDownloader;
+		dwloader->instID = instID;
+		downloaderList.push_back(dwloader);
 
 		char* str_config = new char[strlen(CLEAR_STR)+1];
       strcpy(str_config, CLEAR_STR);
@@ -696,7 +701,6 @@ int sageDisplayManager::parseEvent(sageEvent *event)
       }
 
       case EVENT_SYNC_MESSAGE : {
-			std::cout << "sync message " << std::endl;
          processSync((char *)event->eventMsg);
          break;
       }

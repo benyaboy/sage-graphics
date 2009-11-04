@@ -882,8 +882,8 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          int numOfChange = atoi(token);
 
 			int index =0;
+         int appID, zValue;
          for (int i=0; i<numOfChange; i++) {
-            int appID, zValue;
             
             if (tokenNum > 0) {
                tokenNum = getToken((char *)msg.getData(), token);
