@@ -528,7 +528,8 @@ int sageDisplayManager::shutdownApp(int instID)
 		for(iter = downloaderList.begin(); iter != downloaderList.end(); iter++,iter_str++)
 		{
 			temp_app =(pixelDownloader*) *iter;
-			syncServerObj->removeSyncGroup(temp_app->instID);
+			if (syncMaster) 
+				syncServerObj->removeSyncGroup(temp_app->instID);
 			delete temp_app;
 			temp_app = NULL;
 			temp_str =(char*) *iter_str;
@@ -554,7 +555,8 @@ int sageDisplayManager::shutdownApp(int instID)
 			reconfigStr.erase(reconfigStr.begin() + index);
       	appShutdown = true;
 			//shared->displayObj->onAppShutdown(instID);
-			syncServerObj->removeSyncGroup(instID);
+			if (syncMaster) 
+				syncServerObj->removeSyncGroup(instID);
 		}
    }
 
