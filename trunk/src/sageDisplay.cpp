@@ -531,6 +531,7 @@ int sageDisplay::updateScreen()
             //   std::cerr << "LL " << texX << " , " << texY << " , " ;
             glTexCoord2f(texX, texY);
             glVertex3f(mon->left, mon->bottom, depth);
+				//std::cout << " drawing... " << mon->left <<  " " << mon->bottom << " " << depth << std::endl;
 
             mon->texCoord.genTexCoord(LOWER_RIGHT, texX, texY);
             //   std::cerr << "LR " << texX << " , " << texY << " , " ;

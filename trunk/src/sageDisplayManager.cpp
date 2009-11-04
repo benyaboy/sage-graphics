@@ -528,6 +528,7 @@ int sageDisplayManager::shutdownApp(int instID)
 		for(iter = downloaderList.begin(); iter != downloaderList.end(); iter++,iter_str++)
 		{
 			temp_app =(pixelDownloader*) *iter;
+			syncServerObj->removeSyncGroup(temp_app->instID);
 			delete temp_app;
 			temp_app = NULL;
 			temp_str =(char*) *iter_str;
@@ -553,6 +554,7 @@ int sageDisplayManager::shutdownApp(int instID)
 			reconfigStr.erase(reconfigStr.begin() + index);
       	appShutdown = true;
 			//shared->displayObj->onAppShutdown(instID);
+			syncServerObj->removeSyncGroup(instID);
 		}
    }
 
@@ -670,7 +672,8 @@ int sageDisplayManager::changeDepth(sageMessage *msg)
 
 		temp_app = findApp(instID, index);
       if (temp_app) {
-         float depth = 1.0f + zValue - 0.01f*instID;
+         float depth = 1.0f + zValue - 0.01f*index;
+         //float depth = 1.0f + zValue;
          temp_app->setDepth(depth);
          zOrderChange = true;
       }

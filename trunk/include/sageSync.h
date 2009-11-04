@@ -198,7 +198,8 @@ protected:
 
    pthread_t   syncThreadID;
    std::vector<syncSlaveData> syncSlaves; /**< a list of sync slaves */
-   syncGroup *syncGroupArray[MAX_SYNC_GROUP]; /**< an array of sync groups */
+   //syncGroup *syncGroupArray[MAX_SYNC_GROUP]; /**< an array of sync groups */
+   std::vector<syncGroup *> syncGroupArray; /**< an array of sync groups */
 
    /**
     * waits syncClient's connection by calling accept() syscall<br>
@@ -238,6 +239,8 @@ protected:
    int sendSync(syncGroup *grp, int cmd = NORMAL_SYNC);
    sageTimer timer;
 
+	syncGroup* findSyncGroup(int id, int& index);
+
 public:
 	/**
 	 *  Constructor. Called in sageDisplayManager::sageDisplayManager() and sail::init()
@@ -256,6 +259,8 @@ public:
     * triggered by sageDisplayManager::initStreams() and sail
     */
    int addSyncGroup(syncGroup *grp);
+
+   int removeSyncGroup(int id);
 
    void killAllClients();  /**< closes all the open client sockets */
    int checkTimeOut();
@@ -283,7 +288,8 @@ class sageSyncClient {
 private:
    int clientSockFd;
    int maxGroupID;
-   sageCircBufSingle *syncMsgBuf[MAX_SYNC_GROUP];
+   //sageCircBufSingle *syncMsgBuf[MAX_SYNC_GROUP];
+   std::vector<sageCircBufSingle *> syncMsgBuf;
    bool syncEnd;
    pthread_t syncThreadID;
 
@@ -299,6 +305,8 @@ private:
     * This function is continuously called by syncClientThread().
 	*/
    int readSyncMsg();
+
+	sageCircBufSingle* findSyncGroup(int id, int& index);
 
 public:
    /**
