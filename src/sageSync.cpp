@@ -490,7 +490,7 @@ int sageSyncServer::removeSyncGroup(int id)
 	syncGroup* grp= findSyncGroup(id, index);
 	if(grp)
 	{
-		std::cout << "sageSyncServer: found... trying to kill... thread.." << std::endl;
+		//std::cout << "sageSyncServer: found... trying to kill... thread.." << std::endl;
 		// kill thread... 
 		grp->syncEnd = true;
 		pthread_join(grp->threadID, NULL);
@@ -519,7 +519,7 @@ int sageSyncServer::addSyncGroup(syncGroup *grp)
       return -1;
    }
 
-	std::cout << "sageSyncServer: Add Sync Group : " << grp->id << std::endl;
+	//std::cout << "sageSyncServer: Add Sync Group : " << grp->id << std::endl;
 	maxSyncGroupID = MAX(grp->id, maxSyncGroupID);
 
    if (grp->policy == SAGE_CONSTANT_SYNC) {
@@ -896,11 +896,12 @@ int sageSyncClient::removeSyncGroup(int id)
 	sageCircBufSingle* buf = findSyncGroup(id, index);
 	if(buf) 
 	{
+		//std::cout << "sageSyncClient: found... trying to kill... thread.." << std::endl;
 		buf->releaseLock();
 		delete buf;
 		buf = NULL;
 		syncMsgBuf.erase(syncMsgBuf.begin() + index);
-		std::cout << "sageSyncClient: found... trying to kill... thread.." << std::endl;
+		//std::cout << "...." << std::endl;
 	}
    //if (syncMsgBuf[id])
    //   syncMsgBuf[id]->releaseLock();
