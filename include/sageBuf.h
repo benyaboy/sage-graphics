@@ -111,12 +111,15 @@ public:
  * instantiated in sageBlockBuf
  */
 class sageCircBufSingle : public sageBuf {
+public:
+	int instID;
+
 protected:
    bool blocking;
    bool active;
 
 public:
-   sageCircBufSingle(int len, bool blkRead) : blocking(blkRead), active(true)
+   sageCircBufSingle(int len, bool blkRead) : blocking(blkRead), active(true), instID(-1)
       { initArray(len); }
 	bool pushBack(sageBufEntry entry);
    sageBufEntry front();

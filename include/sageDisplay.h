@@ -122,8 +122,10 @@ class sageDisplay {
 protected:
    displayContext *context;
    sageDisplayConfig configStruct;
+
    sageMontage*       montages[MAX_TILES_PER_NODE][MAX_MONTAGE_NUM];
    int noOfMontages[MAX_TILES_PER_NODE];
+
    int tileNum;
    bool dirty;
    sageDraw drawObj;

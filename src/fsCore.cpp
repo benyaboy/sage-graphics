@@ -224,8 +224,8 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          char sailInitMsg[TOKEN_LEN];
          memset(sailInitMsg, 0, TOKEN_LEN);
 
-			fsm->m_execIndex = getAvailableInstID();
-			fsm->m_execIDList[fsm->m_execIndex] = 1;
+			//fsm->m_execIndex = getAvailableInstID();
+			//fsm->m_execIDList[fsm->m_execIndex] = 1;
 			app->fsInstID  = fsm->m_execIndex;
 			std::cout << "[fsCore::parseMessage] inst id : " << app->fsInstID << std::endl;
 
@@ -266,7 +266,7 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
                
             //windowChanged(fsm->execList.size()-1);
             //bringToFront(fsm->execList.size()-1);
-				//fsm->m_execIndex++;
+				fsm->m_execIndex++;
          }   
          
          break;
