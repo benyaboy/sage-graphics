@@ -120,6 +120,7 @@ protected:
    bool syncOn; /**< whether we ensure sync b/w tiles or not */
    bool displayActive;
    int  status; /**< PDL_WAIT_CONFIG 1, PDL_WAIT_DATA 2, and PDL_WAIT_SYNC 3*/
+	bool m_initialized;
 
    sagePixelReceiver *recv; /**< sagePixelReceiver */
    sageBlockBuf *blockBuf; /**< sageBlockBuf */
@@ -209,6 +210,7 @@ public:
    inline void resetFrame() { frameCounter.reset(); }
    inline int getInstID() { return instID; }
    inline int getStatus() { return status; }
+	bool isInitialized(void) { return m_initialized; }
 
    ~pixelDownloader();
 };
