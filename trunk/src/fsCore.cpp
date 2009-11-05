@@ -140,7 +140,8 @@ void fsCore::clearAppInstance(int id)
       }
    }	
 
-	fsm->m_execIDList[id] = 0;
+	// RE-GENERATING ID (1/2) 
+	//fsm->m_execIDList[id] = 0;
    // release data structure
   	delete app;
 	app = NULL;
@@ -224,6 +225,7 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          char sailInitMsg[TOKEN_LEN];
          memset(sailInitMsg, 0, TOKEN_LEN);
 
+			// RE-GENERATING ID (2/2) 
 			//fsm->m_execIndex = getAvailableInstID();
 			//fsm->m_execIDList[fsm->m_execIndex] = 1;
 			app->fsInstID  = fsm->m_execIndex;
