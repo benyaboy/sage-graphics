@@ -792,6 +792,7 @@ sageSyncServer :: ~sageSyncServer()
 
    //wait for the thread to quit
    pthread_join(syncThreadID, NULL);
+	pthread_join(groupThreadID, NULL);
 
 } // End of ~sageSyncServer()
 
@@ -875,17 +876,14 @@ int sageSyncClient::connectToServer(char *syncServIP, int port)
 
 int sageSyncClient::addSyncGroup(int id)
 {
-	/*
-   if (id < 0 || id >= MAX_SYNC_GROUP) {
+   if (id < 0) {
       sage::printLog("sageSyncClient::addSyncGroup : group ID is out of scope");
       return -1;
    }
-	*/
 
    sageCircBufSingle* buf = new sageCircBufSingle(SYNC_MSG_BUF_LEN, true);
 	buf->instID = id;
    syncMsgBuf.push_back(buf);
-	std::cout << "sageSync client ... add sync group " << std::endl;
 
    if (maxGroupID < 0) {
       maxGroupID = id;
@@ -908,23 +906,21 @@ int sageSyncClient::addSyncGroup(int id)
 
 int sageSyncClient::removeSyncGroup(int id)
 {
-	/*
-   if (id < 0 || id > maxGroupID) {
+   if (id < 0) {
       sage::printLog("sageSyncClient::removeSyncGroup : group ID is out of scope");
       return -1;
    }
-	*/
 
 	int index;
 	sageCircBufSingle* buf = findSyncGroup(id, index);
 	if(buf) 
 	{
-		std::cout << "sageSyncClient: found... trying to kill... thread.." << std::endl;
+		//std::cout << "sageSyncClient: found... trying to kill... thread.." << std::endl;
 		buf->releaseLock();
 		delete buf;
 		buf = NULL;
 		syncMsgBuf.erase(syncMsgBuf.begin() + index);
-		std::cout << "...." << std::endl;
+		//std::cout << "...." << std::endl;
 	}
    //if (syncMsgBuf[id])
    //   syncMsgBuf[id]->releaseLock();
@@ -1039,17 +1035,15 @@ int sageSyncClient::readSyncMsg()
 // receive sync message with group ID and additional data
 syncMsgStruct* sageSyncClient::waitForSync(int id)
 {
-   /*
-	if (id < 0 || id >= MAX_SYNC_GROUP) {
+	if (id < 0) {
       sage::printLog("sageSyncClient::waitForSync : group ID is out of scope");
       return NULL;
    }
-	*/
 
    //sageCircBufSingle *msgBuf = syncMsgBuf[id];
 	int index;
    sageCircBufSingle *msgBuf = findSyncGroup(id, index);
-	std::cout << "wait for sync : " << id << " " << index << std::endl;
+	//std::cout << "wait for sync : " << id << " " << index << std::endl;
 
    if (msgBuf) {
       syncMsgStruct *syncMsg = (syncMsgStruct *)msgBuf->front();
