@@ -397,6 +397,10 @@ int pixelDownloader::fetchSageBlocks()
    // fetch block data from the block buffer
    sageBlockGroup *sbg;
 
+	// will use this instead of END_FRAME flag
+	bool useLastBlock = true; // must be TCP
+	bool proceedSwap = false;
+
    while (sbg = blockBuf->front()) {
 
 	   if ( syncOn && (sbg->getFrameID() > syncFrame + 1) ) {
@@ -404,8 +408,11 @@ int pixelDownloader::fetchSageBlocks()
 		   return status;
 	   }
 
-      //std::cout << "get block group" << std::endl;
-      if (sbg->getFlag() == sageBlockGroup::END_FRAME) {
+		 //
+		 // pixelReceiver received entire frame
+		 //
+			 /** lastblock used
+		 if (sbg->getFlag() == sageBlockGroup::END_FRAME) { // END_FRAME flag is set at the sagePixelReceiver::readData()
          updatedFrame = curFrame;
          frameCounter++;
 
@@ -440,7 +447,8 @@ int pixelDownloader::fetchSageBlocks()
             swapMontages();
          }
       }
-      else if (sbg->getFlag() == sageBlockGroup::CONFIG_UPDATE) {
+      */
+      if (sbg->getFlag() == sageBlockGroup::CONFIG_UPDATE) {
          if (configID < sbg->getConfigID()) {
             if (reconfigDisplay(sbg->getConfigID()))
                configID = sbg->getConfigID();
@@ -451,46 +459,151 @@ int pixelDownloader::fetchSageBlocks()
          }
       }
       else if (sbg->getFlag() == sageBlockGroup::PIXEL_DATA && sbg->getFrameID() > updatedFrame) {
-         if (configID < sbg->getConfigID()) {
-            if (reconfigDisplay(sbg->getConfigID()))
-               configID = sbg->getConfigID();
-            else {
-               status = PDL_WAIT_CONFIG;
-               return status;
-            }
-         }
+    	  if (configID < sbg->getConfigID()) {
+    		  if (reconfigDisplay(sbg->getConfigID()))
+    			  configID = sbg->getConfigID();
+    		  else {
+    			  status = PDL_WAIT_CONFIG;
+    			  return status;
+    		  }
+    	  }
 
-         bandWidth += sbg->getDataSize() + GROUP_HEADER_SIZE;
-         curFrame = sbg->getFrameID();
-         frameBlockNum += sbg->getBlockNum();
+    	  bandWidth += sbg->getDataSize() + GROUP_HEADER_SIZE;
+    	  curFrame = sbg->getFrameID();
+    	  frameBlockNum += sbg->getBlockNum();
 
-         for (int i=0; i<sbg->getBlockNum(); i++) {
-            sagePixelBlock *block = (*sbg)[i];
+    	  for (int i=0; i<sbg->getBlockNum(); i++) {
+    		  sagePixelBlock *block = (*sbg)[i];
 
-            if (!block)
-               continue;
+    		  if (!block)
+    			  continue;
 
-            //std::cout << "block header " << (char *)block->getBuffer() << std::endl;
+    		  //std::cout << "block header " << (char *)block->getBuffer() << std::endl;
 
-            blockMontageMap *map = (blockMontageMap *)partition->getBlockMap(block->getID());
-            int bx = block->x, by = block->y;
+    		  blockMontageMap *map = (blockMontageMap *)partition->getBlockMap(block->getID());
+    		  int bx = block->x, by = block->y;
 
-            while(map) {
-               block->translate(map->x, map->y);
-               //std::cout << "block montage " << map->infoID << " id " << block->getID() << " pos " << block->x << " , " << block->y << std::endl;
-               downloadPixelBlock(block, montageList[map->infoID]);
-               block->x = bx;
-               block->y = by;
-               map = (blockMontageMap *)map->next;
-            }
-            //std::cout << "download block " << block->getID() << std::endl;
-         }
+    		  while(map) {
+    			  block->translate(map->x, map->y);
+    			  //std::cout << "block montage " << map->infoID << " id " << block->getID() << " pos " << block->x << " , " << block->y << std::endl;
+    			  downloadPixelBlock(block, montageList[map->infoID]);
+    			  block->x = bx;
+    			  block->y = by;
+    			  map = (blockMontageMap *)map->next;
+    		  }
+    	  } // end of foreach block
+
+    	  if ( partition && frameBlockNum >= partition->tableEntryNum() ) { // whole frame received
+    		  useLastBlock = true; // setting flag for swapMontages to be executed, since END_FRAME
+    		  proceedSwap = true;
+    	  }
+    	  else {
+    		  useLastBlock = false;
+    	  }
       }
-      else
-         sage::printLog("pixelDownloader::fetchSageBlocks : invalid block order");
 
-      blockBuf->next();
-      blockBuf->returnBG(sbg);
+
+		//
+		// if UDP, lastBlock checking method could fail when a block is dropped, END_FRAME flag is used in that case
+		//
+		else if (sbg->getFlag() == sageBlockGroup::END_FRAME) { // END_FRAME flag is set at the sagePixelReceiver::readData()
+			//fprintf(stderr, "[%d,%d] PDL::fetch() : END_FRAME; updF %d, curF %d, syncF %d\n", shared->nodeID, instID, updatedFrame, curFrame, syncFrame);
+
+			if ( updatedFrame == curFrame ) {
+				// already swapMontage-ed, do nothing
+				// if syncOn then, updatedF == curF == synchF
+			}
+			else if ( updatedFrame > curFrame ) {
+				// something is badly wrong
+				fprintf(stderr,"[%d,%d] PDL::fetch() : END_FRAME flag!!! FATAL_ERROR!!! curF %d, updF %d, syncF %d\n", shared->nodeID, instID, curFrame, updatedFrame, syncFrame);
+			}
+			else {
+#ifdef DEBUG_PDL
+				fprintf(stderr,"[%d,%d] PDL::fetch() : END_FRAME flag!!! Before proceeding, curF %d, updF %d, syncF %d\n", shared->nodeID, instID, curFrame, updatedFrame, syncFrame);
+#endif
+				proceedSwap = true;
+				useLastBlock = false;
+			}
+		}
+
+		//
+		// unexpected case
+		//
+		else {
+			//sage::printLog("\n[%d,%d] PDL::fetch() : invalid block order.",shared->nodeID, instID);
+#ifdef DEBUG_PDL
+			fprintf(stderr, "\tcurF %d, updF %d, syncF %d, curF %d, cfgID %d\n",curFrame, updatedFrame, syncFrame, configID);
+			fprintf(stderr, "\tsbg->getFlag() %d, sbg->getFrameID() %d, sbg->getConfigID() %d\n", sbg->getFlag(), sbg->getFrameID(), sbg->getConfigID());
+			fflush(stderr);
+#endif
+		}
+
+
+		// to fix END_FRAME recognition.
+		// Originally, frame n is recognized as complete (END_FRAME) when blocks of frame n+1 is received
+		// This causes frame being displayed is always behind actual config ->  config l is applied but frame l-1 is displayed
+		if ( proceedSwap ) {
+			proceedSwap = false;
+			// now the most recent frame I got(curFrame) becomes updateFrame.
+			// this means that because of swapMontages() curFrames will become front montage which means it can be displayed
+			// therefore, it's updatedFrame
+			updatedFrame = curFrame;
+#ifdef DEBUG_PDL
+			if (useLastBlock)
+				//fprintf(stderr,"[%d,%d] PDL::fetch() : !!! ProceedSwap !!! using LastBlock fBN %d of %d; updF %d, syncF %d, cfID %d\n", shared->nodeID, instID, frameBlockNum, partition->tableEntryNum(), updatedFrame, syncFrame, configID);
+      else
+				fprintf(stderr,"[%d,%d] PDL::fetch() : !!! ProceedSwap !!! using END_FRAME fBN %d of %d; updF %d, syncF %d, cfID %d\n", shared->nodeID, instID, frameBlockNum, partition->tableEntryNum(), updatedFrame, syncFrame, configID);
+			fflush(stderr);
+#endif
+			frameCounter++;
+
+			// calculate packet loss
+			packetLoss += frameSize-(frameBlockNum*blockSize);
+			frameBlockNum = 0; //reset
+			//actualFrameBlockNum = 0;
+
+			if (syncOn) {
+				if ( updatedFrame > syncFrame) {
+					// if this is the case, I'm too fast. I must wait for others
+
+#ifdef DELAY_COMPENSATION
+					shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, shared->latency, shared->current_max_inst_num);
+#else
+					shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, 0, shared->current_max_inst_num);
+#endif
+					updateType = SAGE_UPDATE_FOLLOW;
+					status = PDL_WAIT_SYNC;
+
+					blockBuf->next();
+					blockBuf->returnBG(sbg);
+
+					return status;
+				}
+				else if ( updatedFrame == syncFrame ) {
+#ifdef DEBUG_PDL
+					fprintf(stderr, "\nPDL::fetch() : [%d,%d] updatedFrame == synchFrame %d, don't we need swapMontages() ? \n", syncFrame);
+					fflush(stderr);
+#endif
+					//swapMontages();
+				}
+				else {
+					fprintf(stderr, "\nPDL::fetch() : [%d,%d] FatalError! updF %d , syncF %d\n", shared->nodeID, instID, updatedFrame, syncFrame);
+					fflush(stderr);
+				}
+			}
+			else {
+#ifdef DEBUG_PDL
+				//fprintf(stderr, "[%d,%d] PDL::fetch() : NO_SYNC; swapMont() frame %d, config %d\n\n", shared->nodeID, instID, updatedFrame, configID);
+				//fflush(stderr);
+#endif
+				swapMontages();
+			}
+		} // end of if(isLastBlock)
+
+
+		blockBuf->next();
+		blockBuf->returnBG(sbg); // pushback this grp to blockBuf's dataPool (if PIXEL_DATA) or ctrlPool
+
    } // end of while(blockBuf->front())
 
    status = PDL_WAIT_DATA;

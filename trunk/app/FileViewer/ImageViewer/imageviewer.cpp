@@ -330,13 +330,14 @@ int main(int argc,char **argv)
     sageInf.swapBuffer();
 
     // a second time for the backbuffer
+    /* doesn't need with END_FRAME fix
     sageBuffer = (byte*)sageInf.getBuffer();
     if (loadDXT)
 	memcpy(sageBuffer, dxt, width*height*4/8);
     else
 	memcpy(sageBuffer, rgba, width*height*4);
     sageInf.swapBuffer();
-
+    */
 
     // release the memory
     free(dxt);
