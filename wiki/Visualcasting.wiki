@@ -45,3 +45,7 @@ share appID fsIP2 fsPort2
 }}}
      
       Then, the app window shows up on the second SAGE session.
+
+== Links to other pages ==
+
+[SAGE Home]
