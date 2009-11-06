@@ -565,12 +565,15 @@ int pixelDownloader::fetchSageBlocks()
 			if (syncOn) {
 				if ( updatedFrame > syncFrame) {
 					// if this is the case, I'm too fast. I must wait for others
-
+/*
 #ifdef DELAY_COMPENSATION
-					shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, shared->latency, shared->current_max_inst_num);
+					//shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, shared->latency, shared->current_max_inst_num);
 #else
-					shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, 0, shared->current_max_inst_num);
+					//shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, 0, shared->current_max_inst_num);
 #endif
+*/
+					shared->syncClientObj->sendSlaveUpdate(updatedFrame, instID, activeRcvs, 0);
+
 					updateType = SAGE_UPDATE_FOLLOW;
 					status = PDL_WAIT_SYNC;
 
