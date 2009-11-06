@@ -4,10 +4,10 @@
  * University of Illinois at Chicago
  *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *  * Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  *  * Redistributions in binary form must reproduce the above
@@ -16,7 +16,7 @@
  *  * Neither the name of the University of Illinois at Chicago nor
  *    the names of its contributors may be used to endorse or promote
  *    products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -119,10 +119,10 @@ main(int argc, char **argv)
     char *passwd;
     sgVNCViewer* vnc;
     sail sageInf; // sail object
-    double rate = 1;  //by default stream at 1fps
-    
+    double rate = 2;  //by default stream at 1fps
+
     aInitialize();
-    
+
     if (argc < 6)
     {
         fprintf(stderr, "\nUsage> VNCviewer <hostname> <display#> <width> <height> <password> [fps]\n\n");
@@ -142,7 +142,7 @@ main(int argc, char **argv)
         //	host, display number, x offset, y offset, width, height, passwd
         //	passwd is by default 'evl123' but a different one can be specified so that one will be used
     vnc = new sgVNCViewer(argv[1], display, 0,0,winWidth,winHeight, passwd);
-    
+
         // Sage Init
     sailConfig scfg;
     scfg.init("VNCViewer.conf");
@@ -171,7 +171,7 @@ main(int argc, char **argv)
 
 
         // data pointer
-    unsigned char *buffer = 0;    
+    unsigned char *buffer = 0;
     unsigned char *vncpixels;
 
     double t1, t2;
@@ -179,14 +179,14 @@ main(int argc, char **argv)
 
         // Main lopp
     while (1)
-    {  
+    {
         if (!vnc->Step())
-        {	
+        {
             sageInf.shutdown();
             exit(0);
         }
-	    
-            // if it's been (roughly) xxx second since the last 
+
+            // if it's been (roughly) xxx second since the last
             // sent frame, send another one
         t2 = aTime();
         if ( (t2-t1) > (1.0/rate) )
@@ -201,23 +201,23 @@ main(int argc, char **argv)
                 buffer[3*k + 1] = vncpixels[ 4*k + 1];
                 buffer[3*k + 2] = vncpixels[ 4*k + 2];
             }
-#else    
+#else
             memcpy(buffer, (unsigned char *) vnc->Data(), winWidth*winHeight*4);
 #endif
             sageInf.swapBuffer( );
             t1 = aTime();
         }
-	
+
         sageMessage msg;
         if (sageInf.checkMsg(msg, false) > 0) {
             switch (msg.getCode()) {
                 case APP_QUIT:
                     exit(0);
                     break;
-            }	
+            }
         }
     }
-    
+
     return 1;
 }
 
