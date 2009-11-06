@@ -1,0 +1,47 @@
+#summary Visualcasting Instruction
+
+== Introduction ==
+
+SAGE Visualcasting service connects distantly located multiple tiled displays driven by SAGE so that users can share their visualization on those tiled displays while communicating each other via multi-point HD video conferencing supported by Visualcasting.
+SAGE Bridge is a SAGE component that enables Visualcasting service. The SAGE Bridge hardware is a cluster of high-performance PCs equipped with 10Gbit Ethernet interfaces. The SAGE Bridge software running on the PC cluster receives pixel streams from applications and distributes to multiple SAGE sessions (a fsManager per session).
+
+
+== Visualcasting instruction using SAGE Bridge ==
+
+  # Install SAGE on the SAGE Bridge nodes
+    * if your bridge nodes don't have a graphics card, set SAIL_ONLY=1 in $SAGE_DIRECTORY/config.mk and set PROJ_EXEC=sageBridge bridgeConsole in the Makefile in $SAGE_DIRECTORY/src directory. <br><br> 
+  # Edit sageBridge.conf in $SAGE_DIRECTORY/bin
+    * masterIP : the ip address of master node of SAGE Bridge cluster
+    * slaveList slaveNum ip1 ip2 ip3 ... : the slave node list of SAGE Bridge cluster (note: for configuring single-node SAGE Bridge, set the slave number to zero)
+    * streamPort : base port number to be used for the pixel streams between apps and SAGE Bridge
+    * msgPort : message channel port number
+    * syncPort : synchronization channel port number
+    * rcvNwBufSize, sendNwBufSize, MTU : network parmeters used for the pixel streams between apps and SAGE Bridge <br><br>
+  # Execute the binary "sageBridge" in $SAGE_DIRECTORY/bin. Users can specify a configuration file name as command-line argument. Otherwise "sageBridge.conf" is used. <br><br>
+  # Execute "fsManager" on display clusters <br><br>
+  # You have two options to launch an app for Visualicasting using SAGE Bridge
+    * By command line (test and debugging purpose)
+      * Make sure app configuration file (e.g. render.conf, atlantis.conf, ....) includes following items: 
+{{{
+bridgeOn true : determine whether this app uses sageBridge or not
+bridgeIP 192.168.81.1 : master IP of SAGE Bridge
+bridgePort 42000 : message port of SAGE Bridge
+fsIP     192.168.81.11
+fsPort   20002 : IP and system port of the first fsManager
+}}}
+      * By setting bridgeOn true, an app is trying to connect to the SAGE Bridge rather than a FSManager.
+    * By SAGE Launcher (after confirming SAGE Bridge is working)
+        * Set the bridge parameters above in an app configuration using SAGE Launcher (advanced mode).
+        * Start the app with a right-click on the app icon in the SAGE UI. The app uses sageBridge and can then be shared with other SAGE sessions. <br><br>
+  # If users want to share this app to another SAGE session through SAGE UI, just drag an application window from one SAGE session onto the tab of the other session and the app will be shared (obviously the UI must be connected to both SAGE sessions for this to work) <br><br>
+  # Alternatively, you can share the applications using uiConsole:
+    * Execute "uiConsole" to be connected to the first fsManager
+      uiConsole fsManager-1.conf (config file for the first fsManager)
+    * Execute following command
+{{{
+share appID fsIP2 fsPort2 
+    appIDs : assigned in execution order ex) 0, 1, 2,...
+    fsIP2, fsPort2 : IP and port number of the second fsManager
+}}}
+     
+      Then, the app window shows up on the second SAGE session.
