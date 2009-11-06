@@ -9,7 +9,10 @@ SAGE Bridge is a SAGE component that enables Visualcasting service. The SAGE Bri
 == Visualcasting instruction using SAGE Bridge ==
 
   # Install SAGE on the SAGE Bridge nodes
-    * if your bridge nodes don't have a graphics card, set SAIL_ONLY=1 in $SAGE_DIRECTORY/config.mk and set PROJ_EXEC=sageBridge bridgeConsole in the Makefile in $SAGE_DIRECTORY/src directory. <br><br> 
+    * If your bridge nodes don't have a graphics card, 
+       * Set SAIL_ONLY=1 in $SAGE_DIRECTORY/config.mk 
+       * Set PROJ_EXEC=sageBridge bridgeConsole in the Makefile in $SAGE_DIRECTORY/src directory.
+       * Then, build SAGE. Other binaries (fsManager, sageDisplayManager, and so on) won't be built. <br><br> 
   # Edit sageBridge.conf in $SAGE_DIRECTORY/bin
     * masterIP : the ip address of master node of SAGE Bridge cluster
     * slaveList slaveNum ip1 ip2 ip3 ... : the slave node list of SAGE Bridge cluster (note: for configuring single-node SAGE Bridge, set the slave number to zero)
