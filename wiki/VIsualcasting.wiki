@@ -6,7 +6,7 @@ SAGE Visualcasting service connects distantly located multiple tiled displays dr
 SAGE Bridge is a SAGE component that enables Visualcasting service. The SAGE Bridge hardware is a cluster of high-performance PCs equipped with 10Gbit Ethernet interfaces. The SAGE Bridge software running on the PC cluster receives pixel streams from applications and distributes to multiple SAGE sessions (a fsManager per session).
 
 
-== SAGE Bridge setup instruction ==
+== Visualcasting instruction using SAGE Bridge ==
 
   # Install SAGE on the SAGE Bridge nodes
     * if your bridge nodes don't have a graphics card, set SAIL_ONLY=1 in $SAGE_DIRECTORY/config.mk and set PROJ_EXEC=sageBridge bridgeConsole in the Makefile in $SAGE_DIRECTORY/src directory. <br><br> 
