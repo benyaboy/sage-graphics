@@ -1,6 +1,0 @@
-#for scylla
-#./volvis -v Ranvier-volume localhost Ranvier-256 -sp 3 6 1 -a 1.25 -d 256 256 256 -n $PWD/machines.dat
-#mpirun -machinefile $PWD/.gige -np 5 $PWD/volvis -v Ranvier-volume localhost Ranvier-256 -w 1024 768 -sp 3 6 1 -a 3.413 -d 256 256 256 -n $PWD/machines.dat
-#for xindi
-forall killall volvis
-mpirun -np 16 /nfs/disk2/DEMO/volatile/volvis/volvis -v Ranvier-volume optiLocal.dat Ranvier-256 -a 2.2 -d 256 256 256 -sp 3 6 1 -n /nfs/disk2/DEMO/volatile/volvis/machines.dat

@@ -1,5 +1,0 @@
-#!/bin/sh
-
-killall -9 volvis
-forall killall -9 volvis
-

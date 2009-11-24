@@ -1,6 +1,0 @@
-#scylla
-#mpirun -machinefile $PWD/.gige -np 16  $PWD/volvis -v Step*-vol256 localhost Step15-vol256 -d 128 128 128 -n $PWD/machines.dat
-
-#on xindi
-mpirun -np 9 $PWD/volvis -v 'Step*-vol256' optiRemote.dat Step15-vol256 -a 1.5 -d 128 128 128 -n $PWD/machines.dat.xindi
-

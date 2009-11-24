@@ -1,2 +1,0 @@
-mpirun -np 9  $PWD/volvis -i 'Step*-100' localhost 0.001953125 -v 'Step*-vol256' localhost Step15-vol256 -a 2.2 -d 256 256 256 -n $PWD/machines.dat
-
