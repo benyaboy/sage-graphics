@@ -137,7 +137,10 @@ public:
    int sailClient;
    char appName[SAGE_NAME_LEN];
    int instID;
-	int fsInstID;
+
+	// HYEJUNG
+	//int fsInstID;
+
    char launcherID[SAGE_NAME_LEN];
    nwProtocol protocol;
    int nwID;

@@ -90,22 +90,24 @@ public:
 };
 
 
+// BEGIN HYEJUNG
 class audioNode {
 public:
-   char ip[SAGE_IP_LEN];            //ip address of the computer the holds pixels to display
-   std::vector<char*> streamIPs;      // optional parameters to receive streams through separate IPs
+   char ip[SAGE_IP_LEN];                //ip address of the computer the holds audio sample to play 
+   //std::vector<char*> streamIPs;      // optional parameters to receive streams through separate IPs
+	std::vector<int> maps;
 
-   // ?????????????
-   //int  audioDeviceNum;
+	// audio default configuration
+   int  deviceId;
    sageSampleFmt sampleFmt;
    long samplingRate;
    int  channels;
    int  framePerBuffer;
-   int  deviceId;
 
    audioNode();
    ~audioNode();
 };
+// END 
 
 class virtualDesktop;
 class appInExec;

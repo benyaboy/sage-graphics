@@ -81,8 +81,10 @@ private:
    fsCore *core;
    fsServer *server;
 
-	int m_execIndex;
-	int m_execIDList[MAX_INST_NUM];
+	// BEGIN HYEJUNG
+	//int m_execIndex;
+	//int m_execIDList[MAX_INST_NUM];
+	// END
 
    rcvInfo rInfo;
    sageNwConfig *nwInfo;
