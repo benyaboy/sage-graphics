@@ -515,11 +515,6 @@ void sdlSingleContext::checkEvent()
          exit(2);
       }
 
-		//It makes flickering when you move mouse
-		//It was happended from OS: CentOS, Touch screen. 
-		//We don't need to refresh screen by mouse/keyboard event.
-		//So, refreshScreen function call is blocked
-		//-H
-      //refreshScreen();
+      refreshScreen();
    }
 }

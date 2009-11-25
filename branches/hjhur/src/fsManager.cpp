@@ -56,7 +56,15 @@ fsManager::fsManager() : NRM(false), fsmClose(false), globalSync(true), useLocal
    
    winTime = 100;
    winStep = 0;
-	m_execIndex = 200;
+
+	// START HYEJUNG
+	// create empty slots
+	for(int i=0; i< 20; i++)
+	{
+		execList.push_back(NULL);
+		dispList.push_back(NULL);
+	}
+	// END
 }
 
 fsManager::~fsManager()
@@ -208,11 +216,6 @@ int fsManager::init(char *conf_file)
          tokenIdx = getToken(fileFsConf, token);
    }
 
-	for(int i=0; i<MAX_INST_NUM; i++)
-	{
-		m_execIDList[i] = 0;
-	}
-
    server = new fsServer;
    server->init(this);
 
@@ -363,28 +366,17 @@ int fsManager::msgToDisp(sageMessage &msg, int clientID)
       getToken((char *)msg.getData(), token);
       int winId = atoi(token);
       //      std::cout << "disp message win id " << winId << std::endl;
-      //if (winId >= dispNum) {
-      //   sage::printLog("fsManager::msgToDisp : window ID is out of scope");
-      //   return -1;
-      //}
+      if (winId >= dispNum) {
+         sage::printLog("fsManager::msgToDisp : window ID is out of scope");
+         return -1;
+      }
          
-		displayInstance* disp = NULL;
-		std::vector<displayInstance*>::iterator iter_disp;
-		for(iter_disp = dispList.begin(); iter_disp != dispList.end(); iter_disp++)
-		{
-			if ((*iter_disp)->winID == winId)
-			{
-				disp = (displayInstance*) *iter_disp;
-				break;
-			}
-		}
-
-		if (!disp) {
+      if (!dispList[winId]) {
          sage::printLog("fsManager::msgToDisp : window %d doesn't exist", winId);
          return -1;
       }
    
-		return disp->parseMsg(msg);
+      return dispList[winId]->parseMsg(msg);
    }
       
    return 0;

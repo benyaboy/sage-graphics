@@ -276,9 +276,11 @@ char* syncGroup::dequeSyncMsg()
 sageSyncServer::sageSyncServer() : asapSyncGroupNum(0), maxSyncGroupID(-1), syncEnd(false),
       maxSlaveSockFd(0)
 {
-   //for (int i=0; i<MAX_SYNC_GROUP; i++) {
-   //   syncGroupArray[i] = NULL;
-   //}
+	// BEGIN HYEJUNG
+   for (int i=0; i<20; i++) {
+      syncGroupArray.push_back(NULL);
+   }
+	// END
 
    FD_ZERO(&slaveFds);
 }
@@ -344,11 +346,6 @@ int sageSyncServer::init(int port)
       sage::printLog("sageSyncServer::init(): Creating sync thread failed");
       return -1;
    }
-
-	if (pthread_create(&groupThreadID, NULL, managerThread, (void*)this) !=0) {
-		sage::printLog("sageSyncServer::init(): Creating manager thread failed");
-		return -1;
-	}
 
    //timer.reset();
 
@@ -485,64 +482,55 @@ int sageSyncServer::sendSync(syncGroup *grp, int cmd)
    return 0;
 }
 
-int sageSyncServer::removeSyncGroup(int id)
-{
-   /*if (id < 0) {
-      sage::printLog("sageSyncClient::removeSyncGroup : group ID is out of scope");
-      return -1;
-   }*/
-	int index;
-	syncGroup* grp= findSyncGroup(id, index);
-	if(grp)
-	{
-		//std::cout << "sageSyncServer: found... trying to kill... thread.." << id << " " << index << std::endl;
-		if (grp->policy == SAGE_CONSTANT_SYNC) {
-			// kill thread... 
-			grp->syncEnd = true;
-			pthread_join(grp->threadID, NULL);
-		}
-
-		// remove object
-		delete grp;
-		grp = NULL;
-
-		syncGroupArray.erase(syncGroupArray.begin() + index);
-		//std::cout << "---------------------" << std::endl;
-		//asapSyncGroupNum--;
-	}
-	return 0;
-}
-
 int sageSyncServer::addSyncGroup(syncGroup *grp)
 {
    grp->syncServer = (sageSyncServer *)this;
    if (grp->id >= 0) {
-		 //sungwon
+		//sungwon
 		//fprintf(stderr, "sageSyncServer::addSyncGroup: adding group %d\n", grp->id);
 
-      //syncGroupArray[grp->id] = grp;
-      syncGroupArray.push_back(grp);
+		// BEGIN HYEJUNG
+		if(grp->id >= syncGroupArray.size())
+		{
+			for(int i=0; i<20; i++)
+			{
+      		syncGroupArray.push_back(NULL);
+			}
+		}
+		// END
+
+      syncGroupArray[grp->id] = grp;
    }
    else {
       sage::printLog("sageSyncServer::addSyncGroup : invalid sync group ID");
       return -1;
    }
 
-	//std::cout << "sageSyncServer: Add Sync Group : " << grp->id << std::endl;
-	maxSyncGroupID = MAX(grp->id, maxSyncGroupID);
+   maxSyncGroupID = MAX(grp->id, maxSyncGroupID);
 
    if (grp->policy == SAGE_CONSTANT_SYNC) {
-      if (pthread_create(&grp->threadID, NULL, managerConstantThread, (void*)grp) !=0) {
+      if (pthread_create(&grp->threadID, NULL, managerThread, (void*)grp) !=0) {
          sage::printLog("sageSyncServer::init(): Creating manager thread failed");
          return -1;
       }
+   }
+   else {
+      if (asapSyncGroupNum == 0) {
+         if (pthread_create(&grp->threadID, NULL, managerThread, (void*)grp) !=0) {
+            sage::printLog("sageSyncServer::init(): Creating manager thread failed");
+            return -1;
+         }
+      }
+      asapSyncGroupNum++;
    }
 
    return 0;
 }
 
-void* sageSyncServer::managerConstantThread(void *args)
+void* sageSyncServer::managerThread(void *args)
 {
+
+
    syncGroup *grp = (syncGroup *)args;
    sageSyncServer *This = (sageSyncServer *)grp->syncServer;
 
@@ -550,8 +538,12 @@ void* sageSyncServer::managerConstantThread(void *args)
 	//fprintf(stderr, "sageSyncServer::managerThread: started for group %d\n", grp->id);
 
    while (!grp->syncEnd) {
-		This->sendSync(grp);
-		sage::usleep((int)floor(grp->interval+0.5));
+      if (grp->policy == SAGE_CONSTANT_SYNC) {
+         This->sendSync(grp);
+         sage::usleep((int)floor(grp->interval+0.5));
+      }
+      else
+         This->manageUpdate();
    }
 
    //sungwon
@@ -559,49 +551,10 @@ void* sageSyncServer::managerConstantThread(void *args)
 
    pthread_exit(NULL);
    return NULL;
-}
-
-void* sageSyncServer::managerThread(void *args)
-{
-   sageSyncServer *This;
-   This = (sageSyncServer *)args;
-
-	//sungwon
-	//fprintf(stderr, "sageSyncServer::managerThread: started for group %d\n", grp->id);
-
-   while (!This->syncEnd)   {
-		This->manageUpdate();
-   }
-
-   //sungwon
-   //fprintf(stderr, "sageSyncServer::managerThread: for group %d exiting\n", grp->id);
-
-   pthread_exit(NULL);
-   return NULL;
-}
-
-syncGroup* sageSyncServer::findSyncGroup(int id, int& index)
-{
-	syncGroup *grp = NULL;
-	index =0;
-	std::vector<syncGroup *>::iterator iter;
-	for(iter = syncGroupArray.begin(); iter != syncGroupArray.end(); iter++, index++)
-	{
-		if((*iter)->getSyncID() == id)
-		{
-			grp = (syncGroup*) (*iter);
-			return grp;
-		}
-	}
-	index = -1;
-	return NULL;
 }
 
 int sageSyncServer::manageUpdate()
 {
-	int maxSyncGroup = syncGroupArray.size();
-	if (maxSyncGroup == 0) return -1;
-
    int noOfSyncSlaves = syncSlaves.size();
    char data[SAGE_SYNC_MSG_LEN];
    fd_set readFds = slaveFds;
@@ -635,12 +588,11 @@ If yes and the interval is reached,
 it sends sync signal to the group members immediately
 because all the sync slaves are already ready to proceed the next frame.
     */
-   //for (int i=0; i<=maxSyncGroupID; i++) {
-   //   syncGroup *grp = syncGroupArray[i];
-	syncGroup *grp = NULL;
-   for (int i=0; i< maxSyncGroup; i++) {
-		grp = syncGroupArray[i];
-		if(!grp) continue;
+	// HYEJUNG
+	maxSyncGroupID = syncGroupArray.size()-1;
+
+   for (int i=0; i<=maxSyncGroupID; i++) {
+      syncGroup *grp = syncGroupArray[i];
 
       // if it's waiting to reach the interval
       if (grp && grp->isWaiting()) {
@@ -682,9 +634,7 @@ because all the sync slaves are already ready to proceed the next frame.
          else {
             int groupID;
             sscanf(data, "%d", &groupID);
-            //syncGroup *grp = syncGroupArray[groupID];
-				int index;
-				syncGroup *grp = findSyncGroup(groupID, index);
+            syncGroup *grp = syncGroupArray[groupID];
 
             if (!grp) {
                sage::printLog("sageSyncServer::manageUpdate : invalid groupID %d", groupID);
@@ -792,7 +742,6 @@ sageSyncServer :: ~sageSyncServer()
 
    //wait for the thread to quit
    pthread_join(syncThreadID, NULL);
-	pthread_join(groupThreadID, NULL);
 
 } // End of ~sageSyncServer()
 
@@ -840,6 +789,12 @@ sageSyncClient::sageSyncClient() : maxGroupID(-1), syncEnd(false)
       sage::printLog("\nsageSyncClient::sageSyncClient(): Error switching on OOBINLINE.");
 
 #endif
+	// BEGIN HYEJUNG
+	for(int i=0; i<20; i++)
+	{
+		syncMsgBuf.push_back(NULL);
+	}
+	// END
 
 } // End of sageSyncClient :: sageSyncClient()
 
@@ -876,14 +831,22 @@ int sageSyncClient::connectToServer(char *syncServIP, int port)
 
 int sageSyncClient::addSyncGroup(int id)
 {
+	// BEGIN HYEJUNG
+	int inst_size = syncMsgBuf.size();
    if (id < 0) {
       sage::printLog("sageSyncClient::addSyncGroup : group ID is out of scope");
       return -1;
    }
 
-   sageCircBufSingle* buf = new sageCircBufSingle(SYNC_MSG_BUF_LEN, true);
-	buf->instID = id;
-   syncMsgBuf.push_back(buf);
+   if (id >= MAX_SYNC_GROUP) {
+		for(int i=0; i<20; i++)
+		{
+			syncMsgBuf.push_back(NULL);
+		}
+	}
+	// END
+
+   syncMsgBuf[id] = new sageCircBufSingle(SYNC_MSG_BUF_LEN, true);
 
    if (maxGroupID < 0) {
       maxGroupID = id;
@@ -906,43 +869,15 @@ int sageSyncClient::addSyncGroup(int id)
 
 int sageSyncClient::removeSyncGroup(int id)
 {
-   if (id < 0) {
+   if (id < 0 || id > maxGroupID) {
       sage::printLog("sageSyncClient::removeSyncGroup : group ID is out of scope");
       return -1;
    }
 
-	int index;
-	sageCircBufSingle* buf = findSyncGroup(id, index);
-	if(buf) 
-	{
-		//std::cout << "sageSyncClient: found... trying to kill... thread.." << std::endl;
-		buf->releaseLock();
-		delete buf;
-		buf = NULL;
-		syncMsgBuf.erase(syncMsgBuf.begin() + index);
-		//std::cout << "...." << std::endl;
-	}
-   //if (syncMsgBuf[id])
-   //   syncMsgBuf[id]->releaseLock();
+   if (syncMsgBuf[id])
+      syncMsgBuf[id]->releaseLock();
 
    return 0;
-}
-
-sageCircBufSingle* sageSyncClient::findSyncGroup(int id, int& index)
-{
-	sageCircBufSingle *buf = NULL;
-	index =0;
-	std::vector<sageCircBufSingle *>::iterator iter;
-	for(iter = syncMsgBuf.begin(); iter != syncMsgBuf.end(); iter++, index++)
-	{
-		if((*iter)->instID == id)
-		{
-			buf = (sageCircBufSingle*) (*iter);
-			return buf;
-		}
-	}
-	index = -1;
-	return NULL;
 }
 
 void* sageSyncClient::syncClientThread(void* args)
@@ -1014,9 +949,7 @@ int sageSyncClient::readSyncMsg()
 
       syncMsg->frameID = frameNum;
 
-      //sageCircBufSingle *msgBuf = syncMsgBuf[groupID];
-		int index;
-      sageCircBufSingle *msgBuf = findSyncGroup(groupID, index);
+      sageCircBufSingle *msgBuf = syncMsgBuf[groupID];
       if (msgBuf && msgBuf->isActive()) {
          if (!msgBuf->pushBack((sageBufEntry)syncMsg)) {
             sage::printLog("sageSyncClient::readSyncMsg : sync message buffer is full");
@@ -1035,15 +968,12 @@ int sageSyncClient::readSyncMsg()
 // receive sync message with group ID and additional data
 syncMsgStruct* sageSyncClient::waitForSync(int id)
 {
-	if (id < 0) {
+   if (id < 0 || id >= MAX_SYNC_GROUP) {
       sage::printLog("sageSyncClient::waitForSync : group ID is out of scope");
       return NULL;
    }
 
-   //sageCircBufSingle *msgBuf = syncMsgBuf[id];
-	int index;
-   sageCircBufSingle *msgBuf = findSyncGroup(id, index);
-	//std::cout << "wait for sync : " << id << " " << index << std::endl;
+   sageCircBufSingle *msgBuf = syncMsgBuf[id];
 
    if (msgBuf) {
       syncMsgStruct *syncMsg = (syncMsgStruct *)msgBuf->front();
@@ -1132,10 +1062,12 @@ sageSyncClient :: ~sageSyncClient()
 
    pthread_join(syncThreadID, NULL);
 
-	int maxGroupID = syncMsgBuf.size();
-   for (int i=0; i<maxGroupID; i++)
+	// BEGIN HYEJUNG
+	int inst_max = syncMsgBuf.size();
+   for (int i=0; i<inst_max; i++)
       if (syncMsgBuf[i])
          delete syncMsgBuf[i];
+	// END
 }
 
 sageThreadSync::sageThreadSync(int sNum)

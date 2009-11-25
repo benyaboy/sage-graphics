@@ -65,6 +65,8 @@ sageBridge::sageBridge(int argc, char **argv) : syncPort(0), syncGroupID(0), aud
       allocPolicy(ALLOC_SINGLE_NODE)
 {
    nwCfg = new sageNwConfig;
+   for (int i=0; i<MAX_INST_NUM; i++)
+      appInstList[i] = NULL;
    instNum = 0;   
    
    if (argc < 2) {  // master mode with default configuration file
@@ -247,6 +249,7 @@ int sageBridge::initMaster(char *cFile)
    launchSlaves();
    initNetworks();
    
+   // TEMPORALLY BLOCK, but no problem - H
    //audioBridge = new sageAudioBridge(masterIP, audioPort, msgInf, shared);
 
    return 0;
@@ -406,15 +409,11 @@ void* sageBridge::nwCheckThread(void *args)
 
 int sageBridge::perfReport()
 {
-	appInstance* app_inst = NULL;
-	std::vector<appInstance*>::iterator iter;
-	for(iter = appInstList.begin(); iter != appInstList.end(); iter++)
-	{
-		app_inst = (appInstance*) *iter;
-		if(!app_inst) continue;
-		app_inst->sendPerformanceInfo();
-	}
-
+   for (int i=0; i<instNum; i++) {
+      if (appInstList[i])
+         appInstList[i]->sendPerformanceInfo();
+   }
+   
    return 0;
 }
 
@@ -422,19 +421,12 @@ int sageBridge::findMinLoadNode()
 {
    int nodeSel = 0;
    double minLoad = 0;
-
-	appInstance* app_inst = NULL;
-	std::vector<appInstance*>::iterator iter;   
-	double loadSum = 0.0;
    
    for (int i=0; i<shared->nodeNum; i++) {
-		loadSum = 0.0;
-		for(iter = appInstList.begin(); iter != appInstList.end(); iter++) 
-		{
-			app_inst = (appInstance*) *iter;
-			if(!app_inst) continue;
-         if (app_inst->allocInfoList[0].nodeID == i)
-            loadSum += app_inst->curBandWidth;
+      double loadSum = 0.0;
+      for (int j=0; j<instNum; j++) {
+         if (appInstList[j] && appInstList[j]->allocInfoList[0].nodeID == i)
+            loadSum += appInstList[j]->curBandWidth;
       }
       
       if (i == 0) {
@@ -457,6 +449,7 @@ int sageBridge::regApp(sageMessage &msg, int clientID)
    
    if (master) {
       appInstance *inst = new appInstance(data, instNum, shared);
+      appInstList[instNum] = inst;
       
       inst->sailClient = clientID;   
       inst->waitNodes = slaveNum;
@@ -470,8 +463,6 @@ int sageBridge::regApp(sageMessage &msg, int clientID)
          inst->allocateNodes(allocPolicy, selNode);
       }   
       
-      appInstList.push_back(inst);
-
       syncGroup *sGroup = NULL;
       char regStr[TOKEN_LEN];
       sprintf(regStr, "%s %d 0", data, inst->nodeNum);
@@ -504,9 +495,7 @@ int sageBridge::regApp(sageMessage &msg, int clientID)
    else {
       std::cout << "register app on node " << shared->nodeID << std::endl;
       int instID = msg.getDest();   
-      appInstance *inst = new appInstance(data, instID, shared);
-		appInstList.push_back(inst);
-
+      appInstList[instID] = new appInstance(data, instID, shared);
       instNum = MAX(instID+1, instNum);
       msgInf->msgToServer(instID, BRIDGE_APP_INST_READY);
    }   
@@ -557,26 +546,9 @@ int sageBridge::sendStreamInfo(appInstance *inst)
    return 0;
 }
 
-appInstance* sageBridge::findApp(int id, int& index)
-{
-	index =0;
-	appInstance* app_inst = NULL;
-	std::vector<appInstance*>::iterator iter;   
-	for(iter = appInstList.begin(); iter != appInstList.end(); iter++) 
-	{
-		if((*iter)->instID == id)
-		{
-			app_inst = (appInstance*) *iter;
-			break;
-		}
-	}
-	return app_inst;
-}
-
 int sageBridge::shutdownApp(int instID, bool fsmToApp)
 {
-	int index;
-   appInstance *inst = findApp(instID, index);      
+   appInstance *inst = appInstList[instID];      
    
    if (inst) {
       if (master && !inst->isActive()) {
@@ -591,7 +563,7 @@ int sageBridge::shutdownApp(int instID, bool fsmToApp)
          
          std::cout << "send clear app inst message" << std::endl;
          msgInf->distributeMessage(CLEAR_APP_INSTANCE, instID, slaveList, slaveNum);
-         appInstList.erase(appInstList.begin() +index);
+         appInstList[instID] = NULL;
          delete inst;
       }   
    }
@@ -605,8 +577,7 @@ int sageBridge::shutdownApp(int instID, bool fsmToApp)
 
 int sageBridge::forwardToSail(int instID, sageMessage &msg)
 {
-	int index;
-   appInstance *inst = findApp(instID, index);      
+   appInstance *inst = appInstList[instID];      
    
    if (inst) {
       int clientID = inst->sailClient;
@@ -619,19 +590,16 @@ int sageBridge::forwardToSail(int instID, sageMessage &msg)
 
 int sageBridge::shutdownAllApps()
 {
-	appInstance* inst = NULL;
-	std::vector<appInstance*>::iterator iter;   
-	for(iter = appInstList.begin(); iter != appInstList.end(); iter++) 
-	{
-		inst = (appInstance*) *iter;
-		if(!inst) continue;
-
-		// ????????? 
+   for (int i=0; i<instNum; i++) {
+      if (!appInstList[i])
+         continue;
+      
+      appInstance *inst = appInstList[i];
+      appInstList[i] = NULL;
       msgInf->msgToClient(inst->sailClient, 0, APP_QUIT);
       inst->shutdownAllStreams();
       delete inst;
    }
-	appInstList.clear();
       
    return 0;
 }
@@ -644,8 +612,7 @@ int sageBridge::initStreams(char *msg, streamProtocol *nwObj)
    
    std::cout << "sender " << senderID << " connected to node " << shared->nodeID << std::endl;
 
-	int index;
-   appInstance *inst = findApp(instID, index);
+   appInstance *inst = appInstList[instID];
    if (inst) {
       if (!inst->initialized)
          inst->init(msg, nwObj);
@@ -706,10 +673,8 @@ appInstance* sageBridge::findAppInstance(int instID)
 {
    //if (!appInstList[instID])
       //sage::printLog("sageBridge : can't find app instance" );
-	int index;
-	return findApp(instID, index);
          
-   //return appInstList[instID];
+   return appInstList[instID];
 }
 
 appInstance* sageBridge::clientIDtoAppInstance(int clientID, int &orgIdx)
@@ -736,28 +701,25 @@ appInstance* sageBridge::clientIDtoAppInstance(int clientID, int &orgIdx)
 
 appInstance* sageBridge::forwardToAppinstance(sageMessage &msg, int clientID)
 {
-	appInstance* inst = NULL;
-	std::vector<appInstance*>::iterator iter;   
-   //for (int i=0; i<instNum; i++) {
-	for(iter = appInstList.begin(); iter != appInstList.end(); iter++) 
-	{
-		inst = (appInstance*) *iter;
-		if(!inst) continue;
-
-		int fsNum = inst->fsList.size();
-		for (int j=0; j<fsNum; j++) {
-			if (inst->fsList[j] == clientID) {
-				inst->parseMessage(msg, j);
-				msg.setDest(inst->instID);
-				msg.setAppCode(j);
-				return inst;
-			}   
-		}
-		if (inst->sailClient == clientID) {
-			inst->parseMessage(msg, 0);
-			msg.setDest(inst->instID);
-			msg.setAppCode(0);
-			return inst;
+   for (int i=0; i<instNum; i++) {
+      appInstance *inst = appInstList[i];
+      if (inst) {
+         int fsNum = inst->fsList.size();
+         for (int j=0; j<fsNum; j++) {
+            if (inst->fsList[j] == clientID) {
+               inst->parseMessage(msg, j);
+               msg.setDest(inst->instID);
+               msg.setAppCode(j);
+               return inst;
+            }   
+         }
+         
+         if (inst->sailClient == clientID) {
+            inst->parseMessage(msg, 0);
+            msg.setDest(inst->instID);
+            msg.setAppCode(0);
+            return inst;
+         }   
       }   
    }
    
@@ -777,9 +739,7 @@ appInstance* sageBridge::delieverMessage(sageMessage &msg, int clientID)
    }
    else {
       int instID = msg.getDest();
-      //inst = findAppInstance(instID);
-		int index;
-      inst = findApp(instID, index);
+      inst = findAppInstance(instID);
       int fsIdx = msg.getAppCode();
       if (inst)
          inst->parseMessage(msg, fsIdx);
@@ -827,8 +787,7 @@ int sageBridge::shareApp(char *msgData, int clientID)
    else {
       int instID, orgIdx, newIdx, syncID;
       sscanf(msgData, "%d %d %d %d", &instID, &orgIdx, &newIdx, &syncID);
-		int index;
-      appInstance *inst = findApp(instID, index);
+      appInstance *inst = findAppInstance(instID);
       if (inst)
          inst->addStreamer(newIdx, orgIdx, NULL, syncID);
    }
@@ -875,8 +834,7 @@ int sageBridge::parseMessage(sageMessage &msg, int clientID)
          
          case BRIDGE_SLAVE_READY : {
             int instID = msg.getDest();
-				int index;
-            appInstance *inst = findApp(instID, index);
+            appInstance *inst = findAppInstance(instID);
    
             if (inst) {
                inst->waitNodes--;
@@ -905,8 +863,7 @@ int sageBridge::parseMessage(sageMessage &msg, int clientID)
       
          case BRIDGE_SLAVE_PERF : {
             int instID = msg.getDest();
-				int index;
-            appInstance *inst = findApp(instID, index);
+            appInstance *inst = findAppInstance(instID);
             if (inst)
                inst->accumulateBandWidth(msgData);
             break;
@@ -914,8 +871,7 @@ int sageBridge::parseMessage(sageMessage &msg, int clientID)
          
          case BRIDGE_APP_INST_READY : {
             int instID = msg.getDest();
-				int index;
-            appInstance *inst = findApp(instID, index);
+            appInstance *inst = findAppInstance(instID);
    
             if (inst) {
                inst->waitNodes--;
@@ -973,8 +929,7 @@ int sageBridge::parseMessage(sageMessage &msg, int clientID)
          
          case CLEAR_APP_INSTANCE : {
             int instID = msg.getDest();
-				int index;
-            appInstance *inst = findApp(instID, index);
+            appInstance *inst = findAppInstance(instID);
             appInstList[instID] = NULL;
             if (inst)
                delete inst;

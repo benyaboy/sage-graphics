@@ -82,12 +82,13 @@ audioNode::audioNode() :
    sampleFmt(SAGE_SAMPLE_FLOAT32), samplingRate(44100), channels(2), framePerBuffer(512), deviceId(-1)
 {
    memset((void *)ip, 0, SAGE_IP_LEN);
-   streamIPs.clear();
+   //streamIPs.clear();
    //tiles.clear();
 }
 
 audioNode::~audioNode()
 {
+	/*
    for (int i=0; i<streamIPs.size(); i++) {
       if (streamIPs[i]) {
          delete [] streamIPs[i];
@@ -96,6 +97,7 @@ audioNode::~audioNode()
       }
    }
    streamIPs.clear();
+	*/
 }
 
 
@@ -566,7 +568,34 @@ int virtualDesktop::parseAudioConfigfile(FILE *fp, bool configBegin)
             newNode->deviceId = deviceId;
          }
       }
-      else if (strcmp(token, "ATTACH") == 0) {
+      else if (strcmp(token, "MAP") == 0) {
+         if(newNode) {
+            getToken(fp, token);
+      		sage::toupper(token);
+      		if (strcmp(token, "ALL") == 0) {
+				} else  {
+            	for (int i=0; i< channels; i++) 
+					{
+      				if (strcmp(token, "(") != 0) 
+						{
+               		sage::printLog("Audio configuration syntax error at map %s", token);
+							break; 
+						}
+            		if (getToken(fp, token) < 0) break;
+						newNode->maps.push_back(atoi(token));
+
+            		if (getToken(fp, token) < 0) break;
+      				if (strcmp(token, ")") != 0) 
+						{
+               		sage::printLog("Audio configuration syntax error at map %s", token);
+							break; 
+						}
+            		if (getToken(fp, token) < 0) break;
+					}
+				}
+			}
+		}
+      /*else if (strcmp(token, "ATTACH") == 0) {
          if(newNode) {
             getToken(fp, token);
             int nodeNum = atoi(token);
@@ -579,7 +608,7 @@ int virtualDesktop::parseAudioConfigfile(FILE *fp, bool configBegin)
             }
 
          }
-      }
+      }*/
       else if (strcmp(token, "AUDIODIR") == 0) {
          getToken(fp, audioDir);
          audioServer = true;

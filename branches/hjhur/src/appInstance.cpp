@@ -156,7 +156,7 @@ int appInstance::addStreamer(int fsIdx, int orgIdx, syncGroup *sGroup, int syncI
    sConfig.groupSize = groupSize;
    sConfig.totalWidth = imageWidth;
    sConfig.totalHeight = imageHeight;
-	sConfig.protocol = SAGE_UDP;
+   sConfig.protocol = SAGE_UDP;
     
    sConfig.syncClientObj = shared->syncClientObj;   
    sConfig.syncClientObj->addSyncGroup(sConfig.syncID);

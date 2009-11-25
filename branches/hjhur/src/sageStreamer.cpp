@@ -235,7 +235,7 @@ int sageStreamer::reconfigureStreams(char *msgStr)
 void sageStreamer::checkInterval()
 {
    double curTime = streamTimer.getTimeUS();
-	if(curTime == 0) return;   
+   if(curTime == 0) return;   
    double maxErr = interval*MAX_INTERVAL_ERROR;
    double err = curTime - (interval - timeError);
 
