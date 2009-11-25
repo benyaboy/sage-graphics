@@ -68,60 +68,54 @@ int fsCore::init(fsManager *m)
    return 0;
 }
 
-int fsCore::initDisp(appInExec* app)
+// BEGIN HYEJUNG
+int fsCore::initDisp(int instID)
 {
-   displayInstance *disp = new displayInstance(fsm, fsm->m_execIndex, app);
-   fsm->dispList.push_back(disp);
+   displayInstance *disp = new displayInstance(fsm, instID);
+   fsm->dispList[instID] =disp;
    
    return 0;
 }
+// END
 
-int fsCore::initAudio()
+// BEGIN HYEJUNG
+int fsCore::initAudio(int instID)
 {
-   appInExec *appExec;
-   int execNum = fsm->execList.size();
+	appInExec *appExec = fsm->execList[instID];
 
    //int msgLen = 8 + SAGE_IP_LEN * execNum;
    int msgLen = 8 + SAGE_IP_LEN * fsm->vdtList[0]->getNodeNum();
    char *msgStr = new char[msgLen];
    memset(msgStr, 0, msgLen);
 
-   int i = execNum -1;
-	i =  fsm->m_execIndex;
-   appExec = fsm->execList[i];
    if (!appExec) {
       //continue;
    }
    else 
    {
       fsm->vdtList[0]->generateAudioRcvInfo(fsm->rInfo.audioPort, msgStr);
+      //fsm->vdt->generateAudioRcvInfo(appExec->renderNodeIP, fsm->rInfo.audioPort, msgStr);
       //printf("initaudio --> %s\n", msgStr);
+
       char conMessage[TOKEN_LEN];
-      sprintf(conMessage, "%s %d", msgStr, i);
+      sprintf(conMessage, "%s %d", msgStr, instID);
       if (fsm->sendMessage(appExec->sailClient, SAIL_CONNECT_TO_ARCV, conMessage) < 0) {
-			sage::printLog("fsCore : %s(%d) is stuck or shutdown", appExec->appName, i);
-			clearAppInstance(i);
+			sage::printLog("fsCore : %s(%d) is stuck or shutdown", appExec->appName, instID);
+			clearAppInstance(instID);
 		}		
    }
 
    return 0;
 }
+// END
 
 void fsCore::clearAppInstance(int id)
 {
-	int index = 0;
-	appInExec* app = findApp(id, index);
-	if (!app)
-	{
-		std::cout << "[fsCore::clearAppInstance] ERROR : " << id << " app instance is not found" << std::endl;	
-		return;
-	}
-   
    // clear app instance on display nodes
    fsm->sendToAllRcvs(RCV_SHUTDOWN_APP, id);
-
+   
    // clear app instance on audio nodes
-   if (app->audioOn) {
+   if (fsm->execList[id]->audioOn) {
       std::vector<int> arcvList = fsm->vdtList[0]->getAudioRcvClientList();
       int arcvNum = arcvList.size();
       for(int i=0; i<arcvNum; i++)
@@ -140,48 +134,39 @@ void fsCore::clearAppInstance(int id)
       }
    }	
 
-	// RE-GENERATING ID (1/2) 
-	//fsm->m_execIDList[id] = 0;
    // release data structure
-  	delete app;
-	app = NULL;
-	fsm->execList.erase(fsm->execList.begin() + index);
+   if (fsm->execList[id]) {
+      delete fsm->execList[id];
+      fsm->execList[id] = NULL;
+   }   
    
-	displayInstance* temp_disp = (displayInstance*) fsm->dispList[index];
-   if (temp_disp) {
-      delete temp_disp;
-		fsm->dispList.erase(fsm->dispList.begin() + index);
+   if (fsm->dispList[id]) {
+      delete fsm->dispList[id];
+      fsm->dispList[id] = NULL;
    }
-	//std::cout << "FsCore : " << id << " app instance is cleared (index:  " << index << ")" << std::endl;	
-
 }
 
+// START HYEJUNG
 int fsCore::getAvailableInstID(void)
 {
-	for(int i=0; i<MAX_INST_NUM; i++)
-	{
-		if (fsm->m_execIDList[i] == 0)
-			return i;
-	}
-	return -1;
-}
-
-appInExec* fsCore::findApp(int id, int& index)
-{
+	int ith=0;
 	std::vector<appInExec*>::iterator iter_exec;
-	appInExec* temp_exec = NULL;
-	index = 0;
-	for(iter_exec = fsm->execList.begin(); iter_exec != fsm->execList.end(); iter_exec++, index++)
+	for(iter_exec = fsm->execList.begin(); iter_exec != fsm->execList.end(); iter_exec++, ith++)
 	{
-		if ((*iter_exec)->fsInstID == id)
-		{
-			temp_exec = (appInExec*) *iter_exec;
-			break;
-		}
+		if(*iter_exec == NULL)
+			return ith;
 	}
-	return temp_exec;
-}
 
+	// create empty slots
+	for(int i=0; i< 20; i++)
+	{
+		fsm->execList.push_back(NULL);
+		fsm->dispList.push_back(NULL);
+		std::cout << "fsCore::getAvailableInstID : extended " << std::endl;
+	}
+	return ith;
+}
+// END
 
 //#define MAX_SAGE_WINDOW_SIZE 4096
 #define MAX_SAGE_WINDOW_SIZE 8192
@@ -199,54 +184,48 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
 
    switch(msg.getCode()) {
       case REG_APP : {
+			// BEGIN HYEJUNG
          app = new appInExec;
 			memset(app->launcherID, 0, SAGE_NAME_LEN);
-			sscanf((char *)msg.getData(), "%s %d %d %d %d %d %s %d %d %d %d %d %d %s %d", app->appName, &app->x, &app->y,
-            &app->width, &app->height, &app->bandWidth, app->renderNodeIP, &app->imageWidth,
-            &app->imageHeight, (int *)&app->audioOn, (int *)&app->protocol, &app->frameRate, 
+			sscanf((char *)msg.getData(), "%s %d %d %d %d %d %s %d %d %d %d %d %d %s %d", 
+				app->appName, &app->x, &app->y,
+				&app->width, &app->height, &app->bandWidth, app->renderNodeIP, &app->imageWidth,
+				&app->imageHeight, (int *)&app->audioOn, (int *)&app->protocol, &app->frameRate, 
 				&app->instID, app->launcherID, &app->portForwarding );
 		   
          // adjust app window size considering image resolution
 			float ar = (float)(app->imageWidth) / (float)(app->imageHeight);
 			if ((app->imageWidth > MAX_SAGE_WINDOW_SIZE && app->width < MAX_SAGE_WINDOW_SIZE) || 
-            (app->imageHeight > MAX_SAGE_WINDOW_SIZE && app->height < MAX_SAGE_WINDOW_SIZE)) {
+				(app->imageHeight > MAX_SAGE_WINDOW_SIZE && app->height < MAX_SAGE_WINDOW_SIZE)) {
 				if (ar > 1) {
 					app->width = MAX_SAGE_WINDOW_SIZE;
 					app->height = (int)(MAX_SAGE_WINDOW_SIZE/ar);
-				}
-				else {
+				} else {
 					app->height = MAX_SAGE_WINDOW_SIZE;
 					app->width = (int)(MAX_SAGE_WINDOW_SIZE*ar);
 				}
-			}   
+         }   
 
          app->sailClient = clientID;   
+			int instID = getAvailableInstID();
 
          char sailInitMsg[TOKEN_LEN];
          memset(sailInitMsg, 0, TOKEN_LEN);
-
-			// RE-GENERATING ID (2/2) 
-			//fsm->m_execIndex = getAvailableInstID();
-			//fsm->m_execIDList[fsm->m_execIndex] = 1;
-			app->fsInstID  = fsm->m_execIndex;
-			std::cout << "[fsCore::parseMessage] inst id : " << app->fsInstID << std::endl;
-
-         sprintf(sailInitMsg, "%d %d %d %d", fsm->m_execIndex, fsm->nwInfo->rcvBufSize,
+         sprintf(sailInitMsg, "%d %d %d %d", instID, fsm->nwInfo->rcvBufSize,
                fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize);
          
 			if (fsm->sendMessage(clientID, SAIL_INIT_MSG, sailInitMsg) < 0) {
 				sage::printLog("fsCore : %s is stuck or shutdown", app->appName);
 			}
 			else
-         	fsm->execList.push_back(app);   
+         	fsm->execList[instID] = app;   
          
          if (fsm->NRM) {
             char rcvIP[SAGE_IP_LEN];
             fsm->vdtList[0]->getNodeIPs(0, rcvIP);
             char msgStr[TOKEN_LEN];
             memset(msgStr, 0, TOKEN_LEN);
-            sprintf(msgStr, "%s %s %d %d", app->renderNodeIP, rcvIP, app->bandWidth,
-               fsm->m_execIndex);
+            sprintf(msgStr, "%s %s %d %d", app->renderNodeIP, rcvIP, app->bandWidth, instID);
 
             int uiNum = fsm->uiList.size();
             for (int j=0; j<uiNum; j++) {
@@ -260,53 +239,57 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
             }
          }
          else {
-            initDisp(app);
+				std::cout <<  "instance is created : " << instID << std::endl;
+            initDisp(instID);
             if (app->audioOn) {
 					std::cout << "initAudio is called" << std::endl;
-               initAudio();
+               initAudio(instID);
 				}
                
             //windowChanged(fsm->execList.size()-1);
             //bringToFront(fsm->execList.size()-1);
-				fsm->m_execIndex++;
          }   
-         
+			// END
          break;
       }
       
       case NOTIFY_APP_SHUTDOWN : {
+         //std::cout << "app shutdown itself" << std::endl;
          getToken((char *)msg.getData(), token);
          int appID = atoi(token);
-			int index =0;
-			app = findApp(appID, index);
-         if (!app) {
-            std::cout << "FsCore : app "<< appID << " doesn't exist" << std::endl;
+         int execNum = fsm->execList.size();
+         
+         if (appID >= 0 && appID < execNum) 
+            app = fsm->execList[appID];
+         else
             break;   
-         }
-
+            
+         if (!app)
+            break;
+         
          clearAppInstance(appID);
          break;
       }
       
       case NETWORK_RESERVED : {
-			//std::cout << "network_reserved is called ------------------- " << std::endl;
          if (fsm->NRM) {
             int appID = fsm->execList.size()-1;
             app = fsm->execList[appID];
 
             int success = atoi(dataStr);
             if (success) {
-               initDisp(app);
+					// BEGIN HYEJUNG ?? NO IDEA.. what this is for...
+               initDisp(appID);
                if (app->audioOn)
-                  initAudio();   
+                  initAudio(appID);   
+					// END
                windowChanged(fsm->execList.size()-1);
                bringToFront(fsm->execList.size()-1);
             }
             else {
                if (fsm->sendMessage(app->sailClient, APP_QUIT) < 0) {
-						//sage::printLog("fsCore : %s(%d) is stuck or shutdown", app->appName, app->fsInstID);
-						//clearAppInstance(appID);
-						clearAppInstance(app->fsInstID);
+						sage::printLog("fsCore : %s(%d) is stuck or shutdown", app->appName, appID);
+						clearAppInstance(appID);
 					}
 					
                fsm->execList.pop_back();
@@ -385,12 +368,17 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          }*/
          
       case SHUTDOWN_APP : {
+         int execNum = fsm->execList.size();      
          tokenNum = getToken((char *)msg.getData(), token);
          int appID = atoi(token);
-			//std::cout << "shutdown app : " << appID << std::endl;
+         
+         if (appID >= 0 && appID < execNum) 
+            app = fsm->execList[appID];
+         else {
+            std::cout << "FsCore::Invalid App ID " << appID << std::endl;
+            break;   
+         }
             
-			int index =0;
-			app = findApp(appID, index);
          if (!app) {
             std::cout << "FsCore : app "<< appID << " doesn't exist" << std::endl;
             break;   
@@ -406,10 +394,16 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
       }      
       
       case SAGE_APP_SHARE : {
+         int execNum = fsm->execList.size();      
          tokenNum = getToken((char *)msg.getData(), token);
          int appID = atoi(token);
-			int index =0;
-			app = findApp(appID, index);
+         
+         if (appID >= 0 && appID < execNum) 
+            app = fsm->execList[appID];
+         else {
+            std::cout << "FsCore::Invalid App ID " << appID << std::endl;
+            break;   
+         }
             
          if (!app) {
             std::cout << "FsCore : app "<< appID << " doesn't exist" << std::endl;
@@ -436,12 +430,18 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
             
       case MOVE_WINDOW : {
          tokenNum = getToken((char *)msg.getData(), token);
+         
+         int execNum = fsm->execList.size();      
          int winID = atoi(token);
          sageRect devRect;
          
-			int index =0;
-			app = findApp(winID, index);
-
+         if (winID >= 0 && winID < execNum) 
+            app = fsm->execList[winID];
+         else {
+            std::cout << "FsCore::Invalid App ID " << winID << std::endl;
+            break;   
+         }
+            
          if (!app) {
             std::cout << "FsCore : app "<< winID << " doesn't exist" << std::endl;
             break;   
@@ -465,13 +465,13 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          tokenNum = getToken((char *)msg.getData(), token);
          devRect.y = atoi(token);
          
-         //fsm->dispList[index]->modifyStream();
+         //fsm->dispList[winID]->modifyStream();
          
          startTime = sage::getTime();
          if (fsm->winStep > 0)
             winSteps = fsm->winStep;
             
-         if (fsm->dispList[index]->changeWindow(devRect, winSteps) < 0) 
+         if (fsm->dispList[winID]->changeWindow(devRect, winSteps) < 0) 
             clearAppInstance(winID);
          else   
             windowChanged(winID);
@@ -595,13 +595,20 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
       }
       
       case RESIZE_WINDOW : {
+			std::cout << "resize window" << std::endl;
          tokenNum = getToken((char *)msg.getData(), token);
+         
+         int execNum = fsm->execList.size();      
          int winID = atoi(token);
          sageRect devRect;
          
-			int index =0;
-			app = findApp(winID, index);
-
+         if (winID >= 0 && winID < execNum) 
+            app = fsm->execList[winID];
+         else {
+            std::cout << "FsCore::Invalid Win ID " << winID << std::endl;
+            break;   
+         }
+         
          if (!app) {
             std::cout << "FsCore : app "<< winID << " doesn't exist" << std::endl;
                break;   
@@ -647,7 +654,7 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          
          // adjust app window size considering image resolution
 			float ar = (float)(right - left) / (float)(top - bottom);
-			if (ar > 1 && app->imageWidth > MAX_SAGE_WINDOW_SIZE && right - left < MAX_SAGE_WINDOW_SIZE) {
+         if (ar > 1 && app->imageWidth > MAX_SAGE_WINDOW_SIZE && right - left < MAX_SAGE_WINDOW_SIZE) {
 				right = left + MAX_SAGE_WINDOW_SIZE;
 				top = bottom + (int)(MAX_SAGE_WINDOW_SIZE/ar);
 			}
@@ -667,10 +674,13 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          if (fsm->winStep > 0)
             winSteps = fsm->winStep;
          
-         if (fsm->dispList[index]->changeWindow(devRect, winSteps) < 0)
+         if (fsm->dispList[winID]->changeWindow(devRect, winSteps) < 0)
             clearAppInstance(winID);
          else
             windowChanged(winID);
+
+			// HYEJUNG
+			fsm->vdtList[0]->changeWindow(devRect, winSteps) < 0)
          
          break;
       }                   
@@ -703,10 +713,16 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
 
       case APP_FRAME_RATE : {
          tokenNum = getToken((char *)msg.getData(), token);
+         
+         int execNum = fsm->execList.size();      
          int appID = atoi(token);
          
-			int index =0;
-			app = findApp(appID, index);
+         if (appID >= 0 && appID < execNum) 
+            app = fsm->execList[appID];
+         else {
+            std::cout << "FsCore::Invalid App ID " << appID << std::endl;
+            break;   
+         }
          
          if (!app) {
             std::cout << "FsCore : app "<< appID << " doesn't exist" << std::endl;
@@ -723,17 +739,22 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
       }
    
       case PERF_INFO_REQ : {
-         //int dispNum = fsm->dispList.size();      
+         int dispNum = fsm->dispList.size();      
          tokenNum = getToken((char *)msg.getData(), token);
          int appID = atoi(token);
-
-			int index =0;
-			app = findApp(appID, index);
-         if (!app) {
+         
+         if (appID >= 0 && appID < dispNum) 
+            disp = fsm->dispList[appID];
+         else {
+            std::cout << "FsCore : Invalid App ID " << appID << std::endl;
+            break;   
+         }
+         
+         if (!disp) {
             std::cout << "FsCore : app "<< appID << " doesn't exist" << std::endl;
                break;   
          }   
-			disp = fsm->dispList[index];
+            
          int sendingRate;
                
          if (tokenNum < 1) {
@@ -751,17 +772,21 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
       }
       
       case STOP_PERF_INFO : {
-         //int dispNum = fsm->dispList.size();      
+         int dispNum = fsm->dispList.size();      
          tokenNum = getToken((char *)msg.getData(), token);
          int appID = atoi(token);
-
-			int index =0;
-			app = findApp(appID, index);
-         if (!app) {
+         
+         if (appID >= 0 && appID < dispNum) 
+            disp = fsm->dispList[appID];
+         else {
+            std::cout << "FsCore : Invalid App ID " << appID << std::endl;
+            break;   
+         }
+         
+         if (!disp) {
             std::cout << "FsCore : app "<< appID << " doesn't exist" << std::endl;
                break;   
          }   
-         disp = fsm->dispList[index];
             
          if (disp->stopPerformanceInfo() < 0)
             clearAppInstance(appID);
@@ -797,17 +822,21 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
       }
       
       case UPDATE_WIN_PROP : {
-         //int dispNum = fsm->dispList.size();      
+         int dispNum = fsm->dispList.size();      
          tokenNum = getToken((char *)msg.getData(), token);
          int appID = atoi(token);
-
-			int index =0;
-			app = findApp(appID, index);
-         if (!app) {
+         
+         if (appID >= 0 && appID < dispNum) 
+            disp = fsm->dispList[appID];
+         else {
+            std::cout << "FsCore : Invalid App ID " << appID << std::endl;
+            break;   
+         }
+         
+         if (!disp) {
             std::cout << "FsCore : app "<< appID << " doesn't exist" << std::endl;
                break;   
          }   
-         //disp = fsm->dispList[index];
             
          //disp->updateWinProp((char *)msg.getData());
          windowChanged(appID);
@@ -823,13 +852,17 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
       }
       
       case SAGE_FLIP_WINDOW : {
-         //int execNum = fsm->execList.size();      
+         int execNum = fsm->execList.size();      
          tokenNum = getToken((char *)msg.getData(), token);
          int appID = atoi(token);
-
-			int index =0;
-			app = findApp(appID, index);
          
+         if (appID >= 0 && appID < execNum) 
+            app = fsm->execList[appID];
+         else {
+            std::cout << "FsCore::Invalid App ID " << appID << std::endl;
+            break;   
+         }
+            
          if (!app) {
             std::cout << "FsCore : app "<< appID << " doesn't exist" << std::endl;
                break;   
@@ -844,13 +877,17 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
       }      
 
       case SAGE_CHECK_LATENCY : {
-         //int execNum = fsm->execList.size();      
+         int execNum = fsm->execList.size();      
          tokenNum = getToken((char *)msg.getData(), token);
          int appID = atoi(token);
-
-			int index =0;
-			app = findApp(appID, index);
          
+         if (appID >= 0 && appID < execNum) 
+            app = fsm->execList[appID];
+         else {
+            std::cout << "FsCore::Invalid App ID " << appID << std::endl;
+            break;   
+         }
+            
          if (!app) {
             std::cout << "FsCore : app "<< appID << " doesn't exist" << std::endl;
                break;   
@@ -883,9 +920,8 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          tokenNum = getToken((char *)msg.getData(), token);
          int numOfChange = atoi(token);
 
-			int index =0;
-         int appID, zValue;
          for (int i=0; i<numOfChange; i++) {
+            int appID, zValue;
             
             if (tokenNum > 0) {
                tokenNum = getToken((char *)msg.getData(), token);
@@ -905,10 +941,7 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
                _exit(0);
             }   
             
-				app = findApp(appID, index);
-				if(!app) continue;
-
-            fsm->dispList[index]->setZValue(zValue);   
+            fsm->dispList[appID]->setZValue(zValue);   
          }   
                
          break;
@@ -936,7 +969,7 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
             char msgStr[512];
             memset(msgStr, 0, 512);
             sprintf(msgStr, "App Name : %s\n   App Instance ID : %d\n",   
-                     app->appName, app->fsInstID);
+                     app->appName, i);
             sprintf(token, "   position (left, right, bottom, top) : ( %d , %d , %d , %d )\n",
                   left, right, bottom, top);
             strcat(msgStr, token);
@@ -983,10 +1016,18 @@ int fsCore::rotateWindow(char *msgStr)
 {
    char token[TOKEN_LEN];
    int tokenNum = getToken(msgStr, token);
+         
+   int execNum = fsm->execList.size();      
    int winID = atoi(token);
    appInExec *app = NULL;
-	int index =0;
-	app = findApp(winID, index);
+   
+   if (winID >= 0 && winID < execNum) 
+      app = fsm->execList[winID];
+   else {
+      sage::printLog("fsCore::rotateWindow : invalid Win ID %d", winID);
+      return -1;   
+   }
+
    if (!app) {
       sage::printLog("fsCore::rotateWindow : app %d doesn't exist", winID);
          return -1;   
@@ -1023,7 +1064,7 @@ int fsCore::rotateWindow(char *msgStr)
          break;
    }
    
-   if (fsm->dispList[index]->modifyStream() < 0)
+   if (fsm->dispList[winID]->modifyStream() < 0)
       clearAppInstance(winID);
    else   
       windowChanged(winID);
@@ -1158,19 +1199,25 @@ int fsCore::sendDisplayInfo(int clientID)
 
 int fsCore::sendAppInfo(int appID, int clientID)
 {
-   appInExec *app;
-	int index =0;
-	app = findApp(appID, index);
-	if(!app)
-	{
-      std::cout << "FsCore::Invalid App ID " << appID << std::endl;
-		return 1;
-	}
+   if (fsm->dispList.size() <= appID)
+      return 1;
 
+   appInExec *app;
 
    int zValue = 0;   
    char appInfoStr[TOKEN_LEN];
-	zValue = fsm->dispList[index]->getZValue();
+   if (appID >= 0) {
+      app = fsm->execList[appID];
+      if (!app)
+         return -1;
+         
+      if (fsm->dispList.size() > appID)
+         zValue = fsm->dispList[appID]->getZValue();
+   }   
+   else {
+      std::cout << "FsCore::Invalid App ID " << appID << std::endl;
+      exit(0);
+   }
 
    int left = app->x;
    int bottom = app->y;
@@ -1182,7 +1229,7 @@ int fsCore::sendAppInfo(int appID, int clientID)
    memset(appInfoStr, 0, TOKEN_LEN);
    sprintf(appInfoStr, "%s %d %d %d %d %d %d %d %d %d %d %s %s", app->appName, appID, 
 	   left, right, bottom, top, sailID, zValue, degree, app->displayID, 
-	   app->fsInstID, app->launcherID, fsm->dispList[index]->winTitle);
+	   app->instID, app->launcherID, fsm->dispList[appID]->winTitle);
    
 	return fsm->sendMessage(clientID, APP_INFO_RETURN, appInfoStr);
 }
@@ -1190,16 +1237,11 @@ int fsCore::sendAppInfo(int appID, int clientID)
 int fsCore::sendAppInfo(int clientID)
 {
    int appInstNum = fsm->execList.size();
-   appInExec *app  = NULL;
    
 	int retVal = 0;
    for (int i=0; i<appInstNum; i++) 
-	{
-		app = (appInExec*) fsm->execList[i];
-		if (!app) continue;
-		if (sendAppInfo(app->fsInstID, clientID) < 0)
+		if (sendAppInfo(i, clientID) < 0)
 			retVal = 1;
-	}
       
    return retVal;   
 }   
@@ -1219,7 +1261,7 @@ int fsCore::sendAppStatus(int clientID, char *appName)
       if (strcmp(app->appName, appName) == 0) {
          instNum++;
          char instStr[TOKEN_LEN];
-         sprintf(instStr, " %d %d", app->fsInstID, app->sailClient);
+         sprintf(instStr, " %d %d", i, app->sailClient);
          strcat(statusMsg, instStr);
       }      
    }
@@ -1247,14 +1289,14 @@ int fsCore::bringToFront(int winID)
          continue;
 
       displayInstance *disp = fsm->dispList[i];
-      if (app->fsInstID != winID)
+      if (i != winID)
          disp->increaseZ();
       else
          disp->setZValue(0);
          
       numOfWin++;   
       char zVal[TOKEN_LEN];
-      sprintf(zVal, "%d %d ", app->fsInstID, disp->getZValue());
+      sprintf(zVal, "%d %d ", i, disp->getZValue());
       strcat(depthStr, zVal);
    }
 

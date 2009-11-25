@@ -45,9 +45,9 @@
 #include "fsCore.h"
 #include "sageVirtualDesktop.h"
 
-displayInstance::displayInstance(fsManager *f, int id, appInExec* app) : fsm(f), winID(id), appExec(app)
+displayInstance::displayInstance(fsManager *f, int id) : fsm(f), winID(id)
 {
-   //appExec = fsm->execList[id];
+   appExec = fsm->execList[id];
    receiverList.clear();
    sailClient = appExec->sailClient;
    zValue = 0;
