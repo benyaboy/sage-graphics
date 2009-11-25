@@ -67,8 +67,10 @@ public:
    int sendAppInfo(int clientID);
    int sendAppInfo(int appID, int clientID);
    int sendDisplayInfo(int clientID);
-   int initDisp(appInExec* app);
-   int initAudio();
+	// BEGIN HYEJUNG
+   int initDisp(int instID);
+   int initAudio(int instID);
+	// END
 
    int windowChanged(int winID);
    int bringToFront(int winID);

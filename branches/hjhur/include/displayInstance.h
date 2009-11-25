@@ -91,7 +91,7 @@ private:
    int shutdownApp();
    
 public:
-   displayInstance(fsManager *f, int id, appInExec* app);
+   displayInstance(fsManager *f, int id);
    ~displayInstance() {}
    int getReceiverNum() { return receiverList.size(); }
    int getReceiver(int i) { return receiverList[i]; }
