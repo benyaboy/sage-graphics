@@ -680,7 +680,7 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
             windowChanged(winID);
 
 			// HYEJUNG
-			fsm->vdtList[0]->changeWindow(devRect, winSteps) < 0)
+			//fsm->vdtList[0]->changeWindow(devRect, winSteps) < 0)
          
          break;
       }                   

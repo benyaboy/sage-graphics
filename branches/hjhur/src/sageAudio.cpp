@@ -667,9 +667,10 @@ int sageAudio::recordCallback( const void *inputBuffer, void *outputBuffer,
    /** todo */   
    // check later... it can make strange noisy  
    if(block == NULL) {
-      //std::cout << "no block " << std::endl;
+      std::cout << "no block " << std::endl;
       return 0;      
    }
+	std::cout << "got block to capture" << std::endl;
    //if(block->reformatted != 1) return 0;
    //if(This->playFlag != AUDIO_PLAY) return -1;
    
