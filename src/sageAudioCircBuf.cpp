@@ -43,16 +43,32 @@
 #include "sageSync.h"
 #include "sageAudioModule.h"
 
+//#define RECLIP(val, min, max) (val<min?min:((val>max)?max:val))
+
+// all float checked 
 #define UINT8_TO_FLOAT(x) ( ((float)(x) -128.0)/ 127.0 )
 #define INT8_TO_FLOAT(x) ( (float) (x) / 127.0 )
 #define INT16_TO_FLOAT(x) ( (float)(x) / 32768.0 )
-#define FLOAT_TO_FLOAT(x) ( (float)(x) )
+
+#define UINT8_TO_INT16(x) ( ((short)(x) -128.0) * 0x0101 )
+#define INT8_TO_INT16(x) ( (short) ((x) * 0x0101) )
+#define FLOAT_TO_INT16(x) ( (short)((short)(x) * 32767.0) )
+
+#define UINT8_TO_INT8(x) ( (char)(x) )
+// checked 
+#define INT16_TO_INT8(x) ( (char)(x >> 8) )
+#define FLOAT_TO_INT8(x) ( (char)((char)(x) * 127.0) )
+
+#define INT8_TO_UINT8(x) ( (unsigned char) (x) )
+// checked 
+#define INT16_TO_UINT8(x) ( (unsigned char)((x ^ 0x8000) >> 8) ) 
+#define FLOAT_TO_UINT8(x) ( (unsigned char)(((char)(x) + 1.0) * 127.0) )
 
 sageAudioCircBuf::sageAudioCircBuf(sageSyncClient *sync, int nID, int keyframe)
 : readIndex(0), writeIndex(0), blocksNum(0), full(false), empty(true), bytesBlock(0),
    sampleFmt(SAGE_SAMPLE_FLOAT32), sampleBuffSize(0), blockArray(NULL), audioId(-1), 
    synchronizer(NULL), syncClientObj(sync), locked(false), lastFrameIndex(-1), refRead(0), refMutex(0),
-   instID(nID), syncKeyFrame(keyframe), lastgFrameIndex(-0)
+   instID(nID), syncKeyFrame(keyframe), lastgFrameIndex(-0), assignedChannel(0)
 {
    queueLock = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
    pthread_mutex_init(queueLock, NULL);
@@ -487,19 +503,70 @@ int sageAudioCircBuf::getWriteIndex()
    return writeIndex; 
 }
 
+int sageAudioCircBuf::copy(void* rawdata, audioBlock* block)
+{
+   switch(sampleFmt) {
+      case SAGE_SAMPLE_FLOAT32 :
+         {
+   			float *wptr = (float*) block->buff;
+            float *rptr = (float*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = *rptr;
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_INT16 :
+         {
+   			short *wptr = (short*) block->buff;
+            short *rptr = (short*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = *rptr;
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_INT8 :
+         {
+   			char *wptr = (char*) block->buff;
+            char *rptr = (char*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = *rptr;
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_UINT8 :
+         {
+            unsigned char *wptr = (unsigned char*) block->buff;
+            unsigned char *rptr = (unsigned char*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = *rptr;
+               rptr++;
+            }
+         }
+         break;
+   }
+
+   return 1;
+}
+
 int sageAudioCircBuf::convertToFloat(sageSampleFmt fmt, void* rawdata, audioBlock* block)
 {
-   if(sampleFmt != SAGE_SAMPLE_FLOAT32) return -1;
-
-   float *wptr = (float*) block->buff;
-
-   switch(fmt) {
+   if(sampleFmt == SAGE_SAMPLE_FLOAT32) 
+	{
+   	float *wptr = (float*) block->buff;
+   	switch(fmt) {
       case SAGE_SAMPLE_FLOAT32 :
          {
             float *rptr = (float*) rawdata;
             for( int i=0; i< sampleBuffSize; i++ ) 
             {
-               *wptr++ = FLOAT_TO_FLOAT(*rptr);
+               *wptr++ = *rptr;
                rptr++;
             }
          }
@@ -527,7 +594,6 @@ int sageAudioCircBuf::convertToFloat(sageSampleFmt fmt, void* rawdata, audioBloc
       case SAGE_SAMPLE_UINT8 :
          {
             unsigned char *rptr = (unsigned char*) rawdata;
-         
             for( int i=0; i< sampleBuffSize; i++ ) 
             {
                *wptr++ = UINT8_TO_FLOAT(*rptr);
@@ -535,56 +601,326 @@ int sageAudioCircBuf::convertToFloat(sageSampleFmt fmt, void* rawdata, audioBloc
             }
          }
          break;
-   }
+		}
+   } else if(sampleFmt == SAGE_SAMPLE_INT16) 
+	{
+   	short *wptr = (short*) block->buff;
+   	switch(fmt) {
+      case SAGE_SAMPLE_FLOAT32 :
+         {
+            float *rptr = (float*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               //*wptr++ = RECLIP(FLOAT_TO_INT16(*rptr), -32768, 32767);
+               *wptr++ = FLOAT_TO_INT16(*rptr);
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_INT16 :
+         {
+            short *rptr = (short*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = *rptr;
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_INT8 :
+         {
+            char *rptr = (char*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = INT8_TO_INT16(*rptr);
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_UINT8 :
+         {
+            unsigned char *rptr = (unsigned char*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = UINT8_TO_INT16(*rptr);
+               rptr++;
+            }
+         }
+         break;
+		}
+   } else if(sampleFmt == SAGE_SAMPLE_INT8) 
+	{
+   	char *wptr = (char*) block->buff;
+   	switch(fmt) {
+      case SAGE_SAMPLE_FLOAT32 :
+         {
+            float *rptr = (float*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               //*wptr++ = RECLIP(FLOAT_TO_INT8(*rptr), -128, 127);
+               *wptr++ = FLOAT_TO_INT8(*rptr);
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_INT16 :
+         {
+				std::cout << "convert.... int16_to int8" << std::endl;
+            short *rptr = (short*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = INT16_TO_INT8(*rptr);
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_INT8 :
+         {
+            char *rptr = (char*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = *rptr;
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_UINT8 :
+         {
+            unsigned char *rptr = (unsigned char*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = UINT8_TO_INT8(*rptr);
+               rptr++;
+            }
+         }
+         break;
+		}
+   } else if(sampleFmt == SAGE_SAMPLE_UINT8) 
+	{
+   	unsigned char *wptr = (unsigned char*) block->buff;
+   	switch(fmt) {
+      case SAGE_SAMPLE_FLOAT32 :
+         {
+            float *rptr = (float*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               //*wptr++ = RECLIP(FLOAT_TO_UINT8(*rptr), 0, 255);
+               *wptr++ = FLOAT_TO_UINT8(*rptr);
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_INT16 :
+         {
+            short *rptr = (short*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = INT16_TO_UINT8(*rptr);
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_INT8 :
+         {
+           	char *rptr = (char*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = INT8_TO_UINT8(*rptr);
+               rptr++;
+            }
+         }
+         break;
+      case SAGE_SAMPLE_UINT8 :
+         {
+            unsigned char *rptr = (unsigned char*) rawdata;
+            for( int i=0; i< sampleBuffSize; i++ ) 
+            {
+               *wptr++ = *rptr;
+               rptr++;
+            }
+         }
+         break;
+		}
+	}
 
    return 1;
 }
 
-int sageAudioCircBuf::merge(audioBlock* block) 
+sageSampleFmt sageAudioCircBuf::getSampleFmt(void)
 {
-   std::vector<sageAudioCircBuf*> bufferList = sageAudioModule::_instance->getBufferList();
+	return sampleFmt;
+}
 
+int sageAudioCircBuf::merge(audioBlock* block, std::vector<sageAudioCircBuf*>& bufferList) 
+{
    float size = 1.0 / bufferList.size();
-
-   float *wptr = (float*) block->buff;
-   /*for( int i=0; i< sampleBuffSize; i++ )
-   {
-      *wptr = *wptr * size ;
-      //*wptr = *wptr * 0.0 ;
-      wptr++;
-   }*/
-   float *rptr = NULL;
 
    std::vector<sageAudioCircBuf*>::iterator iterBuffer;
    sageAudioCircBuf* temp = NULL;
    audioBlock *secondblock = NULL; 
-   for(iterBuffer = bufferList.begin(); iterBuffer != bufferList.end(); iterBuffer++)
-   {
-      temp = (sageAudioCircBuf*) *iterBuffer;
-      if(temp->getAudioId() != audioId)
-      {
-         secondblock = temp->readBlock();
-         if(secondblock == NULL) continue;
-         if(secondblock->reformatted != 1) continue;
+	bool filled=false;
 
-         wptr = (float*) block->buff;
-         rptr = (float*) secondblock->buff;
-         for( int i=0; i< sampleBuffSize; i++ )
-         {
-            //*wptr = *rptr;
-            //*wptr = *wptr + size * (*rptr);
-            *wptr = *wptr + (*rptr);
-            //std::cout << *wptr << std::endl;
-            wptr++;
-            rptr++;
-         }
-         //std::cout << "merging " << temp->getAudioId() << ", mine: " << audioId << " size : " << size << std::endl;
+   switch(sampleFmt) {
+	case SAGE_SAMPLE_FLOAT32 :
+		{
+   		float *wptr = (float*) block->buff;
+			float *rptr = NULL;
+   		for( int i=0; i< sampleBuffSize; i++ )
+   		{
+      		*wptr = 0.0 ;
+      		wptr++;
+   		}
+   		for(iterBuffer = bufferList.begin(); iterBuffer != bufferList.end(); iterBuffer++)
+   		{
+      		temp = (sageAudioCircBuf*) *iterBuffer;
+				if(temp == NULL) continue;
 
-         temp->updateReadIndex();
-      }
-   }
+				secondblock = temp->readBlock();
+				if(secondblock == NULL) continue;
+				if(secondblock->reformatted != 1) continue;
+
+				wptr = (float*) block->buff;
+				rptr = (float*) secondblock->buff;
+
+				for( int i=0; i< sampleBuffSize; i++ )
+				{
+					*wptr = *wptr + (*rptr);
+					wptr++;
+					rptr++;
+				}
+
+				temp->updateReadIndex();
+				filled=true;
+   		}
+			break;
+		}
+	case SAGE_SAMPLE_INT16 :
+		{
+   		short *wptr = (short*) block->buff;
+			short *rptr = NULL;
+   		for( int i=0; i< sampleBuffSize; i++ )
+   		{
+      		*wptr = 0.0 ;
+      		wptr++;
+   		}
+
+   		for(iterBuffer = bufferList.begin(); iterBuffer != bufferList.end(); iterBuffer++)
+   		{
+      		temp = (sageAudioCircBuf*) *iterBuffer;
+				if(temp == NULL) continue;
+
+				secondblock = temp->readBlock();
+				if(secondblock == NULL) continue;
+				if(secondblock->reformatted != 1) continue;
+
+				wptr = (short*) block->buff;
+				rptr = (short*) secondblock->buff;
+
+				if(temp->assignedChannel == 0) {
+					for( int i=0; i< sampleBuffSize; i+=2 )
+					{
+						*wptr = *wptr + (*rptr);
+						wptr++;
+						rptr++;
+						wptr++;
+						rptr++;
+					}
+				} else if(temp->assignedChannel == 1) {
+					for( int i=0; i< sampleBuffSize; i+=2 )
+					{
+						wptr++;
+						rptr++;
+						*wptr = *wptr + (*rptr);
+						wptr++;
+						rptr++;
+					}
+				} else {
+					for( int i=0; i< sampleBuffSize; i++ )
+					{
+						*wptr = *wptr + (*rptr);
+						wptr++;
+						rptr++;
+					}
+				}
+				temp->updateReadIndex();
+				filled=true;
+   		}
+			break;
+		}
+	case SAGE_SAMPLE_INT8 :
+		{
+   		char *wptr = (char*) block->buff;
+			char *rptr = NULL;
+   		for( int i=0; i< sampleBuffSize; i++ )
+   		{
+      		*wptr = 0.0 ;
+      		wptr++;
+   		}
+   		for(iterBuffer = bufferList.begin(); iterBuffer != bufferList.end(); iterBuffer++)
+   		{
+      		temp = (sageAudioCircBuf*) *iterBuffer;
+				if(temp == NULL) continue;
+
+				secondblock = temp->readBlock();
+				if(secondblock == NULL) continue;
+				if(secondblock->reformatted != 1) continue;
+
+				wptr = (char*) block->buff;
+				rptr = (char*) secondblock->buff;
+
+				for( int i=0; i< sampleBuffSize; i++ )
+				{
+					*wptr = *wptr + (*rptr);
+					wptr++;
+					rptr++;
+				}
+				temp->updateReadIndex();
+				filled=true;
+   		}
+			break;
+		}
+	case SAGE_SAMPLE_UINT8 :
+		{
+   		unsigned char *wptr = (unsigned char*) block->buff;
+			unsigned char *rptr = NULL;
+   		for( int i=0; i< sampleBuffSize; i++ )
+   		{
+      		*wptr = 0.0 ;
+      		wptr++;
+   		}
+   		for(iterBuffer = bufferList.begin(); iterBuffer != bufferList.end(); iterBuffer++)
+   		{
+      		temp = (sageAudioCircBuf*) *iterBuffer;
+				if(temp == NULL) continue;
+
+				secondblock = temp->readBlock();
+				if(secondblock == NULL) continue;
+				if(secondblock->reformatted != 1) continue;
+
+				wptr = (unsigned char*) block->buff;
+				rptr = (unsigned char*) secondblock->buff;
+
+				for( int i=0; i< sampleBuffSize; i++ )
+				{
+					*wptr = *wptr + (*rptr);
+					wptr++;
+					rptr++;
+				}
+				temp->updateReadIndex();
+				filled=true;
+   		}
+			break;
+		}
+	}
+
+	if(filled == false) return 0;
 
    return 1;
+}
+
+void sageAudioCircBuf::assignChannel(int channel)
+{
+	assignedChannel = channel;	
 }
 
 int sageAudioCircBuf::getSize() 

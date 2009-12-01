@@ -564,7 +564,7 @@ int virtualDesktop::parseAudioConfigfile(FILE *fp, bool configBegin)
             newNode->sampleFmt = sampleFmt;
             newNode->samplingRate = samplingRate;
             newNode->channels = channels;
-            newNode->framePerBuffer = framePerBuffer;
+            //newNode->framePerBuffer = framePerBuffer;
             newNode->deviceId = deviceId;
          }
       }

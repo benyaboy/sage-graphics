@@ -99,13 +99,17 @@ sageAudioManager::sageAudioManager(int argc, char **argv)
    fsClient::init(fsPort);
    connect(fsIP);
    
-   //cout << "initialize : " << fsIP << " " << fsPort << " sync port : " << syncPort << endl;
+   //std::cout << "initialize : " << fsIP << " " << fsPort << " sync port : " << syncPort << std::endl;
    
    sage::printLog("SAGE Audio Manager : register to a Free Space Manager");   
    sendMessage(REG_ARCV, argv[3]);
       
    rcvEnd = false;   
    receiverList.clear();
+	for(int i=0; i < 20; i++)
+	{
+		receiverList.push_back(NULL);
+	}
    
    eventQueue = new sageEventQueue;
          
@@ -350,75 +354,41 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 {
    int senderID, instID, sailNodeNum, streamType, blockSize, frameRate;
    int syncType, keyframe;
+   sscanf(msg, "%d %d %d %d %d %d %d %d %d %d %d %d", 
+					&senderID, &streamType, &instID, &sailNodeNum, &blockSize, 
+					&syncType, (int*) &audioCfg.sampleFmt, &audioCfg.samplingRate, 
+					&audioCfg.channels, &audioCfg.framePerBuffer, &frameRate, &keyframe);
+
+	if(instID >= receiverList.size())
+	{
+		for(int i=0; i < 20; i++)
+		{
+			receiverList.push_back(NULL);
+		}
+	}
    
-   // sprintf(regMsg, "%d %d %d %d %d %d %d %d %d %d", config.streamType, winID,
-   //  config.nodeNum, blockSize, config.syncMode, (int)config.sampleFmt, 
-   //  config.samplingRate, config.channels, config.framePerBuffer,  config.frameRate);
-   // 100 6881394 1 2176 0 1 44100 2 512 1      
-                                 
-   sscanf(msg, "%d %d %d %d %d %d %d %d %d %d %d %d", &senderID, &streamType, &instID, &sailNodeNum, &blockSize, 
-      &syncType, (int*) &audioCfg.sampleFmt, &audioCfg.samplingRate, &audioCfg.channels, &audioCfg.framePerBuffer, &frameRate, &keyframe);
-
-   std::cout << "stream info " << msg << std::endl;
-   
-   bool instExist = false;
-   for (int i=0; i<receiverList.size(); i++) {
-      if (!receiverList[i])
-         continue;
-
-      std::cout << "-------> " << receiverList[i]->getInstID() << " , " << instID << std::endl;
-      if (receiverList[i]->getInstID() == instID) {
-         instExist = true;
-         receiverList[i]->addStream(senderID);
-         std::cout << "existing stream " << instID << std::endl;
-         return 0;
-      }
-   }
-
-   if (instExist == false) {  
-      
-      audioModule->updateConfig(audioCfg);
-      /*
-      if (receiverList.size() >= 1) {
-         int tempId = receiverList.size() -1;
-         audioModule->deleteObject(tempId);   
-      
-         //audioObj->updateConfig(audioCfg);      
-         instExist = true;
-         //audioInstList[tempId]->buffer->reset();
-      }
-      */
-
-      sageAudioCircBuf *buffer = audioModule->createObject(instID);
+	if(receiverList[instID] != NULL) {
+		receiverList[instID]->addStream(senderID);
+		std::cout << "[sageAudioManager::initStreams] existing stream " << instID << std::endl;
+		return 0;
+	}
+	else { 
+		std::cout << "[sageAudioManager::initStreams] init stream " << instID << std::endl;
+      sageAudioCircBuf *buffer = audioModule->createObject(instID, &audioCfg);
 
       if(buffer != NULL) {
          buffer->setInstID(instID);
          buffer->setKeyframe(keyframe);
-         if(streamType == SAGE_BLOCK_NO_SYNC)
-         {
-            std::cout << "SAGE_BLOCK_NO_SYNC" << std::endl;
-         } else 
+         if(streamType != SAGE_BLOCK_NO_SYNC)
          {
             buffer->connectSyncClient(syncClientObj);
          }
 
-         sageAudioReceiver *recv = new sageAudioReceiver(msg, eventQueue, nwObj, buffer);
-         if(receiverList.size() == 0)
-         {
-            // set it as master receiver
-            recv->setMaster(true);
-         }
-
-         std::cout << "--------> audio receiver is created " << msg << std::endl;
-         std::cout << "inst init " << instID << std::endl;
-      
+         sageAudioReceiver *recv = new sageAudioReceiver(msg, eventQueue, nwObj, buffer, audioModule->getSampleFmt());
          recv->addStream(senderID);
-         if(receiverList.size() == 0)
-         {
-            audioModule->play(buffer->getAudioId());
-         }
-         receiverList.push_back(recv);
+         receiverList[instID] = recv;
 
+         std::cout << "[sageAudioManager::initStreams] inst init " << instID << std::endl;
       }
                         
    }      
@@ -428,55 +398,18 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 
 int sageAudioManager::shutdownApp(int instID)
 {
-   sage::printLog("sageAudioManager is shutting down an application");
+   //sage::printLog("sageAudioManager is shutting down an application");
    int audioID = -1;
-   sageAudioReceiver *newMaster = NULL;
-   
-   std::vector<sageAudioReceiver*>::iterator iter = receiverList.begin(); 
+	if (instID < 0 || instID >= receiverList.size()) 
+		return -1;
 
-   std::cout << "receiverList size : " << receiverList.size() << " inst id = " << instID << std::endl;
-   for (int i=0; i<receiverList.size(); i++, iter++) {
-      if (!receiverList[i])
-         continue;
-      
-      std::cout << "shutdown app searching: inst=" <<  receiverList[i]->getInstID() << " , sender=" << receiverList[i]->getSenderID() << " ,"  << instID << std::endl; 
-      if (instID == -1 || receiverList[i]->getInstID() == instID) {
-         if(audioModule) {
-            audioID = audioModule->stop(receiverList[i]->getInstID());
-            std::cout << "--------------------shutdown app : " << instID << " " << receiverList[i]->getAudioId() << std::endl; 
-         }   
-         // check receiverList then if it's master,
-         if((receiverList[i]->isMaster() == true) && (audioID >=0))
-         { 
-            receiverList[i]->setMaster(false);
-			std::cout << "----- master is shutting down" << std::endl;
-
-            // then find another available receiver 
-            for (int j=0; j<receiverList.size(); j++) {
-               if (!receiverList[j])
-                  continue;
-			  std::cout << "----- receiverList id= " << receiverList[j]->getAudioId() << " audioID = " << audioID << std::endl;
-               if(receiverList[j]->getAudioId() == audioID) {
-                  newMaster = receiverList[j];
-				  std::cout << "----- found new master" << std::endl;
-                  break;
-               }
-            }
-
-            // if there is, set another reciver as a master
-            if(newMaster != NULL) {
-               newMaster->setMaster(true);
-               std::cout << "master is changed to " << audioID << std::endl; 
-               // set reset flag
-               newMaster->setResetFlag();
-               audioModule->play(newMaster->getAudioId());
-            }  
-         }
-         //delete receiverList[i];
-         receiverList[i] = NULL;
-         receiverList.erase(iter);
-         break;
-      }   
+   sageAudioReceiver *receiver = receiverList[instID];
+	if(receiver != NULL) {
+		delete receiver;
+      audioModule->deleteObject(instID);
+		receiver = NULL;
+		receiverList[instID] = NULL;
+		std::cout << "[sageAudioManager::shutdownApp] " << instID << " is shutting down" << std::endl;
    }
    
    return 0;
@@ -518,15 +451,61 @@ int sageAudioManager::parseMessage(sageMessage *msg)
       return -1;
    }
       
+	//std::cout << msg->getCode() << " parse mesage : " << (char *)msg->getData() << std::endl;
    switch (msg->getCode()) {
       case ARCV_AUDIO_INIT : {
-         //std::cout << "rcv init : " << (char *)msg->getData() << std::endl;
          if (init((char *)msg->getData()) < 0) 
             rcvEnd = true;
-         //std::cout << "-----> rcv init : " << (char *)msg->getData() << " rcvEnd : " << rcvEnd << std::endl;
          break;
       }
+      case ARCV_WINDOW_INIT : {
+			// width, heght, dim_x, dim_y
+   		char token[TOKEN_LEN];
+			char* data = (char *)msg->getData();
 
+   		getToken(data, token);
+			int width = atoi(token);
+   		getToken(data, token);
+			int height = atoi(token);
+   		getToken(data, token);
+			int dim_x = atoi(token);
+   		getToken(data, token);
+			int dim_y = atoi(token);
+			audioModule->setTileInfo(width, height, dim_x, dim_y);
+			break;
+		}
+      case ARCV_WINDOW : {
+			//std::cout << "parse mesage : " << (char *)msg->getData() << std::endl;
+			// id, x, y, width, height 
+   		char token[TOKEN_LEN];
+			char* data = (char *)msg->getData();
+
+   		getToken(data, token);
+			int id = atoi(token);
+   		getToken(data, token);
+			int x = atoi(token);
+   		getToken(data, token);
+			int y = atoi(token);
+   		getToken(data, token);
+			int width = atoi(token);
+   		getToken(data, token);
+			int height = atoi(token);
+   		getToken(data, token);
+			int zvalue = atoi(token);
+
+			audioModule->changeWindow(id, x, y, width, height, zvalue);
+   		//getToken(data, token);
+			break;
+		}
+		case ARCV_WINDOW_DEPTH : {
+			//std::cout << "depth mesage : " << (char *)msg->getData() << std::endl;
+
+			// number of apps, inst id, depth, ........
+   		//char token[TOKEN_LEN];
+			//char* data = (char *)msg->getData();
+
+			break;
+		}
       case SHUTDOWN_RECEIVERS : {
          shutdownApp(-1);
          
@@ -543,7 +522,7 @@ int sageAudioManager::parseMessage(sageMessage *msg)
          break;
       }         
       case ARCV_SHUTDOWN_APP : {
-         std::cout << "message: " <<  msg << std::endl;
+         //std::cout << "message: " <<  msg << std::endl;
          shutdownApp(atoi((char *)msg->getData()));
 
          break;

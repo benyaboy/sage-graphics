@@ -299,7 +299,8 @@ int sageBlockStreamer::streamLoop()
       //std::cout << "pt1" << std::endl;
    }   
    
-   sage::printLog("sageStreamer : network thread exit");
+   //sage::printLog("sageStreamer : network thread exit");
+	// END
    
    return 0;
 }

@@ -43,7 +43,8 @@
 #include "streamInfo.h"
 #include "sageBlockPartition.h"
 
-sageStreamer::sageStreamer() : params(NULL), streamerOn(true), configID(0),
+// HYEJUNG
+sageStreamer::sageStreamer() : params(NULL), streamerOn(false), configID(0),
       totalBandWidth(0), frameID(1), firstConfiguration(true), timeError(0.0) 
 {
    //std::cerr << "init config ID " << configID << std::endl;
@@ -129,9 +130,12 @@ int sageStreamer::initNetworks(char *data, bool localPort)
    nwObj->setFrameRate((double)config.frameRate);
    streamTimer.reset();
    
+	// BEGIN HYEJUNG
    if (pthread_create(&thId, 0, nwThread, (void*)this) != 0) {
       sage::printLog("sageBlockStreamer : can't create nwThread");
    }
+	streamerOn = true; 
+	// END
    
    return 0;
 }

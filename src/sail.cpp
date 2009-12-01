@@ -371,9 +371,8 @@ int sail::init(sailConfig &conf)
 			config.channels = audioConfig->channels;
 			config.framePerBuffer = audioConfig->framePerBuffer;
 
-         //buffer = audioObj->load(config.audioFileName, true);   // for the test
          if(buffer != NULL) {
-            audioModule->play(0);
+            audioModule->play();
          }
       }
       
@@ -395,6 +394,14 @@ int sail::init(sailConfig &conf)
       sage::printLog("SAIL : can't create msgThread\n");
          return -1;
    }
+
+	// BEGIN HYEJUNG
+   /*if (pthread_create(&thId, 0, nwThread, (void*)this) != 0) {
+      sage::printLog("SAIL : can't create nwThread\n");
+         return -1;
+   }*/
+	// END
+
 
    return 0;
 }
@@ -507,6 +514,41 @@ int sail::sendPerformanceInfo()
       
    return 0;
 }
+
+// BEGIN HYEJUNG
+void* sail::nwThread(void *args)
+{
+   sail *This = (sail *)args;
+	if(This->config.audioOn == true)
+	{
+   	while(This->sailOn) {
+			if(This->pixelStreamer) 
+			{
+				if(This->pixelStreamer->isActive() == true)
+					This->pixelStreamer->streamLoop();
+			}
+
+			if(This->audioStreamer) 
+			{
+				if(This->audioStreamer->isActive() == true)
+					This->audioStreamer->streamLoop();
+			}
+		}
+	} else 
+	{
+   	while(This->sailOn) {
+			if(This->pixelStreamer) 
+			{
+				if(This->pixelStreamer->isActive() == true)
+					This->pixelStreamer->streamLoop();
+			}
+		}
+	}
+   sage::printLog("sail::nwThread : exit the streammer thread\n");
+   pthread_exit(NULL);
+   return NULL;
+}
+// END
 
 void* sail::msgThread(void *args)
 {
@@ -713,7 +755,7 @@ int sail::parseMessage(sageMessage &msg)
 
 				audioStreamer->enqueMsg(msgData);
 				if(config.audioMode == SAGE_AUDIO_CAPTURE || config.audioMode == SAGE_AUDIO_PLAY) {
-				   audioModule->play(0);
+				   audioModule->play();
 				} else if(config.audioMode ==  SAGE_AUDIO_APP && audioAppDataHander){
 					audioAppDataHander->start();
 				}
@@ -748,7 +790,7 @@ int sail::parseMessage(sageMessage &msg)
       }         
       
       case SAIL_INIT_STREAM : {
-         //sage::printLog("SAIL : initialize SAGE streams");
+         //sage::printLog("SAIL : initialize SAGE streams %s", msgData);
          
          if (config.nodeNum > 1) {
             sGroup->enqueSyncMsg(msgData);
