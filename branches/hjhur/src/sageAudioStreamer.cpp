@@ -233,6 +233,7 @@ int sageAudioStreamer::streamLoop()
 {
    //streamTimer.reset();
 
+	// BEGIN HYEJUNG
    while (streamerOn) {
       //std::cout << "pt0" << std::endl;
       //std::cout << "get a new frame" << config.nodeNum << std::endl;
@@ -269,9 +270,10 @@ int sageAudioStreamer::streamLoop()
 
    }   
    
-   std::cout << "sageAudioStreamer : network thread exit" << std::endl;
+   //std::cout << "sageAudioStreamer : network thread exit" << std::endl;
    //sage::printLog("sageAudioStreamer : network thread exit");
    
+	// END
    return 0;
 }
 

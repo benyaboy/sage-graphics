@@ -65,14 +65,11 @@ int wavConverter::readHeader(int& nchan, long& samrate, int& nframes, sageSample
    
    fread(id, sizeof(char), 4, fileID); //read in first four bytes
    /** strange facts:: id has strange string more... so......i also did strangely....*/
-   //std::cout << "-------------------check name : " << id << " sizechar : " << sizeof(char) << " sizelong : " <<  sizeof(long) << " sizeshort: " << sizeof(short) << std::endl;   
    if ((id[0] =='R') && (id[1] =='I') && (id[2] =='F') && (id[3] =='F')) { // RIFF
       //we had 'RIFF' let's continue
       //fread(&size,sizeof(long) , 1, fileID); //read in 32bit size value
       fread(&size, 4, 1, fileID); //read in 32bit size value
-      //std::cout << "-------------------check size : " << size << std::endl;   
       fread(&id, sizeof(char), 4, fileID); //read in 4 byte string now
-      //std::cout << "-------------------check name : " << id << std::endl;   
       if ((id[0] == 'W') && (id[1] == 'A') && (id[2] == 'V') && (id[3] == 'E')) { // WAVE
          //this is probably a wave file since it contained "WAVE"
          fread(id, sizeof(char), 4, fileID); //read in 4 bytes "fmt ";
@@ -109,15 +106,17 @@ int wavConverter::readHeader(int& nchan, long& samrate, int& nframes, sageSample
    }
    
    if(done) {
-      std::cout << "formatLength: " << formatLength << std::endl;
-      std::cout << "formatTag: " << formatTag << std::endl;
+      std::cout << "[WAV-INFORMATION] " << std::endl;
+      std::cout << "\tformatLength: " << formatLength << std::endl;
+      std::cout << "\tformatTag: " << formatTag << std::endl;
 
-      std::cout << "channels: " <<  channels << std::endl;
-      std::cout << "sampleRate: " <<  sampleRate << std::endl;   
-      std::cout << "avgBytesSec: " <<  avgBytesSec << std::endl;   
-      std::cout << "blockAlign: " <<  blockAlign << std::endl;         
-      std::cout << "bitsPerSample: " <<  bitsPerSample << std::endl;         
-      std::cout << "dataSize: " << dataSize << std::endl;   
+      std::cout << "\tchannels: " <<  channels << std::endl;
+      std::cout << "\tsampleRate: " <<  sampleRate << std::endl;   
+      std::cout << "\tavgBytesSec: " <<  avgBytesSec << std::endl;   
+      std::cout << "\tblockAlign: " <<  blockAlign << std::endl;         
+      std::cout << "\tbitsPerSample: " <<  bitsPerSample << std::endl;         
+      std::cout << "\tdataSize: " << dataSize << std::endl;   
+      std::cout << "\tframesPerBuffer: " << nframes << std::endl;   
 
       // temporaly
       framesPerBuffer = nframes;
@@ -131,7 +130,7 @@ int wavConverter::readHeader(int& nchan, long& samrate, int& nframes, sageSample
          sampleFmt = SAGE_SAMPLE_INT16;
          totalBlocks = dataSize / (blockSize * 2);
       } // about 32 bit:: check IEEE FLOAT
-      std::cout << "totalBlocks: " << totalBlocks << std::endl;   
+      std::cout << "\ttotalBlocks: " << totalBlocks << std::endl;   
       
    }
    
