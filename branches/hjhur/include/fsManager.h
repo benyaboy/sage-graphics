@@ -92,6 +92,9 @@ private:
    std::vector<displayInstance *> dispList;
    std::vector<int> uiList;
    std::vector<int> appUiList;
+	// HYEJUNG
+	std::vector<int> audioList;
+
    std::vector<sageRect *> drawObjectList;
    std::vector<sageVirtualDesktop *> vdtList;
    std::vector<displayConnection *> dispConnectionList;

@@ -64,7 +64,7 @@ public:
 
    /** set parameters for setting audio up and assign pointer of circular buffer  
    */
-   int init( int id, sageAudioConfig &conf, sageAudioMode mode, sageAudioCircBuf *buf );
+   int init( int id, sageAudioConfig *conf, sageAudioMode mode, sageAudioCircBuf *buf );
    int reset( int id, sageAudioCircBuf *buf );
 
    /** open audio stream in play mode or capture mode
