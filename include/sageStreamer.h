@@ -109,7 +109,8 @@ protected:
    
    //int sendTimeBlock(int frame);
    
-   virtual int streamLoop() = 0;
+	// HYEJUNG
+   //virtual int streamLoop() = 0;
    virtual int reconfigureStreams(char *msgStr);
 
    /**
@@ -122,6 +123,9 @@ protected:
 public:
    sageStreamer();
    virtual ~sageStreamer();
+
+	// HYEJUNG
+   virtual int streamLoop() = 0;
 
    /**
     * creates sageTcpModule object. member var *nwObj will point it
@@ -173,7 +177,8 @@ protected:
 	/**
 	 * keeps calling streamPixelData() with one part of the doubleBuf
 	 */
-   virtual int streamLoop();
+	// HYEJUNG
+   //virtual int streamLoop();
    void setupBlockPool();
    int createDoubleBuffer();
    int sendPixelBlock(sagePixelBlock *block);
@@ -188,6 +193,9 @@ public:
    sageBlockStreamer(streamerConfig &conf, int pixSize);
    
    sageDoubleBuf* getDoubleBuffer() { return doubleBuf; }
+
+	// HYEJUNG
+   virtual int streamLoop();
 
    /**
     * creates sageBlockPartition object.
@@ -209,7 +217,8 @@ protected:
    double accInterval;
    bool firstFrame;
    
-   virtual int streamLoop();
+	// HYEJUNG
+   //virtual int streamLoop();
    int streamPixelData();
    void setupBlockPool();
    int sendPixelBlock(sagePixelBlock *block);
@@ -218,6 +227,8 @@ protected:
 public:
    bridgeStreamer(streamerConfig &conf, sageBlockBuf *buf, streamProtocol *obj);
    
+	// HYEJUNG
+   virtual int streamLoop();
    int initNetworks(char *data, bool localPort = false);
    int storeStreamConfig(char *msgStr);
    int shutdown();

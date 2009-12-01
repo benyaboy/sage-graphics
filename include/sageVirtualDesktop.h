@@ -78,6 +78,9 @@ public:
    int getLocalPort(int nodeID);
    int getForwardPort(int nodeID);
 
+	// HYEJUNG
+	int getTileInfo(char *info);
+
    int getAudioRcvId(int nodeId);
    int getAudioRcvInfo(int nodeId, char *info);
    int regAudioRcv(int cId, int nodeId);
