@@ -79,7 +79,7 @@ int displayNode::computeDimension()
 }
 
 audioNode::audioNode() :
-   sampleFmt(SAGE_SAMPLE_FLOAT32), samplingRate(44100), channels(2), framePerBuffer(512), deviceId(-1)
+   sampleFmt(SAGE_SAMPLE_FLOAT32), samplingRate(44100), channels(2), framePerBuffer(2048), deviceId(-1)
 {
    memset((void *)ip, 0, SAGE_IP_LEN);
    //streamIPs.clear();
