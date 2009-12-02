@@ -115,7 +115,7 @@ public:
    sageAudioCircBuf* createObject(int instID=-1);
    int deleteObject(int id);
 
-   sageAudioCircBuf* createBuffer(int instID, sageAudioConfig* conf, int size=64);
+   sageAudioCircBuf* createBuffer(int instID, sageAudioConfig* conf, int size=8);
    sageAudioCircBuf* createBuffer(int instID=-1);
 
    /** test audio input/output device
