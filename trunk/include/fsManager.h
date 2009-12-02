@@ -44,15 +44,37 @@
 
 #include "sage.h"
 #include "sageConfig.h"
+#include <map>
 
 class fsCore;
 class displayInstance;
 class fsServer;
 class sageVirtualDesktop;
 
+/**
+ * class rcvInfo
+ *
+ */
 class rcvInfo {
 public:
    int syncPort;
+   int syncBarrierPort; // SUNGWON
+
+   /**
+    * This determines the duration of the first phase => eventually frequency of graphics swap buffer call
+    * in Hz
+    */
+   int refreshInterval;
+   int syncMasterPollingInterval; // SUNGWON (in usec), select return timer for syncMaster
+
+   /**
+    * 0 nosync
+    * 1 data sync only (break the main loop immediately when an app is ready to be displayed
+    * 2 swap buffer sync (default)
+    * 3 with NTP
+    */
+   int syncLevel;
+
    int streamPort;
    int bufSize;
    bool fullScreen;
@@ -61,7 +83,7 @@ public:
    int audioPort;
    int audioSyncPort;
    int agSyncPort;
-   rcvInfo() : syncPort(11000), streamPort(21000), bufSize(64), fullScreen(true),
+   rcvInfo() : syncPort(11000), syncBarrierPort(11001), refreshInterval(120), syncMasterPollingInterval(100), syncLevel(1), streamPort(21000), bufSize(64), fullScreen(true),
          audioOn(false), audioSyncPort(13000), audioPort(23000), agSyncPort(15000) {}
 };
 

@@ -112,7 +112,7 @@ pixelDownloader::pixelDownloader() : reportRate(1), updatedFrame(0), curFrame(0)
    perfTimer.reset();
 }
 
-int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, bool sync)
+int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, bool sync, int sl)
 {
    char *msgPt = sage::tokenSeek(msg, 3);
    sscanf(msgPt, "%d %d %d", &instID, &groupSize, &blockSize);
@@ -124,15 +124,19 @@ int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, 
    sscanf(msgPt, "%d %d %d %d %d", (int *)&pixFmt, &blockX, &blockY, &imgWidth, &imgHeight);
    partition = new sageBlockPartition(blockX, blockY, imgWidth, imgHeight);
    if (!partition) {
-      sage::printLog("pixelDownloader::init : unable to create block partition");
+		sage::printLog("[%d,%d] PDL::init() : unable to create block partition", shared->nodeID, instID);
       return -1;
    }
    partition->initBlockTable();
 
    shared = sh;
    syncOn = sync;
+   syncLevel = sl;
 
+   // how many tiles a node has
    tileNum = shared->displayObj->getTileNum();
+
+   // montage INSTANTIATION
    montageList = new montagePair[tileNum];
    float depth = 1.0f - 0.01f*instID;
 
@@ -285,7 +289,7 @@ int pixelDownloader::enqueConfig(char *data)
 bool pixelDownloader::reconfigDisplay(int confID)
 {
    if (dispConfigID >= confID) {
-      sage::printLog("pixelDownloader::reconfigDisplay : configuration ID error");
+		sage::printLog("[%d,%d] PDL::reconfigDisplay(%d) : configuration ID error", shared->nodeID, instID, confID);
       return false;
    }
 
@@ -403,8 +407,15 @@ int pixelDownloader::fetchSageBlocks()
 
    while (sbg = blockBuf->front()) {
 
+		 /**
+		  * the difference between updatedFrame and syncFrame should always 1
+		  * because the new frame it gets is always right next frame of current frame
+		  * otherwise, PDL should WAIT until others catch up
+		  *
+		  * This is the most important pre-requisite of the sync algorithm
+		  */
 	   if ( syncOn && (sbg->getFrameID() > syncFrame + 1) ) {
-		   status = PDL_WAIT_SYNC;
+			 status = PDL_WAIT_SYNC; // wait for others to catch up
 		   return status;
 	   }
 
@@ -413,7 +424,14 @@ int pixelDownloader::fetchSageBlocks()
 		 //
 			 /** lastblock used
 		 if (sbg->getFlag() == sageBlockGroup::END_FRAME) { // END_FRAME flag is set at the sagePixelReceiver::readData()
+			// now the most recent frame I got(curFrame) becomes updateFrame.
+			// this means that because of swapMontages() curFrames will become front montage which means it can be displayed
+			// therefore, it's updatedFrame
          updatedFrame = curFrame;
+
+			//fprintf(stderr,"SDM %d PDL %d END_FRAME, Frame %d, syncFrame %d\n", shared->nodeID, instID, updatedFrame, syncFrame);
+			//fflush(stderr);
+
          frameCounter++;
 
          // calculate packet loss
@@ -446,8 +464,13 @@ int pixelDownloader::fetchSageBlocks()
          else {
             swapMontages();
          }
-      }
-      */
+		} // end of if(END_FRAME)
+			**/
+
+
+		//
+		// pixelReceiver received new CONFIG
+		//
       if (sbg->getFlag() == sageBlockGroup::CONFIG_UPDATE) {
          if (configID < sbg->getConfigID()) {
             if (reconfigDisplay(sbg->getConfigID()))
@@ -458,6 +481,10 @@ int pixelDownloader::fetchSageBlocks()
             }
          }
       }
+
+		//
+		// continuous next frame received (it means this node was displaying this app already)
+		//
       else if (sbg->getFlag() == sageBlockGroup::PIXEL_DATA && sbg->getFrameID() > updatedFrame) {
     	  if (configID < sbg->getConfigID()) {
     		  if (reconfigDisplay(sbg->getConfigID()))
@@ -505,6 +532,10 @@ int pixelDownloader::fetchSageBlocks()
 
 		//
 		// if UDP, lastBlock checking method could fail when a block is dropped, END_FRAME flag is used in that case
+		// IMPORTANT
+		// When in UDP, sync performance could be very bad.
+		// Because some node can use END_FRAME while others don't
+		// In that case, the node that used END_FRAME will become the slowest one, and others will wait for this node
 		//
 		else if (sbg->getFlag() == sageBlockGroup::END_FRAME) { // END_FRAME flag is set at the sagePixelReceiver::readData()
 			//fprintf(stderr, "[%d,%d] PDL::fetch() : END_FRAME; updF %d, curF %d, syncF %d\n", shared->nodeID, instID, updatedFrame, curFrame, syncFrame);
@@ -544,6 +575,7 @@ int pixelDownloader::fetchSageBlocks()
 		// This causes frame being displayed is always behind actual config ->  config l is applied but frame l-1 is displayed
 		if ( proceedSwap ) {
 			proceedSwap = false;
+
 			// now the most recent frame I got(curFrame) becomes updateFrame.
 			// this means that because of swapMontages() curFrames will become front montage which means it can be displayed
 			// therefore, it's updatedFrame
@@ -565,15 +597,17 @@ int pixelDownloader::fetchSageBlocks()
 			if (syncOn) {
 				if ( updatedFrame > syncFrame) {
 					// if this is the case, I'm too fast. I must wait for others
-/*
-#ifdef DELAY_COMPENSATION
-					//shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, shared->latency, shared->current_max_inst_num);
-#else
-					//shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, 0, shared->current_max_inst_num);
-#endif
-*/
-					shared->syncClientObj->sendSlaveUpdate(updatedFrame, instID, activeRcvs, 0);
 
+#ifdef DELAY_COMPENSATION
+					//shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, shared->latency);
+#else
+					if ( syncLevel == -1 ) {
+						shared->syncClientObj->sendSlaveUpdate(updatedFrame, instID, activeRcvs, updateType);
+					}
+					else {
+						shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, 0);
+					}
+#endif
 					updateType = SAGE_UPDATE_FOLLOW;
 					status = PDL_WAIT_SYNC;
 

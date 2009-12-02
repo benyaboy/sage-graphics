@@ -63,7 +63,14 @@ public:
    ~sageVirtualDesktop();
    int generateStreamInfo(streamGroup &sGrp, std::vector<int> &rcvList, int offset = 0);
 
-   int launchReceivers(char *fsIP, int port, int syncPort, bool globalSync = true);
+   /**
+    * launches the binary sageDisplayManager
+    */
+   int launchReceivers(char *fsIP, int port, int syncPort, bool globalSync = true, int syncBarrierPort=11001, int refreshInterval=60, int syncMasterPollingInterval=1000, int syncLevel=2 );
+
+   /**
+    * launches the binary sageAudioManager
+    */
    int launchAudioReceivers(char *fsIP, int port, int syncPort);
    
    int getRcvId(int nodeId);

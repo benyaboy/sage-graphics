@@ -44,6 +44,7 @@
 #define _SAGE_EVENT_H
 
 #include "sageBase.h"
+#include <queue>
 
 #define SAGE_EVENT_SIZE 1280
 
@@ -76,6 +77,36 @@ public:
 };
 
 /**
+ * sageSyncEvent
+ * by sungwon
+ * With no MAX_INST_NUM fix from Hyejung, sync algorithm can't use array
+ * However, there must be upper bound for the number of application instances that can exist simultaneously.
+ * Otherwise, there's no way to determine the size of the sync msg (in the 1st phase of syncMaster).
+ * So, this is temporary fix to increase the msg size a little bit more.
+ * Or this class can be used more cleverly.
+ */
+class sageSyncEvent : public sageEvent {
+	public:
+	char eventMsg[SAGE_SYNC_MSG_LEN]; /**< overrides sageEvent::eventMsg[] */
+
+	/**
+	 * size of the event message.
+	 * this is updated when eventMsg is allocated or copied by user
+	 */
+	int buflen;
+
+	/**
+	 * sets buflen
+	 * returns the size of message
+	 * -1 on error
+	 */
+	int setMsg(char *msg);
+
+	sageSyncEvent() : buflen(0) {}
+	sageSyncEvent(int type, void *p=NULL); 
+};
+
+/**
  * sageEventQueue
  */
 class sageEventQueue {
@@ -94,6 +125,7 @@ public:
    void sendEvent(sageEvent* event);
    void sendEvent(int type, char *msg = NULL, void *param = NULL);
    void sendEvent(int type, int info, void *param = NULL);
+   void sendEventToFront(sageEvent* event);
 
    bool isEmpty()  { return (eventQueue.size() == 0); }
    ~sageEventQueue();

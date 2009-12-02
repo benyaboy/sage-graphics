@@ -469,7 +469,7 @@ int sageDisplay::replaceMontage(sageMontage *mon)
    return 0;
 }
 
-int sageDisplay::updateScreen()
+int sageDisplay::updateScreen(dispSharedData *shared, bool barrierFlag)
 {
    context->clearScreen();
 
@@ -566,7 +566,45 @@ int sageDisplay::updateScreen()
       context->refreshTile(i);
    }   
    
-   context->refreshScreen();
+   //gettimeofday(&tve,NULL);   
+  
+   //double e = ((double)tve.tv_sec + 0.000001*(double)tve.tv_usec) - ((double)tvs.tv_sec + 0.000001*(double)tvs.tv_usec);
+   //printf("%.9f elapsed\n", e); 
+   //context->refreshScreen();
+   
+      /** BARRIER **/
+
+   if ( barrierFlag ) {
+	   shared->syncClientObj->sendRefreshBarrier(shared->nodeID);
+	   //printf("node %d sent to barrier\n", shared->nodeID);
+	   shared->syncClientObj->recvRefreshBarrier(false); // blocking (set true for nonblock)
+	   //printf("node %d recved frm barrier\n", shared->nodeID);
+
+   }
+
+#ifdef DELAY_COMPENSATION
+   if ( shared ) {
+	   gettimeofday(&shared->localT, NULL); // my time
+
+	   //fprintf(stderr,"SM sent %ld,%ld\n", shared->syncMasterT.tv_sec, shared->syncMasterT.tv_usec);
+	   //fprintf(stderr,"SDM%d is %ld,%ld\n", shared->nodeID, shared->localT.tv_sec, shared->localT.tv_usec);
+	   
+	   double A = (double)shared->syncMasterT.tv_sec + 0.000001*(double)shared->syncMasterT.tv_usec;
+	   A = A + ((double)shared->deltaT * 0.000001);
+	   double B = (double)shared->localT.tv_sec + 0.000001*(double)shared->localT.tv_usec;
+	   double wait = A - B;
+	   wait *= 1000000.0;
+	   
+	   int llBusyWait = (int)wait;
+	   if (  llBusyWait > 0 ) {
+	     __usecDelay_RDTSC( llBusyWait );
+	   }
+
+	   //printf("SDM %d: %.6f msec waited\n", shared->nodeID, elapsed*1000.0);
+   }
+#endif
+
+   context->refreshScreen();  // actual swapBuffer occurs in here at displayConext's instance
    dirty = false;
    
    return 0;

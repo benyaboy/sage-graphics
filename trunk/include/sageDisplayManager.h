@@ -55,6 +55,9 @@ class sageTcpModule;
 class sageUdpModule;
 class dispSharedData;
 class pixelDownloader;
+
+
+class sageSyncBBServer;
 class sageSyncServer;
 
 typedef struct {
@@ -73,22 +76,29 @@ private:
 	 * so, sageDisplayManger, pixelDownloader, and sagePixelReceiver all can access same dispSharedData
 	 */
    dispSharedData *shared;
+   sageNwConfig nwCfg;
    sageTcpModule *tcpObj;
    sageUdpModule *udpObj;
-   sageNwConfig nwCfg;
-   sageSyncServer *syncServerObj; /**< instantiated if syncMaster is true */
+
+
+   bool syncMaster; /**< if syncMaster then syncBBServerObj is created */
+   sageSyncBBServer *syncBBServerObj; /**< instantiated if syncMaster is true */
+   sageSyncServer *syncServerObj;
+
+   int syncPort; /**< syncServer's port */
+   int syncBarrierPort; /**< syncMaster's barrier port (2nd phase) */
+   int syncRefreshRate; /**< This is important parameter. It determines how frequent BBS should broadcast in Hz */
+   int syncMasterPollingInterval; /**< select return timer in usec */
+   int syncLevel;
 
    //sageReceiver *receiverList[MAX_INST_NUM];
    std::vector<pixelDownloader *> downloaderList; /**< pixelDownloader object for each application */
    std::vector<char *> reconfigStr;
 
-   int syncPort; /**< syncServer's port */
    int streamPort;
-   int totalRcvNum;
-
+   int totalRcvNum; /**< total number of node in the system */
    bool rcvEnd;
-   int displayID; /**< looks like always zero */
-   bool syncMaster; /**< if syncMaster then syncServerObj is created */
+   int displayID; /**< looks like ]always zero */
 
    /**
 	* called by the mainLoop().<BR>
@@ -143,6 +153,11 @@ private:
     */
    int processSync(char *msg);
 
+
+
+   /**
+    * it's called when a message RCV_UPDATE_DISPLAY is received from fsManager
+    */
    int updateDisplay(char *msg);
    int clearDisplay(int instID);
 
@@ -174,6 +189,7 @@ private:
    /**
 	* started by pthread_create in the init()<BR>
 	* It keeps sending EVENT_REFRESH_SCREEN event. it causes calling sageDisplay::updateScreen()
+	* refer DISPLAY_REFRESH_INTERVAL
 	*/
    static void* refreshThread(void *args);
 

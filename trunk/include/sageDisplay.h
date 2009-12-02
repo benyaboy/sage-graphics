@@ -4,7 +4,7 @@
  * Module: sageDisplay.h
  * Author : Byungil Jeong, Rajvikram Singh
  *
- *   Description:   This is the header file for the video display module of SAGE. 
+ *   Description:   This is the header file for the video display module of SAGE.
  *
  *   Notes   :    Since the display window may receive its many pieces from many servers, we need to pass multiple buffers
  *         to this class. Each of the buffers passed contains a frame which forms a part (or whole) of the image on
@@ -14,10 +14,10 @@
  * University of Illinois at Chicago
  *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *  * Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  *  * Redistributions in binary form must reproduce the above
@@ -26,7 +26,7 @@
  *  * Neither the name of the University of Illinois at Chicago nor
  *    the names of its contributors may be used to endorse or promote
  *    products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -39,9 +39,9 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or 
+ * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or
  * http://www.evl.uic.edu/cavern/forum/
- *         
+ *
 ***************************************************************************************************************************/
 
 #ifndef SAGE_DISPLAY_H
@@ -63,7 +63,7 @@
 #endif
 
 // awf: more (similar) defines for win32...
-#ifndef GL_UNSIGNED_SHORT_5_5_5_1   
+#ifndef GL_UNSIGNED_SHORT_5_5_5_1
    #  define GL_UNSIGNED_SHORT_5_5_5_1      0x8034
 #endif
 #ifndef GL_UNSIGNED_SHORT_1_5_5_5_REV
@@ -73,6 +73,7 @@
 #include "displayContext.h"
 #include "sageDraw.h"
 #include "sagePixelType.h"
+#include "sageSharedData.h"
 
 
 
@@ -82,18 +83,22 @@ class sageBlock;
 class sagePixelBlock;
 
 // The following structure holds the parameters of the montage comprising the final window
+
+/**
+ * This holds the parameters of the montage comprising the final window
+ */
 class sageMontage : public sageRect {
 private:
    displayContext *context;
    sagePixelType pInfo;
-   
+
    int      texWidth, texHeight;      // current texture size for this montage
    //bool     validTexCoord;
    //sageRect imgInfo;
    sageRect texInfo;
-   
+
    GLubyte *texture;
-   
+
 public:
    int       texHandle;
    sageRect texCoord;
@@ -103,12 +108,12 @@ public:
    int      tileIdx;
    bool      visible;
    //int id;
-      
+
    sageMontage(displayContext *dct, sagePixFmt pfmt);
-   
-   int init(sageRect &viewPort, sageRect &blockLayout, 
+
+   int init(sageRect &viewPort, sageRect &blockLayout,
          sageRotation orientation);
-   int copyConfig(sageMontage &mon);      
+   int copyConfig(sageMontage &mon);
    bool checkDispInfo(sagePixelBlock *block);
    int renewTexture();
    int deleteTexture();
@@ -118,6 +123,14 @@ public:
    //inline void getImageOrg(int &x, int &y) { x = imgInfo.x, y = imgInfo.y; }
 };
 
+/**
+ * \brief The video display module of SAGE.
+ *
+ * This class is for drawing pixel data onto screen, and all OpenGL related codes are here
+ *
+ * Since the display window may receive its many pieces from many servers, we need to pass multiple buffers to this class.
+ * Each of the buffers passed contains a frame which forms a part (or whole) of the image on the display side.
+ */
 class sageDisplay {
 protected:
    displayContext *context;
@@ -129,13 +142,13 @@ protected:
    int tileNum;
    bool dirty;
    sageDraw drawObj;
-   
+
 public:
    sageDisplay(displayContext *dct, struct sageDisplayConfig &cfg);
    int addMontage(sageMontage *mon);  // register a new montage into the montage list
    int replaceMontage(sageMontage *mon); // replace the current montage by another montage
    int removeMontage(sageMontage *mon);  // delete montage from the montage list
-   int updateScreen();                 // draw montages onto screen
+   int updateScreen(dispSharedData *shared=NULL, bool barrierFlag=false); /**< draw montages onto screen */
    int changeBGColor(int red, int green, int blue);
 
    int addDrawObjectInstance(char *data);
@@ -143,7 +156,7 @@ public:
    int removeDrawObject(char *data);
    int forwardObjectMessage(char *data);
    int showObject(char *data);
-   
+
    inline void setDirty() { dirty = true; }
    inline bool isDirty() { return dirty; }
    inline sageRect& getTileRect(int idx) { return configStruct.tileRect[idx]; }

@@ -42,21 +42,26 @@
 #define SAGE_SHARED_DATA_H_
 
 #include "sageBase.h"
+#include <sys/time.h>
 
 class sageDisplay;
 class sageSyncServer;
 class sageSyncClient;
+class sageSyncBBServer;
 class sageMemory;
 class sageEventQueue;
 class displayContext;
 class streamProtocol;
 
+/**
+ * class rcvSharedData
+ */
 class rcvSharedData {
 public:
-   int nodeID;
+   int nodeID; /**< a SDM ID on which sageDisplayManager is running */
    int bufSize;
-   sageEventQueue *eventQueue;
-   sageSyncClient *syncClientObj;
+   sageEventQueue *eventQueue; /**< event queue */
+   sageSyncClient *syncClientObj; /**< created in the sageDisplayManager::init() */
       
    int nodeNum;
       
@@ -64,15 +69,21 @@ public:
    ~rcvSharedData();
 };
 
+/**
+ * class dispSharedData
+ */
 class dispSharedData : public rcvSharedData {
 public:
    displayContext *context;
-   sageDisplay   *displayObj;
+   sageDisplay   *displayObj; /**< created in the sageDisplayManager::init() */
    
    dispSharedData() : displayObj(NULL), context(NULL) {}
    ~dispSharedData();
 };
 
+/**
+ * class bridgeSharedData
+ */
 class bridgeSharedData : public rcvSharedData {
 public:
    streamProtocol *sendObj;

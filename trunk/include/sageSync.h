@@ -45,8 +45,12 @@
 #define _SAGESYNC_H
 
 #include "sageBase.h"
+#include <list>
+#include <map>
+#include <bitset>
 
-#define SAGE_SYNC_MSG_LEN  1280
+//#define SAGE_SYNC_MSG_LEN  1280// moved to sageBase.h
+//#define SAGE_SYNC_MSG_LEN  1480
 #define MAX_SYNC_GROUP     100
 #define SYNC_MSG_BUF_LEN   64
 
@@ -75,10 +79,21 @@ public:
    int            clientSockFd;
 
    /**
+    * another socket for refresh barrier - 2nd phase
+	*/
+   int barrierClientSockFd;
+
+   /**
     * a syncClient's IP address
 	*/
    sockaddr_in      clientAddr;
 
+
+   /**
+    * Sungwon
+    * this will be filled in sageSyncServer::syncServerThread() when the object is created
+    */
+   int SDM; // sungwon
 
    /**
     * frame number.
@@ -90,7 +105,7 @@ public:
     * When a syncClient calls sageSyncClinet::connectToServer(), sageSyncServer::syncServerThread() accepts it<BR>
     * then the thread creates syncSlaveData object for the client.
 	*/
-   syncSlaveData() : frame(0) {}
+   syncSlaveData() : frame(0), SDM(-1) {}
 };
 
 //forward declarations
@@ -184,6 +199,112 @@ public:
 };
 
 /**
+ * class sageSyncBBServer
+ */
+class sageSyncBBServer {
+protected:
+   int serverSockFd; /**< syncServer's socket */
+   int maxSyncGroupID;
+   int maxSlaveSockFd;
+   bool syncEnd;
+
+   /**
+    * -1 old sync
+    *  0 no sync
+    *  1 data sync only
+    *  2 two phase
+    *  3 one phase
+    */
+   int syncLevel;
+
+   sockaddr_in serverAddr;
+   fd_set slaveFds;
+
+   pthread_t syncThreadID, syncServerThreadID;
+
+   std::vector<syncSlaveData> syncSlaves; /**< a list of sync slaves */
+
+   /**
+    * a list of sync slaves
+    * key is SDM id
+    * value is its data(mainly socket)
+    */
+   std::map<int,syncSlaveData> syncSlavesMap;
+
+   sockaddr_in barrierServerAddr;
+   int barrierServerSockFd;
+   int barrierPort;
+
+   fd_set barrierSlaveFds;
+   int maxBarrierSlaveSockFd;
+
+   pthread_t syncBarrierServerThreadID;
+   static void* syncBarrierServerThread(void *);
+
+   /**
+    * waits syncClient's connection by calling accept() syscall<br>
+    * if one connects, then it creates syncSlaveData object for it, and adds it to the vector syncSlaves
+    */
+   static void* syncServerThread(void*);
+
+   /**
+    * This thread is created whenever addSyncGroup() is called and under some condition.<BR>
+    * 1. when the policy is SAGE_CONSTANT_SYNC<BR>
+    * 2. 1 is not true and asapSyncGroupNum == 0<BR>
+    * <BR>
+    * if syncGroup's policy is SAGE_CONSTANT_SYNC, then this thread periodicaly sends sync(sendSync()) signal to its syncGroup.<BR>
+    * Otherwise it sends sync signal(by calling manageUpdate()) only when syncClient asks ??<BR>
+    * The period is defined in the syncGroup.interval
+    */
+   static void* mainLoopThread(void*);
+
+   sageTimer timer;
+
+public:
+	/**
+	 *  Constructor. Called in sageDisplayManager::sageDisplayManager() and sail::init()
+	 */
+   sageSyncBBServer(int syncLevel = 2);
+   ~sageSyncBBServer();
+
+   /**
+    * creates syncServer socket, and starts syncServerThread
+    */
+   int init(int port);
+
+   /**
+    * create barrierServerSockFd
+    */
+   int initBarrier(int barrierPort);
+
+   int totalRcvNum;
+   int refreshInterval;
+   int syncMasterPollingInterval;
+   int startManagerThread(int totalRcvNum, int refreshInterval, int syncMasterPollingInterval);
+
+   void killAllClients();  /**< closes all the open client sockets */
+   int checkTimeOut();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
  * class sageSyncServer. It is created when syncMaster == true
  */
 class sageSyncServer {
@@ -196,9 +317,17 @@ protected:
    sockaddr_in serverAddr;
    fd_set slaveFds;
 
-   pthread_t   syncThreadID;
+   pthread_t   syncThreadID, syncServerThreadID;
    pthread_t   groupThreadID;
+
    std::vector<syncSlaveData> syncSlaves; /**< a list of sync slaves */
+
+   /**
+    * key - sdm id
+	*/
+   std::map<int,syncSlaveData> syncSlavesMap;
+
+
    //syncGroup *syncGroupArray[MAX_SYNC_GROUP]; /**< an array of sync groups */
    std::vector<syncGroup *> syncGroupArray; /**< an array of sync groups */
 
@@ -288,7 +417,13 @@ public:
  */
 class sageSyncClient {
 private:
+	int syncLevel;
+
    int clientSockFd;
+
+   int barrierClientSockFd;
+   int refreshBarrierDeltaT;
+
    int maxGroupID;
    //sageCircBufSingle *syncMsgBuf[MAX_SYNC_GROUP];
    std::vector<sageCircBufSingle *> syncMsgBuf;
@@ -314,7 +449,7 @@ public:
    /**
 	* creates socket(clientSockFd) and sets TCP_NODELAY, SO_OOBINLINE socket option
 	*/
-   sageSyncClient();
+   sageSyncClient(int syncLevel = -1);
 
    /**
     * shuts down the socket, and calls pthread_join
@@ -328,7 +463,9 @@ public:
 	* @param port an integer
 	* @return -1 on error, 0 otherwise
 	*/
-   int connectToServer(char*, int);
+   int connectToServer(char *serverIP, int port, int SDMnum=-1);
+
+   int connectToBarrierServer(char *serverIP, int port, int SDMnum=-1);
 
 
    /**
@@ -370,8 +507,17 @@ public:
 	* @param type an integer, default SAGE_UPDATE_FOLLOW
 	* @return -1 on error, 0 otherwise
 	*/
-   int sendSlaveUpdate(int frame, int id = 0, int rcvNum = 0, int type = SAGE_UPDATE_FOLLOW);
+   int sendSlaveUpdate(int frame, int id = 0, int rcvNum = 0, int type = SAGE_UPDATE_FOLLOW, int nodeID=-1);
 
+   /**
+    * when a PDL received new frame (END_FRAME flag) it reports to the syncMaster before doing swapMontage()
+	*/
+   int sendSlaveUpdateToBBS(int frame, int id = 0, int rcvNum = 0, int SDMnum = -1, int delayCompenLatency=0);
+
+   /** THE FINAL CASE , sageSync_theFinal.cpp */
+   int sendRefreshBarrier(int nodeID);
+   int recvRefreshBarrier(bool nonblock=false); // block or nonblock
+   /** end THE FINAL CASE */
 
    /**
     * receives sync message without additional data
