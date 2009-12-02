@@ -92,8 +92,10 @@
 #define DISPLAY_BUF_NUM 2
 #define BRIDGE_BUF_NUM  5
 #define MAX_ENDPOINT_NUM 100
-#define MAX_INST_NUM   100
-#define MAX_FRAME_RATE 120
+//#define MAX_INST_NUM   100
+#define MAX_INST_NUM   80 // should be 80 for new sync algol
+#define MAX_FRAME_RATE 60
+//120
 #define DEFAULT_IMAGE_SIZE 3145728
 
 #define MESSAGE_HEADER_SIZE 36
@@ -110,6 +112,9 @@ typedef unsigned sageApiOption;
 
 #define SAGE_TIMEOUT 1
 #define SAGE_INT_MAX 2147483647
+
+#define SAGE_SYNC_MSG_LEN 2560
+#define SAGE_SMALL_SYNC_MSG_LEN 1280
 
 enum nwProtocol {SAGE_TCP, SAGE_UDP, LAMBDA_STREAM};
 enum sageStreamMode {SAGE_RCV, SAGE_ARCV, SAGE_SEND, SAGE_BRIDGE};

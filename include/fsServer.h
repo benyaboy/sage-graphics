@@ -64,6 +64,9 @@ private:
 public:
    fsServer();
    ~fsServer();
+
+   //unsigned int maxNumOfApp;
+
    int init(fsManager *fsm);
    static void* trackingThread(void *args);
    int checkTrackingMsg();

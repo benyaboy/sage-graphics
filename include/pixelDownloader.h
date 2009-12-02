@@ -44,6 +44,9 @@
 #include "sage.h"
 #include "sageSync.h"
 
+
+#include "sageEvent.h"
+
 class pixelDownloader;
 class dispSharedData;
 class sageMontage;
@@ -108,16 +111,17 @@ public:
  */
 class pixelDownloader {
 public:
-   int instID;
+   int instID; /**< application ID */
 protected:
    int streamNum;
-   int tileNum;
+   int tileNum; /**< how many tiles a single node has ? */
    int updatedFrame, curFrame, syncFrame;
    int configID, dispConfigID;
    int groupSize, blockSize;
-   dispSharedData *shared; /**< dispSharedData *. This is assigned in the sageDisplayManager */
+   dispSharedData *shared; /**< dispSharedData *. This is assigned at the sageDisplayManager */
    bool frameCheck;
    bool syncOn; /**< whether we ensure sync b/w tiles or not */
+   int syncLevel;
    bool displayActive;
    int  status; /**< PDL_WAIT_CONFIG 1, PDL_WAIT_DATA 2, and PDL_WAIT_SYNC 3*/
 	bool m_initialized;
@@ -136,6 +140,10 @@ protected:
 
    sageBlockPartition *partition;
    sageRect windowLayout;
+
+   /**
+    * how many sageReceiver involves ?
+    */
    int activeRcvs;
    int updateType;
    bool passiveUpdate;
@@ -164,7 +172,7 @@ public:
     *
     * msg contains groupSize and blockSize. These are passed to sageBlockBuf constructor.
 	*/
-   int init(char *msg, dispSharedData *sh, streamProtocol *nwObj, bool sync);
+   int init(char *msg, dispSharedData *sh, streamProtocol *nwObj, bool sync, int syncLevel);
 
    /**
     * Called when EVENT_READ_BLOCK, EVENT_SYNC_MESSAGE, and RCV_UPDATE_DISPLAY<BR>

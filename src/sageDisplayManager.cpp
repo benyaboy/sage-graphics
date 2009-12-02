@@ -62,6 +62,10 @@ sageDisplayManager::~sageDisplayManager()
    if (udpObj)
       delete udpObj;
 
+   if (syncBBServerObj)
+      delete syncBBServerObj;
+
+
    if (syncServerObj)
       delete syncServerObj;
 
@@ -100,12 +104,23 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
     * 4. 12000 // sync port
     * 5. 0 // display ID
     * 6, 1 // global sync
+    *
+    * 7, 11001 // sync barrier port
+    * 8, 100 // refresh rate in Hz
+    * 9, syncMaster polling interval (in while loop, how long select() waits
+    * 10, 0 nosync, 1 data sync only, 2 swapbuffer sync(default), 3 NTP
     */
 
    shared->nodeID = atoi(argv[3]); // node number on which this object is running
 
    syncPort = atoi(argv[4]);
    displayID = atoi(argv[5]);
+
+
+   syncBarrierPort = atoi(argv[7]);
+   syncRefreshRate = atoi(argv[8]); // Hz
+   syncMasterPollingInterval = atoi(argv[9]); // in usec, 1000 = 1ms
+   syncLevel = atoi(argv[10]);
 
    /**
     * 0th node (67.58.62.93) will become the syncMaster
@@ -120,8 +135,32 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
    /**
     * creating syncServerObject
     */
-   if (syncMaster) {
-	   sage::printLog("SAGE Display Manager : start sync server");
+   if (syncMaster && syncLevel > 0) {
+	   syncServerObj = NULL;
+	   sage::printLog("\nSDM::SDM() : SDM %d creating the syncBBServer.", shared->nodeID);
+
+	   syncBBServerObj = new sageSyncBBServer(syncLevel);
+
+	   // init opens socket and starts syncServerThread
+	   if (syncBBServerObj->init(syncPort) < 0) {
+		   sage::printLog("SAGE receiver : Error init'ing the sync server object");
+		   delete syncBBServerObj;
+		   exit(0);
+	   }
+
+	   // two phase
+	   if ( syncLevel == 2 ) {
+		   sage::printLog("\nSDM::SDM() : SDM %d initializing syncBarrierServer", shared->nodeID);
+		   if ( syncBBServerObj->initBarrier(syncBarrierPort) < 0 ) {
+			   sage::printLog("sageDisplayManager::sageDisplayManager() : Error in sageSyncServer::initBarrier(%d)", syncBarrierPort);
+			   delete syncBBServerObj;
+			   exit(0);
+		   }
+	   }
+   }
+   else if (syncMaster && syncLevel == -1) { // OLD one
+	   syncBBServerObj = NULL;
+	   sage::printLog("\nSDM SyncMaster : start OLD Sync Server");
 	   syncServerObj = new sageSyncServer;
 
 	   if (syncServerObj->init(syncPort) < 0) {
@@ -141,7 +180,7 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
    fsClient::init(fsPort);
    connect(fsIP);
 
-   sage::printLog("SAGE Display Manager : register to a Free Space Manager");
+   //sage::printLog("sageDisplayManager::sageDisplayManager() : SDM %d register to a Free Space Manager",shared->nodeID);
    char regMsg[TOKEN_LEN];
    sprintf(regMsg, "%d %d", shared->nodeID, displayID);
    sendMessage(REG_GRCV, regMsg);
@@ -182,7 +221,7 @@ int sageDisplayManager::init(char *data)
    streamPort = atoi(token);
 
    getToken(data, token);
-   shared->bufSize = atoi(token)*1048576;
+   shared->bufSize = atoi(token)*1048576; // receiverBufSize to MB
 
    getToken(data, token);
    int fullScreen = atoi(token);
@@ -191,7 +230,7 @@ int sageDisplayManager::init(char *data)
    totalRcvNum = atoi(token);
 
    if (tokenNum < 1) {
-      sage::printLog("sageDisplayManager::init : insufficient parameters in RCV_INIT message");
+      sage::printLog("sageDisplayManager::init() : insufficient parameters in RCV_INIT message");
       return -1;
    }
 
@@ -209,9 +248,9 @@ int sageDisplayManager::init(char *data)
    dispCfg.winX = atoi(token);
    tokenNum = getToken(data, token);
    dispCfg.winY = atoi(token);
-   
+
    if (tokenNum < 1) {
-      sage::printLog("sageDisplayManager::init : insufficient parameters in RCV_INIT message");
+      sage::printLog("[%d] SDM::init() : insufficient parameters in RCV_INIT message !", shared->nodeID);
       return -1;
    }
 
@@ -232,7 +271,7 @@ int sageDisplayManager::init(char *data)
 
    //shared->tileTable.generateTable();
 
-   sage::printLog("SAGE Display Manager : initialization message was successfully parsed");
+   //sage::printLog("SDM::init() : SDM %d init message has successfully parsed",shared->nodeID);
 
    dispCfg.width = screenWidth;
    dispCfg.height = screenHeight;
@@ -259,7 +298,7 @@ int sageDisplayManager::init(char *data)
 
    shared->context = (displayContext *) new sdlSingleContext;
    if (shared->context->init(dispCfg) < 0) {
-      sage::printLog("SAGE receiver : Error creating display object ");
+      sage::printLog("[%d] SDM::init() : Error creating display object ", shared->nodeID);
       return -1;
    }
 
@@ -267,36 +306,92 @@ int sageDisplayManager::init(char *data)
    shared->context->clearScreen();
    shared->context->refreshScreen();
 
-   sage::printLog("Display Manager is creating display object");
-
+   //sage::printLog("sageDisplayManager::init() : SDM %d is creating sageDisplay object", shared->nodeID);
    shared->displayObj = new sageDisplay(shared->context, dispCfg);
 
    if (initNetworks() < 0)
       return -1;
 
    // sageSyncClient
-   shared->syncClientObj = new sageSyncClient;
+	pthread_t thId;
+   if ( syncLevel > 0 ) {
+		shared->syncClientObj = new sageSyncClient(syncLevel);
 
    // connect to syncMaster
-   if (shared->syncClientObj->connectToServer(masterIp, syncPort) < 0) {
-      sage::printLog("SAGE receiver : Fail to connect to sync master");
-      return -1;
+	   // The parameter shared->nodeID will trigger send() which is for new sync
+	   if (shared->syncClientObj->connectToServer(masterIp, syncPort, shared->nodeID) < 0) {
+		   sage::printLog("SDM::init() : SDM %d, Fail to connect to syncServer !", shared->nodeID);
+		   return -1;
+	   }
+	   else {
+		   //sage::printLog("SDM::init() : SDM %d, Connected to sync master %s:%d", shared->nodeID, masterIp, syncPort);
+	   }
+
+	   sage::sleep(1);
+	   if ( syncLevel == 2 ) {
+		   if (shared->syncClientObj->connectToBarrierServer(masterIp, syncBarrierPort, shared->nodeID) < 0) {
+			   sage::printLog("[%d] SDM::init() : Failed to connect to syncBarrierServer !", shared->nodeID);
+			   return -1;
+		   }
+		   else {
+			   //sage::printLog("SDM::init() : SDM %d, Connected to sync master barrier %s:%d", shared->nodeID, masterIp, syncBarrierPort);
+		   }
+	   }
+
+	   // start syncCheckThread
+	   // this thread will continuously call shared->syncClinetObj->waitForSync()
+	   if (pthread_create(&thId, 0, syncCheckThread, (void*)this) != 0) {
+		   sage::printLog("[%d] SDM::init() : Failed to create syncCheckThread !", shared->nodeID);
+		   return -1;
+	   }
+
+	   // starting sync mainLoop
+	   if (syncMaster) {
+		   syncBBServerObj->startManagerThread(totalRcvNum, syncRefreshRate, syncMasterPollingInterval);
+	   }
    }
-   sage::printLog("Connected to sync master %s:%d", masterIp, syncPort);
+   else if ( syncLevel == -1 ) {
+	   shared->syncClientObj = new sageSyncClient(syncLevel);
+		// connect to syncMaster
+		if (shared->syncClientObj->connectToServer(masterIp, syncPort) < 0) {
+			sage::printLog("SDM::init() : SDM %d, Fail to connect to syncServer !", shared->nodeID);
+			return -1;
+		}
+		//sage::printLog("Connected to sync master %s:%d", masterIp, syncPort);
 
-   pthread_t thId;
+		pthread_t thId;
 
-   // start syncCheckThread
-   // this thread will continuously call shared->syncClinetObj->waitForSync()
-   if (pthread_create(&thId, 0, syncCheckThread, (void*)this) != 0) {
-      sage::printLog("sageDisplayManager::init : can't create sync checking thread");
+		// start syncCheckThread
+		// this thread will continuously call shared->syncClinetObj->waitForSync()
+		if (pthread_create(&thId, 0, syncCheckThread, (void*)this) != 0) {
+			sage::printLog("[%d] SDM::init() : Failed to create syncCheckThread !", shared->nodeID);
+			return -1;
+		}
+	   //sage::printLog("SDM::init() : old synch client is created. ");
+
    }
 
-   if (pthread_create(&thId, 0, refreshThread, (void*)this) != 0) {
-      sage::printLog("sageDisplayManager: can't create UI event check thread");
+   if ( syncLevel == 0 || syncLevel == -1 ) {
+		if (pthread_create(&thId, 0, refreshThread, (void*)this) != 0) {
+		   sage::printLog("[%d] SDM::init() : Failed to create refreshThread !", shared->nodeID);
+		   return -1;
+		}
    }
 
    return 0;
+}
+
+void* sageDisplayManager::refreshThread(void *args) {
+   sageDisplayManager *This = (sageDisplayManager *)args;
+
+   while (!This->rcvEnd) {
+      This->shared->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
+      sage::usleep(DISPLAY_REFRESH_INTERVAL);
+   }
+
+   //sage::printLog("sageDisplayManager::refreshThread : exit");
+   pthread_exit(NULL);
+   return NULL;
 }
 
 void* sageDisplayManager::msgCheckThread(void *args)
@@ -321,14 +416,25 @@ void* sageDisplayManager::msgCheckThread(void *args)
 void* sageDisplayManager::syncCheckThread(void *args)
 {
    sageDisplayManager *This = (sageDisplayManager *)args;
+	sage::printLog("sageDisplayManager::syncCheckThread() has started at SDM %d", This->shared->nodeID);
 
    while (!This->rcvEnd) {
-      sageEvent *syncEvent = new sageEvent;
-      syncEvent->eventType = EVENT_SYNC_MESSAGE;
+	   sageEvent *syncEvent;
+	   if ( This->syncLevel == -1 ) {
+		syncEvent = new sageEvent;
+		syncEvent->eventType = EVENT_SYNC_MESSAGE;
+	   }
+	   else {
+		syncEvent = new sageSyncEvent(EVENT_SYNC_MESSAGE, NULL);
+	   }
+
       char *syncMsg = syncEvent->eventMsg;
       if (This->shared->syncClientObj->waitForSync(syncMsg) == 0) {
          //std::cout << "rcv sync " << syncEvent->eventMsg << std::endl;
-         This->shared->eventQueue->sendEvent(syncEvent);
+			/**
+			 * This is important !
+			 */
+			This->shared->eventQueue->sendEventToFront(syncEvent);
       }
    }
 
@@ -352,37 +458,22 @@ void* sageDisplayManager::perfReportThread(void *args)
    return NULL;
 }
 
-void* sageDisplayManager::refreshThread(void *args)
-{
-   sageDisplayManager *This = (sageDisplayManager *)args;
-
-   while (!This->rcvEnd) {
-      This->shared->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
-      sage::usleep(DISPLAY_REFRESH_INTERVAL);
-   }
-
-   sage::printLog("sageDisplayManager::refreshThread : exit");
-   pthread_exit(NULL);
-   return NULL;
-}
-
 int sageDisplayManager::initNetworks()
 {
-   sage::printLog("Display Manager is initializing network objects....");
+   sage::printLog("SDM::initNetworks() : SDM %d is now initializing network objects.", displayID);
 
    tcpObj = new sageTcpModule;
    if (tcpObj->init(SAGE_RCV, streamPort, nwCfg) == 1) {
-      sage::printLog("sageDisplayManager is already running");
+      sage::printLog("SDM::initNetworkds() : tcpObj->init() failed. SDM %d is already running", displayID);
       return -1;
    }
 
-   sage::printLog("SAGE Display Manager : waiting TCP connections at port %d", streamPort);
+   sage::printLog("SDM::initNetworks() : SDM %d is waiting TCP connections on port %d", displayID, streamPort);
 
    udpObj = new sageUdpModule;
    udpObj->init(SAGE_RCV, streamPort+(int)SAGE_UDP, nwCfg);
 
-   sage::printLog("SAGE Display Manager : waiting UDP connections at port %d", 
-         streamPort+(int)SAGE_UDP);
+   sage::printLog("SAGE Display Manager : waiting UDP connections at port %d", streamPort+(int)SAGE_UDP);
 
    pthread_t thId;
    nwCheckThreadParam *param = new nwCheckThreadParam;
@@ -390,7 +481,7 @@ int sageDisplayManager::initNetworks()
    param->nwObj = tcpObj;
 
    if (pthread_create(&thId, 0, nwCheckThread, (void*)param) != 0) {
-      sage::printLog("sageDisplayManager::initNetwork : can't create network checking thread");
+      sage::printLog("SDM::initNetwork() : SDM %d failed creating nwCheckThread (TCP)", displayID);
       return -1;
    }
 
@@ -398,7 +489,7 @@ int sageDisplayManager::initNetworks()
    param->This = this;
    param->nwObj = udpObj;
    if (pthread_create(&thId, 0, nwCheckThread, (void*)param) != 0) {
-      sage::printLog("sageDisplayManager::initNetwork : can't create network checking thread");
+      sage::printLog("SDM::initNetwork() : SDM %d failed creating nwCheckThread (UDP)", displayID);
       return -1;
    }
 
@@ -423,7 +514,7 @@ void* sageDisplayManager::nwCheckThread(void *args)
       }
    }
 
-   sage::printLog("sageDisplayManager::nwCheckThread : exit");
+   sage::printLog("SDM::nwCheckThread() : exit");
    pthread_exit(NULL);
    return NULL;
 }
@@ -433,6 +524,10 @@ int sageDisplayManager::initStreams(char *msg, streamProtocol *nwObj)
    int senderID, instID, streamType, frameRate;
 
    sscanf(msg, "%d %d %d %d", &senderID, &streamType, &frameRate, &instID);
+
+   if ( syncLevel == 0 ) {
+	   streamType = SAGE_BLOCK_NO_SYNC;
+   }
 
    //std::cout << "stream info " << msg << std::endl;
 
@@ -447,8 +542,7 @@ int sageDisplayManager::initStreams(char *msg, streamProtocol *nwObj)
       	dwloader->addStream(senderID); // EVENT_APP_CONNECTED will be arisen
 			return 0;
 		}
-   }
-   else {
+	} else {
 		dwloader = new pixelDownloader;
 		dwloader->instID = instID;
 		downloaderList.push_back(dwloader);
@@ -456,34 +550,24 @@ int sageDisplayManager::initStreams(char *msg, streamProtocol *nwObj)
 		index = downloaderList.size()-1;
 	}
 
+   //creates pixelDownloader if it's not there.
 	switch(streamType) {
          case SAGE_BLOCK_NO_SYNC : {
-            sage::printLog("stream type : SAGE_BLOCK_NO_SYNC");
-            dwloader->init(msg, shared, nwObj, false);
-            break;
-         }
-
-         case SAGE_BLOCK_SOFT_SYNC : {
-            sage::printLog("stream type : SAGE_BLOCK_SOFT_SYNC");
-            dwloader->init(msg, shared, nwObj, true);
-
             if (syncMaster) {
-               syncGroup *sGroup = new syncGroup;
-               sGroup->init(0, SAGE_ASAP_SYNC_SOFT, instID, DISPLAY_MAX_FRAME_RATE);
-               syncServerObj->addSyncGroup(sGroup);
+			   sage::printLog("\nSDM::initStreams() : Application %d is starting. NO_SYNC", instID);
             }
+		   dwloader->init(msg, shared, nwObj, false, syncLevel);
             break;
          }
-
          case SAGE_BLOCK_HARD_SYNC : {
-            sage::printLog("stream type : SAGE_BLOCK_HARD_SYNC");
-            dwloader->init(msg, shared, nwObj, true);
+		   if ( syncMaster ) {
+			   sage::printLog("\nSDM::initStreams() : Application %d is starting. SYNC", instID);
+		   }
+		   dwloader->init(msg, shared, nwObj, true, syncLevel);
 
-            if (syncMaster) {
+		   // syncLevel == -1 // OLD sync
+			if (syncLevel == -1 && syncMaster && syncServerObj) {
                syncGroup *sGroup = new syncGroup;
-               /*
-                * int startFrame, int _policy_, int groupID, int frameRate = 1, int sNum = 1
-                */
                sGroup->init(0, SAGE_ASAP_SYNC_HARD, instID, DISPLAY_MAX_FRAME_RATE);
                syncServerObj->addSyncGroup(sGroup);
             }
@@ -521,14 +605,13 @@ int sageDisplayManager::shutdownApp(int instID)
 	char* temp_str= NULL;
 
    if (instID == -1) {
-      sage::printLog("sageDisplayManager is shutting down applications");
-
+      sage::printLog("sageDisplayManager::shutdownApp() : SDM %d is shutting down all applications", shared->nodeID);
 		std::vector<pixelDownloader*>::iterator iter;
 		std::vector<char*>::iterator iter_str = reconfigStr.begin();
 		for(iter = downloaderList.begin(); iter != downloaderList.end(); iter++,iter_str++)
 		{
 			temp_app =(pixelDownloader*) *iter;
-			if (syncMaster) 
+			if (syncLevel == -1 && syncMaster && syncServerObj)
 				syncServerObj->removeSyncGroup(temp_app->instID);
 			delete temp_app;
 			temp_app = NULL;
@@ -555,7 +638,7 @@ int sageDisplayManager::shutdownApp(int instID)
 			reconfigStr.erase(reconfigStr.begin() + index);
       	appShutdown = true;
 			//shared->displayObj->onAppShutdown(instID);
-			if (syncMaster) 
+			if (syncLevel== -1 && syncMaster && syncServerObj)
 				syncServerObj->removeSyncGroup(instID);
 		}
    }
@@ -712,7 +795,7 @@ int sageDisplayManager::parseEvent(sageEvent *event)
 
       case EVENT_REFRESH_SCREEN : {
          if (shared->displayObj->isDirty())
-            shared->displayObj->updateScreen();
+            shared->displayObj->updateScreen(shared, false);
 
          if (shared->context)
             shared->context->checkEvent();
@@ -739,7 +822,7 @@ int sageDisplayManager::parseEvent(sageEvent *event)
 			int index;
 			pixelDownloader*  temp_app = findApp(instID, index);
 
-			if (temp_app) { 
+			if (temp_app) {
             sendMessage(DISP_APP_CONNECTED, instID);
          }
          break;
@@ -845,6 +928,7 @@ int sageDisplayManager::parseMessage(sageMessage *msg)
 
 int sageDisplayManager::processSync(char *msg)
 {
+	if ( syncLevel == -1 ) {
    int groupID, syncFrame, dataLen, cmd;
    sscanf(msg, "%d %d %d %d", &groupID, &syncFrame, &dataLen, &cmd);
 
@@ -854,10 +938,102 @@ int sageDisplayManager::processSync(char *msg)
       loader->processSync(syncFrame, cmd);
       if (loader->getStatus() == PDL_WAIT_SYNC)
          loader->fetchSageBlocks();
-      //else
-      //   sage::printLog("sageDisplayManager::processSync : error in pixel downloader status");
    }
+		return 0;
+	}
 
+	int *intMsg=(int *)msg; // one for pdl id one for syncFrame
+	//int pdlID, activeRcvs, curFrame, updatedFrame, syncFrame;
+	bool swapMontageDone = false;
+
+	pixelDownloader *PDL = NULL;
+	//std::vector<pixelDownloader*>::iterator iter;
+	int index;
+	for ( int i=0; i<(SAGE_SYNC_MSG_LEN/sizeof(int))/2; i++ ) {
+		/**
+		 * if it's unsigned type, then it should be checked with UINT_MAX or ULONG_MAX or ULLONG_MAX
+		 */
+		if ( intMsg[2*i] < 0 ) break;
+
+		PDL = findApp(intMsg[2*i], index);
+		if ( PDL ) {
+			swapMontageDone = true;
+
+#ifdef DEBUG_SYNC
+			fprintf(stderr, "[%d,%d] SDM::processSync() : It's ready for frame %d\n", shared->nodeID, intMsg[2*i], intMsg[2*i+1]);
+#endif
+
+			// trigger to swapMontage
+			PDL->processSync(intMsg[2*i+1]);
+
+			// if PDL is waiting sync
+			if (PDL->getStatus() == PDL_WAIT_SYNC) {
+
+				// wake it up
+				PDL->fetchSageBlocks(); // should change PDL status
+			}
+		}
+	}
+
+	switch(syncLevel) {
+	case 1:
+		// data sync only
+		// 1st phase only
+//		shared->displayObj->update(); // ratko version only
+		if ( swapMontageDone ) {
+			shared->displayObj->updateScreen(shared, false); // barrier flag false
+		}
+		else if ( shared->displayObj->isDirty() ) {
+			shared->displayObj->updateScreen(NULL, false);
+		}
+		else {
+			// do nothing
+		}
+		break;
+	case 2:
+		// swap buffer sync. default
+		// 2nd phase
+//		shared->displayObj->update();
+		if ( swapMontageDone ) {
+			shared->displayObj->updateScreen(shared, true); // barrier flag true
+		}
+		else if ( shared->displayObj->isDirty() ) {
+			// no precise sync is needed
+			// refresh needed for Ratko
+
+			// comment out below two when using SELECTIVE barrier
+			shared->syncClientObj->sendRefreshBarrier(shared->nodeID);
+			shared->syncClientObj->recvRefreshBarrier(true); // nonblocking = true
+
+			shared->displayObj->updateScreen(shared, false); // barrier flag must be false here, otherwise it will enter barrier in sageDisplay::updateScreen() again
+		}
+		else  {
+			// no precise sync is needed. just execute barrier here
+			// no refreshing needed
+
+			// comment out below two when using SELECTIVE barrier
+			shared->syncClientObj->sendRefreshBarrier(shared->nodeID);
+			shared->syncClientObj->recvRefreshBarrier(true); // nonblocking = true
+
+			// NO SCREEN REFRESH
+			//shared->displayObj->updateScreen(shared, false);
+		}
+		break;
+	case 3:
+		// NTP method
+		/** delay compensation after 1st phase.
+		* This replaces 2nd phase entirely
+		* effectively reducing 2n messages
+		*/
+		//int index = SAGE_SYNC_MSG_LEN / sizeof(int); // array index
+		/*
+		int index = SAGE_SYNC_MSG_LEN / sizeof(long long); // array index
+		shared->deltaT = intMsg[index-1];
+		shared->syncMasterT.tv_sec = (time_t)intMsg[index-2];
+		shared->syncMasterT.tv_usec = (suseconds_t)intMsg[index-3];
+*/
+		break;
+	}
    return 0;
 }
 

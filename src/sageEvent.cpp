@@ -47,6 +47,23 @@ sageEvent::sageEvent(int type, char *msg, void *p)
    param = p;
 }
 
+sageSyncEvent::sageSyncEvent(int type, void *p) {
+	eventType = type;
+	param = p;
+}
+
+int sageSyncEvent::setMsg(char *msg) {
+	if (msg) {
+		if ( ! strcpy(eventMsg, msg) ) return -1;
+		buflen = strlen(eventMsg);
+
+		if ( buflen <= 0 ) return -1;
+
+		return buflen;
+	}
+	return -1;
+}
+
 sageEventQueue::sageEventQueue() : empty(true)
 {
    eventQueue.clear();
@@ -81,6 +98,16 @@ void sageEventQueue::sendEvent(sageEvent* event)
    eventQueue.push_back(event);   
    pthread_mutex_unlock(queueLock);
    pthread_cond_signal(notEmpty);
+}
+
+void sageEventQueue::sendEventToFront(sageEvent* event)
+{
+
+   pthread_mutex_lock(queueLock);
+   eventQueue.push_front(event);
+   pthread_mutex_unlock(queueLock);
+   pthread_cond_signal(notEmpty);
+
 }
 
 void sageEventQueue::sendEvent(int type, char *msg, void *p)

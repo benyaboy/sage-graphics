@@ -9,10 +9,10 @@
  * University of Illinois at Chicago
  *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *  * Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  *  * Redistributions in binary form must reproduce the above
@@ -21,7 +21,7 @@
  *  * Neither the name of the University of Illinois at Chicago nor
  *    the names of its contributors may be used to endorse or promote
  *    products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -34,10 +34,10 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or 
+ * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or
  * http://www.evl.uic.edu/cavern/forum/
  *
- *****************************************************************************/ 
+ *****************************************************************************/
 
 #include "fsServer.h"
 #include "fsManager.h"
@@ -47,14 +47,16 @@ fsServer::fsServer()
    sysServer = NULL;
    uiServer = NULL;
    fsm = NULL;
+
+   //maxNumOfApp = 0;
 }
 
 fsServer::~fsServer()
 {
    if (sysServer)
       delete sysServer;
-   
-   if (uiServer)   
+
+   if (uiServer)
       delete uiServer;
 }
 
@@ -83,7 +85,7 @@ int fsServer::checkClients()
 
    // If a connection is established, accept it and create
    // a new socket for that connection to communicate with.
-   
+
    aClient = sysServer->checkForNewConnections();
 
    if (aClient) {
@@ -118,37 +120,58 @@ int fsServer::checkClients()
             dataSize = atoi(msgSize);
             msg.init(dataSize);
             dataSize = dataSize - MESSAGE_FIELD_SIZE;
-            sysClientList[i]->read((char *)msg.getBuffer()+MESSAGE_FIELD_SIZE, 
-                  &dataSize, QUANTAnet_tcpClient_c::BLOCKING);
-            
-            
-            //   printf("Read in message from client %d\n",i+SYSTEM_CLIENT_BASE);
-            //   std::cout << "messge : " << msg.getCode() << std::endl; 
-            //   if (msg.getData()) 
-            //      std::cout << (char *)msg.getData() << std::endl;
-            //   else
-            //      std::cout << std::endl;   
-                  
+            sysClientList[i]->read((char *)msg.getBuffer()+MESSAGE_FIELD_SIZE, &dataSize, QUANTAnet_tcpClient_c::BLOCKING);
+
+           /*
+               printf("Read in message from client %d\n",i+SYSTEM_CLIENT_BASE);
+               std::cout << "\tmessage code: " << msg.getCode() << std::endl;
+               if (msg.getData())
+                  std::cout << "\t" << (char *)msg.getData() << std::endl;
+               else
+                  std::cout << std::endl;
+				  */
+
+            /**
+			if ( msg.getCode() == REG_APP ) {
+				maxNumOfApp++;
+				fprintf(stderr,"fsServer::checkClients() : maxNumOfApp %u\n", maxNumOfApp);
+				if ( maxNumOfApp > (SAGE_SYNC_MSG_LEN/sizeof(int))/2 ) {
+					fprintf(stderr,"fsServer::checkClients() : max num of app %d has reached. \n", (SAGE_SYNC_MSG_LEN/sizeof(int))/2);
+					sendMessage(i+SYSTEM_CLIENT_BASE, APP_QUIT);
+					msg.destroy();
+					break;
+				}
+				else {
+				}
+			}
+			**/
+
 
             if (msg.getCode() < DISP_MESSAGE) {
                fsm->msgToCore(msg, i+SYSTEM_CLIENT_BASE);
-            }   
+            }
             else if (msg.getCode() < GRCV_MESSAGE) {
                fsm->msgToDisp(msg, i+SYSTEM_CLIENT_BASE);
-            }   
-            else 
+            }
+            else
                sendMessage(msg);
-            
-            msg.destroy();   
-         } 
+
+            msg.destroy();
+         }
          else if (status == QUANTAnet_tcpClient_c::CONNECTION_TERMINATED) {
-            std::cout << "connection to client " << i+SYSTEM_CLIENT_BASE << " was terminated" << std::endl;
+            std::cout << "fsCore::checkClients() : connection to client " << i+SYSTEM_CLIENT_BASE << " was terminated" << std::endl;
             sysClientList[i] = NULL;
+
+            /*
+			maxNumOfApp--;
+			fprintf(stderr,"fsServer::checkClients() : maxNumOfApp %u\n", maxNumOfApp);
+			*/
+
             return 1;
          }
-      }   
+      }
    }
-   
+
    for (int i = 0; i < numUiClients; i++) {
       if (uiClientList[i]) {
          bool flag = true;
@@ -165,52 +188,52 @@ int fsServer::checkClients()
                dataSize = atoi(msgSize);
                msg.init(dataSize);
                dataSize = dataSize - MESSAGE_FIELD_SIZE;
-               uiClientList[i]->read((char *)msg.getBuffer()+MESSAGE_FIELD_SIZE, 
+               uiClientList[i]->read((char *)msg.getBuffer()+MESSAGE_FIELD_SIZE,
                   &dataSize, QUANTAnet_tcpClient_c::BLOCKING);
 
                //printf("Read in message from client %d\n",i);
                //std::cout << "messge : " << msg.getCode() << std::endl;
-               //if (msg.getData()) 
+               //if (msg.getData())
                //   std::cout << (char *)msg.getData() << std::endl;
                //else
-               //   std::cout << std::endl;   
+               //   std::cout << std::endl;
 
                if (msg.getCode() < DISP_MESSAGE) {
                   fsm->msgToCore(msg, i);
-               }   
-               else 
+               }
+               else
                   sendMessage(msg);
 
-               msg.destroy();   
-            } 
+               msg.destroy();
+            }
             else if (status == QUANTAnet_tcpClient_c::CONNECTION_TERMINATED) {
-               std::cout << "connection to client " << i << " was terminated" << std::endl;
+               std::cout << "fsCore::checkClients() : connection to client " << i << " was terminated" << std::endl;
                uiClientList[i] = NULL;
                return 1;
             }
-         } // end while   
+         } // end while
       } // end if
-   } // end for   
-   
+   } // end for
+
    return 0;
 }
 
 int fsServer::sendMessage(int cId, int code, int data)
 {
 	QUANTAnet_tcpClient_c *aClient = NULL;
-   if (cId >= SYSTEM_CLIENT_BASE) 
+   if (cId >= SYSTEM_CLIENT_BASE)
 		aClient = sysClientList[cId-SYSTEM_CLIENT_BASE];
 	else
 		aClient = uiClientList[cId];
-			
+
    if (!aClient) {
-		return -1; 
+		return -1;
    }
 
    sageMessage msg;
    char msgStr[TOKEN_LEN];
    sprintf(msgStr, "%d", data);
-   
+
    if (msg.init(cId, code, 0, strlen(msgStr)+1, msgStr) < 0) {
       std::cerr << "fail to init the message!" << std::endl;
       return -1;
@@ -218,36 +241,36 @@ int fsServer::sendMessage(int cId, int code, int data)
 
    int dataSize = msg.getBufSize();
    int status = aClient->write((char *)msg.getBuffer(), &dataSize, QUANTAnet_tcpClient_c::BLOCKING);
-   
-   if (status == QUANTAnet_tcpClient_c::TIMED_OUT || 
+
+   if (status == QUANTAnet_tcpClient_c::TIMED_OUT ||
 		status == QUANTAnet_tcpClient_c::CONNECTION_TERMINATED)  {
-      if (cId >= SYSTEM_CLIENT_BASE) 
+      if (cId >= SYSTEM_CLIENT_BASE)
 			sysClientList[cId-SYSTEM_CLIENT_BASE] = NULL;
 		else
 			uiClientList[cId] = NULL;
 		msg.destroy();
-      return -1;	
+      return -1;
    }
 
    msg.destroy();
-   
+
    return 0;
 }
 
 int fsServer::sendMessage(int cId, int code, char* data)
 {
 	QUANTAnet_tcpClient_c *aClient = NULL;
-   if (cId >= SYSTEM_CLIENT_BASE) 
+   if (cId >= SYSTEM_CLIENT_BASE)
 		aClient = sysClientList[cId-SYSTEM_CLIENT_BASE];
 	else
 		aClient = uiClientList[cId];
-			
+
    if (!aClient) {
-		return -1; 
+		return -1;
    }
 
    sageMessage msg;
-   
+
    if (msg.init(cId, code, 0, strlen(data)+1, data) < 0) {
       std::cerr << "fail to init the message!" << std::endl;
       return -1;
@@ -255,36 +278,36 @@ int fsServer::sendMessage(int cId, int code, char* data)
 
    int dataSize = msg.getBufSize();
    int status = aClient->write((char *)msg.getBuffer(), &dataSize, QUANTAnet_tcpClient_c::BLOCKING);
-   
-   if (status == QUANTAnet_tcpClient_c::TIMED_OUT || 
+
+   if (status == QUANTAnet_tcpClient_c::TIMED_OUT ||
 		status == QUANTAnet_tcpClient_c::CONNECTION_TERMINATED)  {
-      if (cId >= SYSTEM_CLIENT_BASE) 
+      if (cId >= SYSTEM_CLIENT_BASE)
 			sysClientList[cId-SYSTEM_CLIENT_BASE] = NULL;
 		else
 			uiClientList[cId] = NULL;
 		msg.destroy();
-      return -1;	
+      return -1;
    }
 
    msg.destroy();
-   
+
    return 0;
 }
 
 int fsServer::sendMessage(int cId, int code)
 {
 	QUANTAnet_tcpClient_c *aClient = NULL;
-   if (cId >= SYSTEM_CLIENT_BASE) 
+   if (cId >= SYSTEM_CLIENT_BASE)
 		aClient = sysClientList[cId-SYSTEM_CLIENT_BASE];
 	else
 		aClient = uiClientList[cId];
-			
+
    if (!aClient) {
-		return -1; 
+		return -1;
    }
 
    sageMessage msg;
-   
+
    if (msg.init(cId, code, 0, 0, NULL) < 0) {
       std::cerr << "fail to init the message!" << std::endl;
       return -1;
@@ -292,19 +315,19 @@ int fsServer::sendMessage(int cId, int code)
 
    int dataSize = msg.getBufSize();
    int status = aClient->write((char *)msg.getBuffer(), &dataSize, QUANTAnet_tcpClient_c::BLOCKING);
-   
-   if (status == QUANTAnet_tcpClient_c::TIMED_OUT || 
+
+   if (status == QUANTAnet_tcpClient_c::TIMED_OUT ||
 		status == QUANTAnet_tcpClient_c::CONNECTION_TERMINATED)  {
-      if (cId >= SYSTEM_CLIENT_BASE) 
+      if (cId >= SYSTEM_CLIENT_BASE)
 			sysClientList[cId-SYSTEM_CLIENT_BASE] = NULL;
 		else
 			uiClientList[cId] = NULL;
 		msg.destroy();
-      return -1;	
+      return -1;
    }
 
    msg.destroy();
-   
+
    return 0;
 }
 
@@ -314,24 +337,30 @@ int fsServer::sendMessage(sageMessage &msg)
    int cId = msg.getDest();
 
 	QUANTAnet_tcpClient_c *aClient = NULL;
-   if (cId >= SYSTEM_CLIENT_BASE) 
+   if (cId >= SYSTEM_CLIENT_BASE)
 		aClient = sysClientList[cId-SYSTEM_CLIENT_BASE];
 	else
 		aClient = uiClientList[cId];
-			
+
    if (!aClient) {
-		return -1; 
+		return -1;
    }
 
+   /*
+   char abc[1024];
+   aClient->getRemoteIP(abc);
+   fprintf(stderr,"fsServer::sendMessage() : write to %s, data %s\n", abc, (char*)msg.getData());
+   */
+
    int status = aClient->write((char *)msg.getBuffer(), &dataSize, QUANTAnet_tcpClient_c::BLOCKING);
-   
-   if (status == QUANTAnet_tcpClient_c::TIMED_OUT || 
+
+   if (status == QUANTAnet_tcpClient_c::TIMED_OUT ||
 		status == QUANTAnet_tcpClient_c::CONNECTION_TERMINATED)  {
-      if (cId >= SYSTEM_CLIENT_BASE) 
+      if (cId >= SYSTEM_CLIENT_BASE)
 			sysClientList[cId-SYSTEM_CLIENT_BASE] = NULL;
 		else
 			uiClientList[cId] = NULL;
-      return -1;	
+      return -1;
    }
 
    return 0;
