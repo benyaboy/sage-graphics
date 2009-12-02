@@ -241,7 +241,7 @@ void sageAudioModule::init()
 
 void sageAudioModule::setTileInfo(int width, int height, int dimX, int dimY)
 {
-	resolution[0] = width;
+	resolution[0] = (width * dimX) / 2;
 	resolution[1] = height;
 	dimension[0] = dimX;
 	dimension[1] = dimY;
@@ -607,7 +607,7 @@ int sageAudioModule::deleteObject(int id)
 
 sageAudioCircBuf* sageAudioModule::createBuffer(int instID)
 {
-	return createBuffer(instID, &config);
+	return createBuffer(instID, &config, 16);
 }
 
 sageAudioCircBuf* sageAudioModule::createBuffer(int instID, sageAudioConfig* conf, int size)
