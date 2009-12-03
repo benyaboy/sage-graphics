@@ -49,8 +49,7 @@
 #include <map>
 #include <bitset>
 
-//#define SAGE_SYNC_MSG_LEN  1280// moved to sageBase.h
-//#define SAGE_SYNC_MSG_LEN  1480
+#define SAGE_SYNC_MSG_LEN  1280 // must be equal to SAGE_EVENT_SIZE
 #define MAX_SYNC_GROUP     100
 #define SYNC_MSG_BUF_LEN   64
 
@@ -525,8 +524,15 @@ public:
 	* @param msg a char *
 	* @return -1 on error, 0 otherwise
 	*/
-   int waitForSync(char* msg);
+   int waitForSync(char* msg, int len = -1);
 
+   /**
+    * It uses MSG_PEEK to find out the length of sync message
+    *
+    * @param void
+    * @return -1 on error, message size otherwise
+    */
+   int waitForSyncPeek();
 
    /**
     * receives sync message with group ID and additional data

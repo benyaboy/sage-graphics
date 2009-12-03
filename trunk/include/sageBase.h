@@ -8,10 +8,10 @@
  * University of Illinois at Chicago
  *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *  * Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  *  * Redistributions in binary form must reproduce the above
@@ -20,7 +20,7 @@
  *  * Neither the name of the University of Illinois at Chicago nor
  *    the names of its contributors may be used to endorse or promote
  *    products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -33,7 +33,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or 
+ * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or
  * http://www.evl.uic.edu/cavern/forum/
  *
  *****************************************************************************/
@@ -52,11 +52,11 @@
 #include <pthread.h>
 #include <string.h>
 #include <time.h>
-   
+
 #ifdef WIN32
    #include <io.h>
    #include <process.h>
-   
+
    #define _WIN32_WINNT    0x0501  // Macro for getting the switchToThread() to work
    #ifdef N_PLAT_NLM
       #include <ws2nlm.h>
@@ -77,7 +77,7 @@
    #include <arpa/inet.h>
    #include <netinet/tcp.h>
    #include <sys/stat.h>
-   #include <sys/uio.h>   
+   #include <sys/uio.h>
    #include <sys/select.h>
 #endif
 
@@ -113,12 +113,9 @@ typedef unsigned sageApiOption;
 #define SAGE_TIMEOUT 1
 #define SAGE_INT_MAX 2147483647
 
-#define SAGE_SYNC_MSG_LEN 2560
-#define SAGE_SMALL_SYNC_MSG_LEN 1280
-
 enum nwProtocol {SAGE_TCP, SAGE_UDP, LAMBDA_STREAM};
 enum sageStreamMode {SAGE_RCV, SAGE_ARCV, SAGE_SEND, SAGE_BRIDGE};
-enum sagePixFmt {PIXFMT_NULL, PIXFMT_555, PIXFMT_555_INV, PIXFMT_565, PIXFMT_565_INV, 
+enum sagePixFmt {PIXFMT_NULL, PIXFMT_555, PIXFMT_555_INV, PIXFMT_565, PIXFMT_565_INV,
       PIXFMT_888, PIXFMT_888_INV, PIXFMT_8888, PIXFMT_8888_INV, PIXFMT_RLE, PIXFMT_LUV,
       PIXFMT_DXT, PIXFMT_YUV};
 enum sageCompressType {NO_COMP, RLE_COMP, LUV_COMP, DXT_COMP};
@@ -133,7 +130,7 @@ private:
    char *code;
    char *appCode;
    char *size;
-   
+
    void *data;
    char *buffer;
    int bufSize;
@@ -147,7 +144,7 @@ public:
    // init by message buffer size
    //void init();
    int init(int);
-   int destroy(); 
+   int destroy();
    int set(int dst, int co, int app, int sz, const void *dat);
    int getDest();
    int getCode();
@@ -157,7 +154,7 @@ public:
    void* getData();
    char* getBuffer();
    int getClientID() { return clientID; }
-   
+
    int setDest(int);
    int setCode(int);
    int setAppCode(int);

@@ -693,7 +693,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 	/**
 	 * message container for receiving PDL's update
 	 */
-	char msg[SAGE_SMALL_SYNC_MSG_LEN]; // this is still needed to receive sync message from clients
+	char msg[SAGE_SYNC_MSG_LEN]; // this is still needed to receive sync message from clients
 	//std::map<int,int> msgMap; // appID, syncFrame
 	//msgMap.clear();
 
@@ -706,15 +706,11 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 #ifdef DELAY_COMPENSATION
 	long long intMsg[ SAGE_SYNC_MSG_LEN / sizeof(long long) ]; // 1280 / 8 = 160
 #else
-	int intMsg[ SAGE_SYNC_MSG_LEN / sizeof(int) ]; // 1280 / 4 = 320 or 1280 / 8 = 160
+	//int intMsg[ SAGE_SYNC_MSG_LEN / sizeof(int) ]; // 1280 / 4 = 320 or 1280 / 8 = 160
 	//int intMsg[ 8000 / sizeof(int) ];
 #endif
-	//int intMsg[2 * MAX_INST_NUM];
-	//long long intMsg[SAGE_SYNC_MSG_LEN / sizeof(long long)]; // 1280 / 8 = 160
-
 
 	int sdm,pdl,slaveNum,updatedFrame;
-	//int current_max_inst_num = MAX_INST_NUM; // for loop efficiency
 
 	/**
 	 * Delay compensation thing
@@ -727,9 +723,12 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 	int netStatus;
 	bool swapMontageReady = false;
 
-
 	struct timeval tvs,tve;
 	double elapsed = 0.0;
+
+	int numUpdatedApps = 0; // how many apps are updated in this round
+	int *intMsg = NULL;
+	int intMsg_byteLen = 0;
 
 	while(!This->syncEnd) {
 		while(1) {
@@ -748,7 +747,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 					if ( FD_ISSET( This->syncSlavesMap[i].clientSockFd, &rfds ) ) {
 
 						//status = recv(array[i], (void*)dataArray, 4*sizeof(int), MSG_WAITALL);
-						netStatus = sage::recv(This->syncSlavesMap[i].clientSockFd, (void*)msg, SAGE_SMALL_SYNC_MSG_LEN);
+						netStatus = sage::recv(This->syncSlavesMap[i].clientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN);
 						if ( netStatus == 0 ) {
 							// close the socket and mark it as dead
 #ifdef WIN32
@@ -801,6 +800,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 							//if ( slaveNumArray[pdl] <= SDMlistBitset[pdl].count() ) {
 							if ( slaveNum == (SDMlistBitsetMap[pdl]).count() ) {
 								swapMontageReady = true;
+								numUpdatedApps++;
 
 
 #ifdef DEBUG_SYNC
@@ -845,83 +845,72 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 
 		//printf("\nTIMEOUT\n");
 
-		/**
-		 * send sync message to nodes which are waiting for swapMontage
-		 */
-		//memset(msg, 0, SAGE_SYNC_MSG_LEN);
-
 		// for each application
 		// it memset with zeros, then SDM::processSync will read wrong value
 		// if it's unsigned type, then it will become UINT_MAX, ULONG_MAX, or ULLONG_MAX
-		memset(intMsg, -1, SAGE_SYNC_MSG_LEN);
+		intMsg_byteLen = sizeof(int) + (sizeof(int) * numUpdatedApps * 2); // sizeof(int) byte is for MSG_PEEK at the SDM
+		intMsg = (int *)malloc(intMsg_byteLen);
+		memset(intMsg, -1, intMsg_byteLen);
+		intMsg[0] = intMsg_byteLen;
 
 		if ( swapMontageReady ) {
 			// then we need to prepare message for them
 			swapMontageReady = false; // reset
 
 			// for each App
-			//for ( int i=0; i<MAX_INST_NUM; i++ ) { // MAX_INST_NUM is 80
-			//for ( int i=0; i<current_max_inst_num; i++ ) { // MAX_INST_NUM is 80
-			int myi = 0;
+			int intMsgIndex = 0; // the first index is byte length.
 			for ( std::map<int,bool>::iterator it=isReadyToSwapMonMap.begin(); it!=isReadyToSwapMonMap.end(); it++ ) {
 				int appID = (*it).first;
 				// if it's ready ( all node that have this app reported )
+
 				if ( (*it).second ) {
-
-					/*
-					if ( 2*i >= SAGE_SYNC_MSG_LEN/sizeof(int) ) {
-						fprintf(stderr, "\n\nsageSyncBBServer::mainLoopThread() : Critical error! loop index %d, max index is %d\n", 2*i, SAGE_SYNC_MSG_LEN/sizeof(int));
-						exit(1);
-					}
-					*/
-					//printf("\tAp %d don\n", i);
-
-					// comment this out for SELECTIVE barrier
 					isReadyToSwapMonMap[ appID ] = false; // reset
 
-					//intMsg[i] = syncFrameArray[i]; // is this safe when DELAY_COMPENSATION ?
-					if ( myi >= (SAGE_SYNC_MSG_LEN/sizeof(int))/2 ) {
-						fprintf(stderr, "\n[[[[ SYNC MAINLOOP : sync msg array index is %d. was processing app %d ]]]]\n", myi, appID);
-						break;
-					}
-
-#ifdef DEBUG_SYNC
-					fprintf(stderr,"\tindex %d, %d; value %d, %d\n", 2*myi, 2*myi+1, appID, syncFrameMap[appID]);
-#endif
-					intMsg[2*myi] = appID;
-					intMsg[2*myi + 1] = syncFrameMap[appID];
-					myi++;
+					intMsg[2*intMsgIndex + 1] = appID;
+					intMsg[2*intMsgIndex + 2] = syncFrameMap[appID];
+					intMsgIndex++;
+				}
+				if ( intMsgIndex >= numUpdatedApps ) {
+					break;
 				}
 			}
 		}
 
-/** temporary delat_compensation for 1st phase only */
-#ifdef DELAY_COMPENSATION
-		//int intMsg[ SAGE_SYNC_MSG_LEN / sizeof(int) ];
-		//int index = SAGE_SYNC_MSG_LEN / sizeof(int); // 320 when 4byte int
-		int index = SAGE_SYNC_MSG_LEN / sizeof(long long); // 160
-
-		struct timeval initT;
-		gettimeofday(&initT, NULL);
-		//sprintf(msg, "%d %d %d", initT.tv_sec, initT.tv_usec, maxDeltaT);
-
-		//intMsg[index-1] = maxNodeLatency; // in usec
-		intMsg[index-1] = 7000; // Presentation Time Offset in usec
-		intMsg[index-2] = initT.tv_sec;
-		intMsg[index-3] = initT.tv_usec;
-		maxNodeLatency = 0;
+#ifdef DEBUG_SYNC
+		fprintf(stderr, "\tUpdatedApps : ");
+		for ( int i=0; i<numUpdatedApps; i++ ) {
+			fprintf(stderr, "(%d,%d) ", intMsg[2*i], intMsg[2*i+1]);
+		}
+		fprintf(stderr, "\n");
 #endif
-/** temporary delat_compensation for 1st phase only */
+		numUpdatedApps = 0; // reset
+
+		/** temporary delat_compensation for 1st phase only */
+		if ( This->syncLevel == 3 ) {
+			//int intMsg[ SAGE_SYNC_MSG_LEN / sizeof(int) ];
+			//int index = SAGE_SYNC_MSG_LEN / sizeof(int); // 320 when 4byte int
+			int index = SAGE_SYNC_MSG_LEN / sizeof(long long); // 160
+
+			struct timeval initT;
+			gettimeofday(&initT, NULL);
+			//sprintf(msg, "%d %d %d", initT.tv_sec, initT.tv_usec, maxDeltaT);
+
+			//intMsg[index-1] = maxNodeLatency; // in usec
+			intMsg[index-1] = 7000; // Presentation Time Offset in usec
+			intMsg[index-2] = initT.tv_sec;
+			intMsg[index-3] = initT.tv_usec;
+			maxNodeLatency = 0;
+		}
+		/** temporary delat_compensation for 1st phase only */
 
 		// Broadcast -> will trigger EVENT_SYNC_MESSAGE on all node
-		// map<int,int> msgMap;
 #ifdef PROFILING_SYNCMASTER
 		// node%d:pdl%d:frame%d:ITEM:%d:%d
 		gettimeofday(&pTimer, NULL);
 		fprintf(profile, "%d:%d:%lu:Broadcast_B:%ld:%ld\n", -1,-1,loopCounter,pTimer.tv_sec, pTimer.tv_usec);
 #endif
 		for ( int i=0; i<This->syncSlavesMap.size(); i++ ) {
-			if ( sage::send(This->syncSlavesMap[i].clientSockFd, (void*)intMsg,  SAGE_SYNC_MSG_LEN) < SAGE_SYNC_MSG_LEN ) {
+			if ( sage::send(This->syncSlavesMap[i].clientSockFd, (void*)intMsg, intMsg_byteLen) < intMsg_byteLen ) {
 				sage::printLog("sageSyncBBServer::mainLoopThread() : send() error at the 1st phase\n");
 			}
 		}
@@ -930,42 +919,10 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 		gettimeofday(&pTimer, NULL);
 		fprintf(profile, "%d:%d:%lu:Broadcast_E:%ld:%ld\n", -1,-1,loopCounter,pTimer.tv_sec, pTimer.tv_usec);
 #endif
-
-
-		// assuming single application
-		// and broadcast for swapMontage too
-		/*
-		for ( int i=0; i<This->totalRcvNum; i++ ) {
-			memset(intMsg, 0, SAGE_SYNC_MSG_LEN);
-
-			// for each app
-			for ( int j=0; j<MAX_INST_NUM; j++ ) {
-				if ( isReadyToSwapMon[j]  &&  frameNumOfEachSDM[j][i] > 0 ) {
-
-					//fprintf(stdout,"\t\tApp %d is ready and SDM %d has it. preparing message\n", j, i);
-
-					intMsg[2*j] = 1;
-					intMsg[2*j+1] = frameNumOfEachSDM[j][i];
-					frameNumOfEachSDM[j][i] = 0;
-				}
-				else {
-
-				}
-			}
-
-			//fprintf(stdout,"\tSending to SDM %d, socket(%d) for the 1st phase\n", i, This->syncSlavesMap[i].clientSockFd);
-			//fflush(stdout);
-
-			if ( sage::send(This->syncSlavesMap[i].clientSockFd, (void*)intMsg, SAGE_SYNC_MSG_LEN) < SAGE_SYNC_MSG_LEN ) {
-				sage::printLog("sageSyncBBServer::mainLoopThread() : send() error at the 1st phase\n");
-			}
+		if (intMsg) {
+			free(intMsg);
+			intMsg = NULL;
 		}
-		*/
-
-		//for ( int i=0; i<MAX_INST_NUM; i++ ) {
-			//isReadyToSwapMon[i] = false;
-		//}
-
 
 		/**
 		 * Barrier Before SwapBuffer
@@ -1036,8 +993,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 
 
 
-
-/** BROADCASTING BARRIER ***/
+		/** BROADCASTING BARRIER ***/
 		if ( This->syncLevel == 2 ) {
 
 #ifdef PROFILING_SYNCMASTER
@@ -1057,7 +1013,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 				}
 				for ( int i=0; i<This->syncSlavesMap.size(); i++ ) {
 					if ( FD_ISSET( This->syncSlavesMap[i].barrierClientSockFd, &rfds2 ) ) {
-						netStatus = sage::recv(This->syncSlavesMap[i].barrierClientSockFd, (void*)msg, SAGE_SMALL_SYNC_MSG_LEN);
+						netStatus = sage::recv(This->syncSlavesMap[i].barrierClientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN);
 						/*
 #ifdef DELAY_COMPENSATION
 					sscanf(msg, "%d %d", &nodeID, &deltaT);
@@ -1081,7 +1037,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 #endif
 			 */
 			for ( int i=0; i<This->syncSlavesMap.size(); i++ ) {
-				netStatus = ::send(This->syncSlavesMap[i].barrierClientSockFd, msg, SAGE_SMALL_SYNC_MSG_LEN, MSG_DONTWAIT); // non-block
+				netStatus = ::send(This->syncSlavesMap[i].barrierClientSockFd, msg, SAGE_SYNC_MSG_LEN, MSG_DONTWAIT); // non-block
 				//netStatus = ::send(This->syncSlavesMap[i].barrierClientSockFd, msg, SAGE_SYNC_MSG_LEN, 0); // blocking
 				if ( netStatus <= 0 ) {
 					sage::printLog("sageSyncBBServer::mainLoopThread() : Refresh Barrier send error to node %d", This->syncSlavesMap[i].SDM);
@@ -1315,8 +1271,8 @@ int sageSyncServer::sendSync(syncGroup *grp, int cmd)
 
    char *data = grp->dequeSyncMsg();
 
-   int msgSize = SAGE_SMALL_SYNC_MSG_LEN;
-   char msg[SAGE_SMALL_SYNC_MSG_LEN];
+   int msgSize = SAGE_SYNC_MSG_LEN;
+   char msg[SAGE_SYNC_MSG_LEN];
    int dataLen = 0;
 
    if (data)
@@ -1538,7 +1494,7 @@ because all the sync slaves are already ready to proceed the next frame.
          continue;
 
       if (FD_ISSET(syncSlaves[i].clientSockFd, &readFds)) {
-         int status = sage::recv(syncSlaves[i].clientSockFd, (void*)data, SAGE_SMALL_SYNC_MSG_LEN);
+         int status = sage::recv(syncSlaves[i].clientSockFd, (void*)data, SAGE_SYNC_MSG_LEN);
 
          if (status == 0) {
             // close the socket and mark it as dead
@@ -1906,8 +1862,8 @@ void* sageSyncClient::syncClientThread(void* args)
 
 int sageSyncClient::sendSlaveUpdate(int frame, int id, int rcvNum, int type, int SDMnum)
 {
-   int dataSize = SAGE_SMALL_SYNC_MSG_LEN;
-   char msg[SAGE_SMALL_SYNC_MSG_LEN];
+   int dataSize = SAGE_SYNC_MSG_LEN;
+   char msg[SAGE_SYNC_MSG_LEN];
    sprintf(msg, "%d %d %d %d %d", id, frame, rcvNum, type, SDMnum);
 
    int status = sage::send(clientSockFd, (void *)msg, dataSize);
@@ -1923,8 +1879,8 @@ int sageSyncClient::sendSlaveUpdate(int frame, int id, int rcvNum, int type, int
 
 int sageSyncClient::sendSlaveUpdateToBBS(int frame, int id, int rcvNum, int SDMnum, int delayCompenLatency)
 {
-   int dataSize = SAGE_SMALL_SYNC_MSG_LEN;
-   char msg[SAGE_SMALL_SYNC_MSG_LEN];
+   int dataSize = SAGE_SYNC_MSG_LEN;
+   char msg[SAGE_SYNC_MSG_LEN];
    sprintf(msg, "%d %d %d %d %d", id, frame, rcvNum, SDMnum, delayCompenLatency);
 #ifdef DEBUG_SYNC
    fprintf(stderr,"[%d,%d] sageSyncClient::sendSlaveUpdateToBBS() : updateFrame %d\n", SDMnum, id, frame);
@@ -1943,7 +1899,7 @@ int sageSyncClient::sendSlaveUpdateToBBS(int frame, int id, int rcvNum, int SDMn
 } //End of sageSyncClient :: sendSlaveUpdate()
 
 int sageSyncClient::sendRefreshBarrier(int nodeID) {
-	char msg[SAGE_SMALL_SYNC_MSG_LEN];
+	char msg[SAGE_SYNC_MSG_LEN];
 	sprintf(msg, "%d %d", nodeID, refreshBarrierDeltaT);
 
 	// barrierClient->getSocketId();
@@ -1951,7 +1907,7 @@ int sageSyncClient::sendRefreshBarrier(int nodeID) {
 
 	//printf("SDM%d send delta %d\n", nodeID, refreshBarrierDeltaT);
 
-	int status = sage::send(barrierClientSockFd, (void *)msg, SAGE_SMALL_SYNC_MSG_LEN);
+	int status = sage::send(barrierClientSockFd, (void *)msg, SAGE_SYNC_MSG_LEN);
 
 	//if (status != SAGE_SYNC_MSG_LEN) {
 		//sage::printLog("sageSyncClient::reportMontageUpdate(): SDM %d PDL %d, Error sending update message to barrier", nodeID, groupID);
@@ -1960,7 +1916,7 @@ int sageSyncClient::sendRefreshBarrier(int nodeID) {
 	return status;
 }
 int sageSyncClient::recvRefreshBarrier(bool nonblock) {
-	char msg[SAGE_SMALL_SYNC_MSG_LEN];
+	char msg[SAGE_SYNC_MSG_LEN];
 
 	//int status = ::recv(barrierClientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN, MSG_DONTWAIT);
 	//int status = ::recv(barrierClientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN, MSG_WAITALL);
@@ -1968,10 +1924,10 @@ int sageSyncClient::recvRefreshBarrier(bool nonblock) {
 
 	int status = 0;
 	if ( nonblock ) {
-		status = ::recv(barrierClientSockFd, (void*)msg, SAGE_SMALL_SYNC_MSG_LEN, MSG_DONTWAIT);
+		status = ::recv(barrierClientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN, MSG_DONTWAIT);
 	}
 	else {
-		status = ::recv(barrierClientSockFd, (void*)msg, SAGE_SMALL_SYNC_MSG_LEN, 0);
+		status = ::recv(barrierClientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN, 0);
 	}
 	return status;
 }
@@ -2061,8 +2017,8 @@ syncMsgStruct* sageSyncClient::waitForSync(int id)
 // receive sync message with additional data
 int sageSyncClient::waitForSyncData(char* &data)
 {
-   int dataSize = SAGE_SMALL_SYNC_MSG_LEN;
-   char msg[SAGE_SMALL_SYNC_MSG_LEN];
+   int dataSize = SAGE_SYNC_MSG_LEN;
+   char msg[SAGE_SYNC_MSG_LEN];
    int groupID = -1;
    int frameNum, dataLen;
    int status = sage::recv(clientSockFd, (void*)msg, dataSize);
@@ -2083,26 +2039,40 @@ int sageSyncClient::waitForSyncData(char* &data)
    return frameNum;
 }
 
+int sageSyncClient::waitForSyncPeek() {
+	int size = 0;
+	int status = ::recv(clientSockFd, (void *)&size, sizeof(int), MSG_PEEK);
+
+	if ( status != sizeof(int) ) {
+		perror("sageSyncClient::waitForSyncPeek() : recv");
+		return -1;
+	}
+	return size;
+}
+
 // receive sync message with no additional data
-int sageSyncClient::waitForSync(char* msg)
+int sageSyncClient::waitForSync(char* msg, int len)
 {
-   int dataSize;
-   if ( syncLevel == -1 ) {
-	dataSize = SAGE_SMALL_SYNC_MSG_LEN;
-   }
-   else {
-	dataSize = SAGE_SYNC_MSG_LEN;
-   }
+	int dataSize = 0;
+	if ( syncLevel == -1 ) {
+		dataSize = SAGE_SYNC_MSG_LEN;
+	}
+	else {
+		if ( len > 0 )
+			dataSize = len;
+		else
+			dataSize = SAGE_SYNC_MSG_LEN;
+	}
 
-   int status = sage::recv(clientSockFd, (void*)msg, dataSize);
+	int status = sage::recv(clientSockFd, (void*)msg, dataSize);
 
-   if (status !=  dataSize) {
-      perror("sageSyncClient::waitForSync(char *msg): Error receiving sync from master");
-      sage::sleep(1);
-      return -1;
-   }
+	if (status != dataSize) {
+		fprintf(stderr,"sageSyncClient::waitForSync(): syncLevel %d, msgLen %d, Error receiving sync from master",syncLevel, len);
+		sage::sleep(1);
+		return -1;
+	}
 
-   return 0;
+	return 0;
 }
 
 int sageSyncClient::checkSync(char* &msg)

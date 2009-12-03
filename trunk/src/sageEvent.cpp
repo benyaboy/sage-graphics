@@ -8,10 +8,10 @@
  * University of Illinois at Chicago
  *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *  * Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  *  * Redistributions in binary form must reproduce the above
@@ -20,7 +20,7 @@
  *  * Neither the name of the University of Illinois at Chicago nor
  *    the names of its contributors may be used to endorse or promote
  *    products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -33,7 +33,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or 
+ * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or
  * http://www.evl.uic.edu/cavern/forum/
  *
  *****************************************************************************/
@@ -45,15 +45,22 @@ sageEvent::sageEvent(int type, char *msg, void *p)
    eventType = type;
    setMsg(msg);
    param = p;
+   buflen = 0;
 }
 
-sageSyncEvent::sageSyncEvent(int type, void *p) {
+
+sageSyncEvent::sageSyncEvent(int type, int bl, void *p) {
 	eventType = type;
 	param = p;
+	buflen = bl;
+
+	if ( bl > 0 ) {
+		eventMsg = (char *)malloc(sizeof(char) * bl);
+	}
 }
 
 int sageSyncEvent::setMsg(char *msg) {
-	if (msg) {
+	if (eventMsg && msg) {
 		if ( ! strcpy(eventMsg, msg) ) return -1;
 		buflen = strlen(eventMsg);
 
@@ -67,7 +74,7 @@ int sageSyncEvent::setMsg(char *msg) {
 sageEventQueue::sageEventQueue() : empty(true)
 {
    eventQueue.clear();
-   
+
    queueLock = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
    pthread_mutex_init(queueLock, NULL);
    pthread_mutex_unlock(queueLock);
@@ -86,7 +93,7 @@ sageEvent* sageEventQueue::getEvent()
 
    sageEvent *event = eventQueue.front();
    eventQueue.pop_front();
-   
+
    pthread_mutex_unlock(queueLock);
 
    return event;
@@ -95,7 +102,7 @@ sageEvent* sageEventQueue::getEvent()
 void sageEventQueue::sendEvent(sageEvent* event)
 {
    pthread_mutex_lock(queueLock);
-   eventQueue.push_back(event);   
+   eventQueue.push_back(event);
    pthread_mutex_unlock(queueLock);
    pthread_cond_signal(notEmpty);
 }
@@ -127,9 +134,9 @@ sageEventQueue::~sageEventQueue()
 {
    if (queueLock)
       free(queueLock);
-   
+
    if (notEmpty)
       free(notEmpty);
-      
+
    //eventQueue.clear();
 }

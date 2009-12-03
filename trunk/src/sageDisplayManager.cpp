@@ -415,32 +415,43 @@ void* sageDisplayManager::msgCheckThread(void *args)
 
 void* sageDisplayManager::syncCheckThread(void *args)
 {
-   sageDisplayManager *This = (sageDisplayManager *)args;
+	sageDisplayManager *This = (sageDisplayManager *)args;
 	sage::printLog("sageDisplayManager::syncCheckThread() has started at SDM %d", This->shared->nodeID);
 
-   while (!This->rcvEnd) {
-	   sageEvent *syncEvent;
-	   if ( This->syncLevel == -1 ) {
-		syncEvent = new sageEvent;
-		syncEvent->eventType = EVENT_SYNC_MESSAGE;
-	   }
-	   else {
-		syncEvent = new sageSyncEvent(EVENT_SYNC_MESSAGE, NULL);
-	   }
+	int syncMsgLen = -1;
+	while (!This->rcvEnd) {
+		sageEvent *syncEvent = NULL;
 
-      char *syncMsg = syncEvent->eventMsg;
-      if (This->shared->syncClientObj->waitForSync(syncMsg) == 0) {
-         //std::cout << "rcv sync " << syncEvent->eventMsg << std::endl;
+		if ( This->syncLevel == -1 ) {
+			syncEvent = new sageEvent;
+			syncEvent->eventType = EVENT_SYNC_MESSAGE;
+			syncMsgLen = -1;
+		}
+		else {
+			// use MSG_PEEK to find out message length
+			syncMsgLen = This->shared->syncClientObj->waitForSyncPeek();
+			if ( syncMsgLen <= 0 ) {
+				fprintf(stderr, "[%d] SDM::syncCheckThread() : syncMsgLen %d\n", This->shared->nodeID, syncMsgLen);
+				continue;
+			}
+			else {
+				syncEvent = new sageSyncEvent(EVENT_SYNC_MESSAGE, syncMsgLen, NULL);
+			}
+		}
+
+		char *syncMsg = syncEvent->eventMsg;
+		if (This->shared->syncClientObj->waitForSync(syncMsg, syncMsgLen) == 0) {
+			//std::cout << "rcv sync " << syncEvent->eventMsg << std::endl;
 			/**
-			 * This is important !
-			 */
+			* This is important !
+			*/
 			This->shared->eventQueue->sendEventToFront(syncEvent);
-      }
-   }
+		}
+	}
 
-   sage::printLog("sageDisplayManager::syncCheckThread : exit");
-   pthread_exit(NULL);
-   return NULL;
+	sage::printLog("sageDisplayManager::syncCheckThread : exit");
+	pthread_exit(NULL);
+	return NULL;
 }
 
 void* sageDisplayManager::perfReportThread(void *args)
@@ -789,7 +800,8 @@ int sageDisplayManager::parseEvent(sageEvent *event)
       }
 
       case EVENT_SYNC_MESSAGE : {
-         processSync((char *)event->eventMsg);
+         //processSync((char *)event->eventMsg);
+    	  processSync( event );
          break;
       }
 
@@ -926,36 +938,39 @@ int sageDisplayManager::parseMessage(sageMessage *msg)
    return 0;
 }
 
-int sageDisplayManager::processSync(char *msg)
+int sageDisplayManager::processSync(sageEvent *e)
 {
 	if ( syncLevel == -1 ) {
-   int groupID, syncFrame, dataLen, cmd;
-   sscanf(msg, "%d %d %d %d", &groupID, &syncFrame, &dataLen, &cmd);
+		int groupID, syncFrame, dataLen, cmd;
+		sscanf(e->eventMsg, "%d %d %d %d", &groupID, &syncFrame, &dataLen, &cmd);
 
-	int index;
-	pixelDownloader *loader = findApp(groupID, index);
-   if (loader) {
-      loader->processSync(syncFrame, cmd);
-      if (loader->getStatus() == PDL_WAIT_SYNC)
-         loader->fetchSageBlocks();
-   }
+		int index;
+		pixelDownloader *loader = findApp(groupID, index);
+		if (loader) {
+			loader->processSync(syncFrame, cmd);
+			if (loader->getStatus() == PDL_WAIT_SYNC)
+				loader->fetchSageBlocks();
+		}
 		return 0;
 	}
 
-	int *intMsg=(int *)msg; // one for pdl id one for syncFrame
+	int *intMsg=(int *)(e->eventMsg); // one for pdl id one for syncFrame
 	//int pdlID, activeRcvs, curFrame, updatedFrame, syncFrame;
 	bool swapMontageDone = false;
 
 	pixelDownloader *PDL = NULL;
 	//std::vector<pixelDownloader*>::iterator iter;
 	int index;
-	for ( int i=0; i<(SAGE_SYNC_MSG_LEN/sizeof(int))/2; i++ ) {
+	int numIndex = e->buflen / sizeof(int);
+	numIndex = numIndex - 1; // The first element is the message length in Byte
+	numIndex = numIndex / 2; // this is the number of app which have updated in this round
+	for ( int i=0; i<numIndex; i++ ) {
 		/**
-		 * if it's unsigned type, then it should be checked with UINT_MAX or ULONG_MAX or ULLONG_MAX
-		 */
-		if ( intMsg[2*i] < 0 ) break;
+		* if it's unsigned type, then it should be checked with UINT_MAX or ULONG_MAX or ULLONG_MAX
+		*/
+		//if ( intMsg[2*i+1] < 0 ) break;
 
-		PDL = findApp(intMsg[2*i], index);
+		PDL = findApp(intMsg[2*i+1], index);
 		if ( PDL ) {
 			swapMontageDone = true;
 
@@ -964,14 +979,16 @@ int sageDisplayManager::processSync(char *msg)
 #endif
 
 			// trigger to swapMontage
-			PDL->processSync(intMsg[2*i+1]);
+			PDL->processSync(intMsg[2*i+2]);
 
 			// if PDL is waiting sync
+			/*
 			if (PDL->getStatus() == PDL_WAIT_SYNC) {
 
 				// wake it up
 				PDL->fetchSageBlocks(); // should change PDL status
 			}
+			 */
 		}
 	}
 
@@ -979,7 +996,7 @@ int sageDisplayManager::processSync(char *msg)
 	case 1:
 		// data sync only
 		// 1st phase only
-//		shared->displayObj->update(); // ratko version only
+		//		shared->displayObj->update(); // ratko version only
 		if ( swapMontageDone ) {
 			shared->displayObj->updateScreen(shared, false); // barrier flag false
 		}
@@ -993,7 +1010,7 @@ int sageDisplayManager::processSync(char *msg)
 	case 2:
 		// swap buffer sync. default
 		// 2nd phase
-//		shared->displayObj->update();
+		//		shared->displayObj->update();
 		if ( swapMontageDone ) {
 			shared->displayObj->updateScreen(shared, true); // barrier flag true
 		}
@@ -1031,10 +1048,19 @@ int sageDisplayManager::processSync(char *msg)
 		shared->deltaT = intMsg[index-1];
 		shared->syncMasterT.tv_sec = (time_t)intMsg[index-2];
 		shared->syncMasterT.tv_usec = (suseconds_t)intMsg[index-3];
-*/
+		 */
 		break;
 	}
-   return 0;
+
+	for ( int i=0; i<numIndex; i++ ) {
+		PDL = findApp(intMsg[2*i+1], index);
+		// if PDL is waiting sync
+		if (PDL  &&  PDL->getStatus() == PDL_WAIT_SYNC) {
+			// wake it up
+			PDL->fetchSageBlocks(); // should change PDL status
+		}
+	}
+	return 0;
 }
 
 void sageDisplayManager::mainLoop()
