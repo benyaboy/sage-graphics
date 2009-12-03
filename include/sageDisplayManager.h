@@ -151,7 +151,8 @@ private:
     * then calls pixelDownloader::processSync() of an element in the downloaderList array<BR>
     * if status of this group is PDL_WAIT_SYNC then, also calls pixelDownloader.fetchSageBlocks()
     */
-   int processSync(char *msg);
+   //int processSync(char *msg);
+   int processSync(sageEvent *e);
 
 
 

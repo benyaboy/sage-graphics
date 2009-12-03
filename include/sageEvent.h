@@ -70,7 +70,14 @@ public:
    char eventMsg[SAGE_EVENT_SIZE];
    void *param;
 
-   sageEvent() : eventType(0), param(NULL) {}
+
+	/**
+	 * size of the event message.
+	 * this is updated when eventMsg is allocated or copied by user
+	 */
+	int buflen;
+
+   sageEvent() : eventType(0), param(NULL), buflen(0) {}
    sageEvent(int type, char* msg, void *p = NULL);
 
    void setMsg(char *msg) { if (msg) strcpy(eventMsg, msg); }
@@ -87,13 +94,8 @@ public:
  */
 class sageSyncEvent : public sageEvent {
 	public:
-	char eventMsg[SAGE_SYNC_MSG_LEN]; /**< overrides sageEvent::eventMsg[] */
-
-	/**
-	 * size of the event message.
-	 * this is updated when eventMsg is allocated or copied by user
-	 */
-	int buflen;
+	//char eventMsg[SAGE_SYNC_MSG_LEN]; /**< overrides sageEvent::eventMsg[] */
+	char *eventMsg;
 
 	/**
 	 * sets buflen
@@ -102,8 +104,8 @@ class sageSyncEvent : public sageEvent {
 	 */
 	int setMsg(char *msg);
 
-	sageSyncEvent() : buflen(0) {}
-	sageSyncEvent(int type, void *p=NULL); 
+	sageSyncEvent() : eventMsg(NULL) {}
+	sageSyncEvent(int type, int bl, void *p=NULL);
 };
 
 /**
