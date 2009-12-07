@@ -1,6 +1,0 @@
-#!/bin/sh
-
-# build the py_sail library and put it in the correct place (SAGE_DIRECTORY/lib)
-echo "building py_sail library"
-python setup.py install --install-lib=$SAGE_DIRECTORY/lib
-
