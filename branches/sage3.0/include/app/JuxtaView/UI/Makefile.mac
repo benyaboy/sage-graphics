@@ -1,0 +1,18 @@
+QUANTA_DIR=/usr/local
+#WX_DIR=/usr/local/wxMac-2.5.3
+WX_DIR=/usr/local/bin
+CXXFLAGS=-Wno-deprecated -I$(QUANTA_DIR)/include `$(WX_DIR)/wx-config --cflags` -DMAC_OSX
+LDFLAGS=-L$(QUANTA_DIR)/lib -lquanta_32 `$(WX_DIR)/wx-config --libs`
+CXX=g++
+CC=$(CXX)
+
+JuxtaSCUI: JuxtaSCUI.o main.o
+	$(CC) $(LDFLAGS) -o JuxtaSCUI main.o JuxtaSCUI.o
+	/Developer/Tools/Rez -t APPL -o JuxtaSCUI mac.r
+
+JuxtaSCUI.o: JuxtaSCUI.cpp
+main.o: main.cpp
+
+clean:
+	rm -rf *.o *~ JuxtaSCUI
+
