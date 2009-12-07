@@ -333,7 +333,8 @@ int sailConfig::init(char *fname)
       }
       else if (strcmp(token, "FRAMEPERBUFFER") == 0) {
          getToken(fp, token);
-         framePerBuffer = atoi(token);
+			// HYEJUNG
+         //framePerBuffer = atoi(token);
       }
       else if (strcmp(token, "SYNCTYPE") == 0) {
          getToken(fp, token);

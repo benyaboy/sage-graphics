@@ -4,11 +4,7 @@
 
 include ../config.mk
 
-QUANTA_DIR=../QUANTA
-QUANTA_CFLAGS=-I${QUANTA_DIR}/include
-QUANTA_LDFLAGS=-L../lib -lquanta
-
-MYFLAGS=-g ${SAGE_CFLAGS} -O3 -I../include $(SDL_CFLAGS) $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS) $(SUN_INCLUDE) 
+MYFLAGS=-g ${SAGE_CFLAGS} -O3 -I../include $(SDL_CFLAGS) $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS) $(SUN_INCLUDE) -DREFRESH_BARRIER
 #-DBRIDGE_DEBUG_
 
 LIBS=$(SDL_LIBS) $(XLIBS) -lpthread -lm -ldl $(QUANTA_LDFLAGS) $(GLEW_LIB) $(SUN_LIBS) $(SAGE_LDFLAGS)
@@ -39,29 +35,21 @@ BRIDGE_OBJ=sageBridge.o sageAudioBridge.o messageInterface.o sageSync.o \
 	appInstance.o sageStreamer.o bridgeStreamer.o sageBlockQueue.o \
 	sageEvent.o sageConfig.o sageReceiver.o sageDoubleBuf.o
 
-ifdef AUDIO
-SAIL_OBJ= sail.o envInterface.o fsClient.o sageSync.o \
-	streamProtocol.o sageTcpModule.o sageUdpModule.o \
-	sageDoubleBuf.o sageConfig.o sageStreamer.o sageBlockStreamer.o \
-	sageAudioCircBuf.o sageAudio.o sageAudioModule.o sageAudioSync.o \
-	audioFileReader.o audioFileWriter.o audioFormatManager.o sageAppAudio.o \
-	audioConverter.o wavConverter.o sageAudioStreamer.o
-else
 SAIL_OBJ= sail.o envInterface.o fsClient.o sageSync.o \
 	streamProtocol.o sageTcpModule.o sageUdpModule.o \
 	sageDoubleBuf.o sageConfig.o sageStreamer.o sageBlockStreamer.o
 
+ifdef AUDIO
+SAIL_OBJ+=  sageAudioCircBuf.o sageAudio.o sageAudioModule.o sageAudioSync.o \
+   audioFileReader.o audioFileWriter.o audioFormatManager.o sageAppAudio.o \
+	audioConverter.o wavConverter.o sageAudioStreamer.o
 endif
 
 
 DIRT= *.o core core.* *.so $(PROJ_EXE)
-
-ifndef SAIL_ONLY
+PROJ_EXE=fsManager sageDisplayManager uiConsole fsConsole sageBridge bridgeConsole
 ifdef AUDIO
-PROJ_EXE=fsManager sageDisplayManager sageAudioManager uiConsole sageBridge bridgeConsole $(FS_CONSOLE) 
-else
-PROJ_EXE=fsManager sageDisplayManager uiConsole sageBridge bridgeConsole $(FS_CONSOLE)
-endif
+PROJ_EXE+=sageAudioManager
 endif
 
 build: $(PROJ_EXE) $(SAIL_LIB)
@@ -77,40 +65,40 @@ clean:
 
 
 fsManager: $(COMMON_OBJ) $(FSM_OBJ)
-	$(COMPILER) ${MYFLAGS} $(COMMON_OBJ) $(FSM_OBJ) $(LIBS) -o fsManager
+	$(COMPILER) $(COMMON_OBJ) $(FSM_OBJ) $(LIBS) -o fsManager
 
 
 sageDisplayManager: $(COMMON_OBJ) $(RCV_OBJ)
-	$(COMPILER) $(MYFLAGS) $(COMMON_OBJ) $(RCV_OBJ) $(LIBS) -o sageDisplayManager
-#	$(COMPILER) $(MYFLAGS) $(COMMON_OBJ) $(RCV_OBJ) $(LIBS) -o sageDisplayManager
+	$(COMPILER) $(FONT_LIB) $(MAGICK_LIBS) $(COMMON_OBJ) $(RCV_OBJ) $(LIBS) -o sageDisplayManager
 
 ifdef AUDIO
 sageAudioManager: $(COMMON_OBJ) $(ARCV_OBJ)
-	$(COMPILER) $(MYFLAGS) $(COMMON_OBJ) $(ARCV_OBJ) $(PAUDIO_LIB) $(LIBS) -o sageAudioManager
+	$(COMPILER) $(COMMON_OBJ) $(ARCV_OBJ) $(LIBS) $(PAUDIO_LIB) -o sageAudioManager
 endif
 
 sageBridge: $(COMMON_OBJ) $(BRIDGE_OBJ)
-	$(COMPILER) $(MYFLAGS) $(COMMON_OBJ) $(BRIDGE_OBJ) $(LIBS) -o sageBridge
+	$(COMPILER) $(COMMON_OBJ) $(BRIDGE_OBJ) $(LIBS) -o sageBridge
 
 uiConsole: uiConsole.o fsClient.o suil.o sageMessage.o misc.o 
-	$(COMPILER) ${SAGE_CFLAGS} uiConsole.o fsClient.o suil.o sageMessage.o misc.o $(LIBS) -o uiConsole
+	$(COMPILER) uiConsole.o fsClient.o suil.o sageMessage.o misc.o $(LIBS) -o uiConsole
 
 bridgeConsole: bridgeConsole.o messageInterface.o sageMessage.o misc.o 
-	$(COMPILER) ${SAGE_CFLAGS} bridgeConsole.o messageInterface.o sageMessage.o misc.o $(LIBS) -o bridgeConsole
+	$(COMPILER) bridgeConsole.o messageInterface.o sageMessage.o misc.o $(LIBS) -o bridgeConsole
 
 fsConsole: fsConsole.o fsClient.o suil.o  sageMessage.o misc.o
-	$(COMPILER) ${SAGE_CFLAGS} fsConsole.o fsClient.o suil.o sageMessage.o misc.o $(LIBS) $(READLINE_LIB) -o fsConsole
+	$(COMPILER) fsConsole.o fsClient.o suil.o sageMessage.o misc.o $(LIBS) $(READLINE_LIB) -o fsConsole
 
 ifdef AUDIO
 $(SAIL_LIB): $(COMMON_OBJ) $(SAIL_OBJ)
-	$(COMPILER) $(SHLD_FLAGS) $(COMMON_OBJ) $(SAIL_OBJ) $(PAUDIO_LIB) $(LIBS) -o $(SAIL_LIB)
+	$(COMPILER) $(SHLD_FLAGS) $(FONT_LIB) $(COMMON_OBJ) $(SAIL_OBJ) $(LIBS) $(PAUDIO_LIB) -o $(SAIL_LIB)
 else
 $(SAIL_LIB): $(COMMON_OBJ) $(SAIL_OBJ)
-	$(COMPILER) $(SHLD_FLAGS) $(COMMON_OBJ) $(SAIL_OBJ) $(LIBS) -o $(SAIL_LIB)
+	$(COMPILER) $(SHLD_FLAGS) $(FONT_LIB) $(COMMON_OBJ) $(SAIL_OBJ) $(LIBS) -o $(SAIL_LIB)
 endif
 
 .cpp.o :
-	$(COMPILER) $(MYFLAGS) -c -o $@ $<
+	$(COMPILER) $(MYFLAGS) -g -c -o $@ $<
 
 fsConsole.o: fsConsole.cpp
 	$(COMPILER) $(MYFLAGS) $(READLINE_CFLAGS) -c fsConsole.cpp
+

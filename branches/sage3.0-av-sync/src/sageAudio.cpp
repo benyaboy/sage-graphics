@@ -59,19 +59,19 @@ sageAudio::~sageAudio()
    }
 }
 
-int sageAudio::init(int id, sageAudioConfig &config, sageAudioMode mode, sageAudioCircBuf *buf)
+int sageAudio::init(int id, sageAudioConfig* config, sageAudioMode mode, sageAudioCircBuf *buf)
 {
    ID = id;
    
    // initialize audio setting variables
-   sampleFmt = config.sampleFmt;
-   samplingRate = config.samplingRate;
-   channels = config.channels;
-   framePerBuffer = config.framePerBuffer;
-   deviceNum = config.deviceNum;
+   sampleFmt = config->sampleFmt;
+   samplingRate = config->samplingRate;
+   channels = config->channels;
+   framePerBuffer = config->framePerBuffer;
+   deviceNum = config->deviceNum;
    
-   std::cout << "sageAudio:: samplingRate: " <<  samplingRate << " channels: " << channels << " framePerBuffer: " << framePerBuffer << std::endl;
-   std::cout << "sageAudio:: sampleFmt: ";
+   std::cout << "[sageAudio::init] samplingRate: " <<  samplingRate << " channels: " << channels << " framePerBuffer: " << framePerBuffer << std::endl;
+   std::cout << "[sageAudio::init] sampleFmt: ";
       
    switch(sampleFmt) {
       case SAGE_SAMPLE_FLOAT32 :
@@ -169,7 +169,7 @@ int sageAudio::init(int id, sageAudioConfig &config, sageAudioMode mode, sageAud
       audioParameters->suggestedLatency = Pa_GetDeviceInfo( audioParameters->device )->defaultLowOutputLatency;
       audioParameters->hostApiSpecificStreamInfo = NULL;
    }
-   //std::cout << "sageAudio::init: initialized" << std::endl;
+   //std::cout << "[sageAudio::init] initialized" << std::endl;
    
    return 0;
 }
@@ -178,7 +178,6 @@ int sageAudio::reset( int id, sageAudioCircBuf *buf )
 {
    ID = id;
    buffer = buf;
-   std::cout << "sageAudio::reset " << ID << std::endl;
    return 0;
 }
 
@@ -430,14 +429,15 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
 
    /** todo */   
    // check later... it can make strange noisy  
-   if(block == NULL) {
-	  //std::cerr << "playCallback is return 0" << std::endl;
+   /*if(block == NULL) {
+		//std::cerr << "playCallback is return 0" << std::endl;
       return 0;
    }   
    if(block->reformatted != 1) {
 	   //std::cerr << "playCallback is return 0" << std::endl;	
 	   return 0;   
    }
+	*/
    //if(This->playFlag != AUDIO_PLAY) return 0;
    
    //std::cout << "playback : ";   
@@ -458,10 +458,9 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
    switch(This->sampleFmt) {
       case SAGE_SAMPLE_FLOAT32 :
          {
-            float *rptr = (float*) block->buff;
             float *wptr = (float*) outputBuffer;
 
-            if( block->reformatted != 1 ) {
+            if( block == NULL || block->reformatted != 1 ) {
                for( int i=0; i< framesPerBuffer; i++ ) {
                   *wptr++ = 0;
                   for( int j= 1; j < This->channels; j++) {
@@ -470,6 +469,7 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
                }
             }
             else {
+            	float *rptr = (float*) block->buff;
                // update data for play
                for( int i=0; i< framesPerBuffer; i++ ) {
                   *wptr++ = *rptr;
@@ -486,10 +486,9 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
          break;
       case SAGE_SAMPLE_INT16 : 
          {
-            short *rptr = (short*) block->buff;
             short *wptr = (short*) outputBuffer;
 
-            if( block->reformatted != 1 ) {
+            if( block== NULL || block->reformatted != 1 ) {
                for( int i=0; i< framesPerBuffer; i++ ) {
                   *wptr++ = 0;
                   for( int j= 1; j < This->channels; j++) {
@@ -498,6 +497,7 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
                }
             }
             else {
+            	short *rptr = (short*) block->buff;
                // update data for play
                for( int i=0; i< framesPerBuffer; i++ ) {
                   *wptr++ = *rptr;
@@ -514,10 +514,9 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
          break;
       case SAGE_SAMPLE_INT8 : 
          {
-            char *rptr = (char*) block->buff;
             char *wptr = (char*) outputBuffer;
 
-            if( block->reformatted != 1 ) {
+            if( block == NULL || block->reformatted != 1 ) {
                for( int i=0; i< framesPerBuffer; i++ ) {
                   *wptr++ = '0';         // not sure....  it's right or not
                   for( int j= 1; j < This->channels; j++) {
@@ -526,6 +525,7 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
                }
             }
             else {
+            	char *rptr = (char*) block->buff;
                // update data for play
                for( int i=0; i< framesPerBuffer; i++ ) {
                   *wptr++ = *rptr;
@@ -542,10 +542,9 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
          break;      
       case SAGE_SAMPLE_UINT8 : 
          {
-            unsigned char *rptr = (unsigned char*) block->buff;
             unsigned char *wptr = (unsigned char*) outputBuffer;
 
-            if( block->reformatted != 1 ) {
+            if( block == NULL || block->reformatted != 1 ) {
                for( int i=0; i< framesPerBuffer; i++ ) {
                   *wptr++ = '0';
                   for( int j= 1; j < This->channels; j++) {
@@ -554,6 +553,7 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
                }
             }
             else {
+            	unsigned char *rptr = (unsigned char*) block->buff;
                // update data for play
                for( int i=0; i< framesPerBuffer; i++ ) {
                   *wptr++ = *rptr;
@@ -573,10 +573,13 @@ int sageAudio::playCallback( const void *inputBuffer, void *outputBuffer,
    }
    
    // reset
-   block->reformatted = 0;
-   //std::cout <<  block->frameIndex << ": " << This->buffer->getReadIndex();
-   // update index
-   This->buffer->updateReadIndex();
+	if (block)
+	{
+   	block->reformatted = 0;
+   	//std::cout <<  block->frameIndex << ": " << This->buffer->getReadIndex();
+   	// update index
+   	This->buffer->updateReadIndex();
+	}
    
    //std::cout << ": " << This->buffer->getReadIndex() << std::endl;
      
@@ -653,8 +656,11 @@ int sageAudio::recordCallback( const void *inputBuffer, void *outputBuffer,
    if(inputBuffer == NULL) return 1;
    
    sageAudio *This = (sageAudio*)userData;
-   //if (This ==  NULL) return 0;      // for safety.... it needs, but it's not possible to get NULL 
+
+	// for safety.... but it's not possible to get NULL 
+   //if (This ==  NULL) return 0;      
    //if(This->buffer == NULL) return 0;
+
    audioBlock *block = This->buffer->getNextWriteBlock();
 
    while(block == NULL) {
@@ -662,16 +668,7 @@ int sageAudio::recordCallback( const void *inputBuffer, void *outputBuffer,
       block = This->buffer->getNextWriteBlock();
       //std::cout << "trying to get buffer..." << std::endl;
    }
-
-   
-   /** todo */   
-   // check later... it can make strange noisy  
-   if(block == NULL) {
-      //std::cout << "no block " << std::endl;
-      return 0;      
-   }
-   //if(block->reformatted != 1) return 0;
-   //if(This->playFlag != AUDIO_PLAY) return -1;
+	//std::cout << "got block to capture" << std::endl;
    
    switch(This->sampleFmt) {
       case SAGE_SAMPLE_FLOAT32 :

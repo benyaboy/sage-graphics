@@ -154,6 +154,17 @@ int sageVirtualDesktop::launchReceivers(char *fsIP, int port, int syncPort, bool
    return 0;
 }
 
+int sageVirtualDesktop::getTileInfo(char *info)
+{
+	displayNode *disp = displayCluster[0];
+	if (!disp) {
+		 sage::printLog("sageVirtualDesktop:getTileInfo Can't find the display node 0"); 
+		 return -1;
+	}
+	sprintf(info, "%d %d %d %d", disp->tiles[0]->width, disp->tiles[0]->height, dimX, dimY);
+	return 0;
+}
+
 int sageVirtualDesktop::getRcvInfo(int nodeID, char *info)
 {
    displayNode *disp = displayCluster[nodeID];

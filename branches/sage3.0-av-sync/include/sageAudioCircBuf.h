@@ -85,6 +85,8 @@ private:
    int readIndex;
    int writeIndex;
 
+	int assignedChannel;
+
    pthread_mutex_t *queueLock;
    pthread_cond_t *notFull;
 
@@ -181,9 +183,14 @@ public:
    int getAudioId();
    int getBytesBlock();
 
-   int merge(audioBlock* block);
-   int convertToFloat(sageSampleFmt fmt, void* rawdata, audioBlock* block);
+	sageSampleFmt getSampleFmt(void);
 
+   int merge(audioBlock* block, std::vector<sageAudioCircBuf*>& bufferList);
+   int convertToFloat(sageSampleFmt fmt, void* rawdata, audioBlock* block);
+	int copy(void* rawdata, audioBlock* block);
+
+	// assign channel
+	void assignChannel(int channel);
 
    void clearBlock(int frameNum);
    void reset();
@@ -196,6 +203,7 @@ public:
    void connectSyncClient(sageSyncClient* synch);
 
    void setInstID(int ID);
+   int getInstID(void) { return instID; } 
 
    /** use for synchronization
    */

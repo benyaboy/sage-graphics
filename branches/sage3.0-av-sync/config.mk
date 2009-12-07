@@ -1,12 +1,12 @@
 # To enable audio, uncomment the following line
 AUDIO=1
-#GLSL_YUV=1
+GLSL_YUV=1
 #SAIL_ONLY=1
 #SUN_GCC=1
 FS_CONSOLE=fsConsole
 
 COMPILER=g++
-SAGE_CFLAGS=-Wno-deprecated -fPIC 
+SAGE_CFLAGS=-Wno-deprecated -fPIC
 SAGE_LDFLAGS=
 
 # QUANTA settings
@@ -36,6 +36,12 @@ PORTAUDIO_CFLAGS=-I${PORTAUDIO_DIR}/include -DSAGE_AUDIO
 PAUDIO_LIB= -L${PORTAUDIO_DIR}/lib -lportaudio -lasound
 endif
 
+# SDL_ttf (freetype font library)
+FONT_LIB=-lSDL_ttf
+
+# imagemagick
+MAGICK_CFLAGS=`Wand-config --cflags --cppflags`
+MAGICK_LIBS=`Wand-config --ldflags --libs`
 
 # SAIL library name
 SAIL_LIB=libsail.so
@@ -60,7 +66,7 @@ MACHINE=$(shell uname -s)
    #Linux   linux
    #Solaris SunOS
 
-ARCHITECTURE=$(shell uname -m)
+ARCHITECTURE=$(shell uname -p)
    #i386  MacOSX
    #i686    Linux 32bit
    #x86_64  Linux 64bit

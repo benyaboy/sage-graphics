@@ -97,10 +97,10 @@ sageAppAudio::~sageAppAudio()
 
 int sageAppAudio::start(void)
 {
-	if (pthread_create(&thAppId, 0, audioThread, (void*)this) != 0) {
+	/*if (pthread_create(&thAppId, 0, audioThread, (void*)this) != 0) {
       std::cerr << "sageAppAudio : can't create audioThread" << std::endl;
    }
-	initialized = true;
+	initialized = true;*/
 	return 1;
 }
 
@@ -179,17 +179,37 @@ int sageAppAudio::processData()
 
 int sageAppAudio::swapBuffer(int size, void *buf)
 {
-	if(initialized == false) return 0;
+	//if(initialized == false) return 0;
 	if(buf == NULL) return 0;
 
-	pthread_mutex_lock(queueLock);
+	//pthread_mutex_lock(queueLock);
 
 	//sage::printLog("sageAppAudio::swapBuffer : size %d %d\n", size, remainBufSize);
 
-	while (full) {
-		pthread_cond_wait(notFull, queueLock);
+	//while (full) {
+	//pthread_cond_wait(notFull, queueLock);
+	//}
+
+	audioBlock* block;
+	int byteBlock = buffer->getBytesBlock();
+	block = buffer->getNextWriteBlock();
+	while(block == NULL)
+	{	
+		sage::usleep(100);
+		block = buffer->getNextWriteBlock();
 	}
 
+	if(block != NULL)
+	{
+		memcpy(block->buff, buf, byteBlock);
+		block->frameIndex = buffer->getWriteIndex();
+		block->gframeIndex = sageAudioModule::_instance->getgFrameNum();
+		block->reformatted = 1;   
+		buffer->updateWriteIndex();
+	}
+
+
+	/*
 	char * bufaudio = (char *) audioAppRawBuffer[writeIndex];
 	memset(bufaudio, 0, maxAudioBuffSize);
 	if(remainBufSize > 0) {
@@ -212,6 +232,7 @@ int sageAppAudio::swapBuffer(int size, void *buf)
 	pthread_cond_signal(notEmpty);
 
 	pthread_mutex_unlock(queueLock);      
+	*/
 	             
 	return 0;
 }

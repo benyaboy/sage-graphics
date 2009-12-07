@@ -102,6 +102,17 @@ int fsCore::initAudio()
 			sage::printLog("fsCore : %s(%d) is stuck or shutdown", appExec->appName, i);
 			clearAppInstance(i);
 		}		
+		// HYEJUNG
+		int audio_size = fsm->audioList.size();
+		if(audio_size == 0) return 0;
+		char msgStr[TOKEN_LEN];
+		sprintf(msgStr, "%d %d %d %d %d", i, appExec->x, appExec->y, appExec->width, appExec->height);
+		for(int audio_id=0; audio_id < audio_size; audio_id++)
+		{
+			fsm->sendMessage(fsm->audioList[audio_id], ARCV_WINDOW, msgStr);
+		}
+		// HYEJUNG- END
+		
    }
 
    return 0;
@@ -361,6 +372,13 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
    
          //cout << " ----> fsCore : " << msgStr << endl;         
          fsm->sendMessage(clientID, ARCV_AUDIO_INIT, msgStr);
+
+			// HYEJUNG
+			memset(info, 0, TOKEN_LEN);
+			fsm->vdtList[0]->getTileInfo(info);
+			fsm->sendMessage(clientID, ARCV_WINDOW_INIT, info);
+			fsm->audioList.push_back(clientID);
+			// HYEJUNG - END
          break;
       }
       
@@ -1044,6 +1062,26 @@ int fsCore::windowChanged(int appId)
 		}
 	}	
 
+	// HYEJUNG
+	int audio_size = fsm->audioList.size();
+	if(audio_size == 0) return 0;
+	char msgStr[TOKEN_LEN];
+	appInExec *app = NULL;
+	int index;
+	if(appId >= 0)
+	{
+		 app = findApp(appId, index);
+		 if(!app) return -1;
+	}
+	displayInstance *disp = fsm->dispList[appId];
+	sprintf(msgStr, "%d %d %d %d %d %d", appId, app->x, app->y, app->width, app->height, disp->getZValue());
+	for(int audio_id=0; audio_id < audio_size; audio_id++)
+	{
+		fsm->sendMessage(fsm->audioList[audio_id], ARCV_WINDOW, msgStr);
+	}
+	// HYEJUNG END
+
+
    return 0;
 }         
       
@@ -1275,6 +1313,12 @@ int fsCore::bringToFront(int winID)
 			fsm->uiList[j] = -1;
 		}
 	}	
+
+	int audio_size = fsm->audioList.size();
+	for(int audio_id=0; audio_id < audio_size; audio_id++)
+	{
+		fsm->sendMessage(fsm->audioList[audio_id], ARCV_WINDOW_DEPTH, msgStr);
+	}
    
    return 0;
 }

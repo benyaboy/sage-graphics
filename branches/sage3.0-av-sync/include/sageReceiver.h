@@ -56,8 +56,10 @@ class streamProtocol;
  * class sageReceiver
  */
 class sageReceiver {
+public:
+	int instID;
 protected:
-   int instID, senderNum, blockSize;
+   int senderNum, blockSize;
    streamProtocol *nwObj;
    bool endFlag;
    pthread_t thId;
