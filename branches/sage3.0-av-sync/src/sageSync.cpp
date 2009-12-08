@@ -667,6 +667,9 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 	std::map<int, int> syncFrameMap; // appID, frameNumber
 	syncFrameMap.clear();
 
+	std::map<int, int> syncFrameMap_audio;
+	syncFrameMap_audio.clear();
+
 	// max frame number for each APP to determine who's leading or lagging
 	//int maxFrameNum[MAX_INST_NUM];
 
@@ -727,6 +730,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 	double elapsed = 0.0;
 
 	int numUpdatedApps = 0; // how many apps are updated in this round
+	int numUpdatedApps_audio = 0;
 	int *intMsg = NULL;
 	int intMsg_byteLen = 0;
 
@@ -770,41 +774,29 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 
 							//printf("\t SDM %d PDL %d : upFrm %d, actRcvs %d\n", sdm, pdl, updatedFrame, slaveNum);
 #ifdef DEBUG_SYNC
-							fprintf(stderr, "\trecved update : [%d,%d] updF %d, activeRcv %d\n", sdm, pdl, updatedFrame, slaveNum);
+							fprintf(stderr, "\tIn mainLoop : recved update from [%d,%d]: updF %d, activeRcv %d\n", sdm, pdl, updatedFrame, slaveNum);
 #endif
 
 							// add this node to the activeNode per application
 							// update reported node list for this application(pdl id)
-							//SDMlistBitset[pdl].set(sdm, 1);
-
-							// bitset will be initialized with zeros
 							(SDMlistBitsetMap[pdl]).set(sdm, 1);
 
-							// update frame number of each PDL of each SDM
-							//frameNumOfEachSDM[pdl][sdm] = updatedFrame;
+							if ( updatedFrame < 0 ) {
+								// this is audio update
+								syncFrameMap_audio[pdl] = updatedFrame;
+								numUpdatedApps_audio++;
+							}
+							else {
+								syncFrameMap[pdl] = updatedFrame;
+							}
 
-							// find number of SDM involved in this application
-							// update number of active node for this application(pdl id)
-							//slaveNumArray[pdl] = slaveNum;
-
-							// this should be same for all nodes of this application
-							//syncFrameArray[pdl] = updatedFrame;
-							syncFrameMap[pdl] = updatedFrame;
-
-							//frameNumOfEachSDM[pdl][sdm] = updatedFrame;
-
-							// list of apps that this node has
-							//listOfApps[sdm].push_back(pdl);
-
-							// if all nodes of this application reported
-							//if ( slaveNumArray[pdl] <= SDMlistBitset[pdl].count() ) {
+							// if all display nodes of this application have reported
 							if ( slaveNum == (SDMlistBitsetMap[pdl]).count() ) {
 								swapMontageReady = true;
 								numUpdatedApps++;
 
-
 #ifdef DEBUG_SYNC
-								fprintf(stderr, "\tIt's ready : App %d is ready. SF %d\n", pdl, syncFrameMap[pdl]);
+								fprintf(stderr, "\tIn mainLoop : App %d is ready. SF %d\n", pdl, syncFrameMap[pdl]);
 #endif
 
 								// then they can do swapMontage
@@ -812,10 +804,9 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 								isReadyToSwapMonMap[pdl] = true;
 
 								// reset data structure for next round
-								// comment this out for SELECTIVE barrier
 								(SDMlistBitsetMap[pdl]).reset(); // must be here for BROADCAST barrier, comment out for selective barrier
 
-								// lots of contention will be happening
+								// if below is uncommented, lots of contention will be happening
 								//if ( This->syncLevel == 1 ) break;
 							}
 							else if ( slaveNum < (SDMlistBitsetMap[pdl]).count() ) {
@@ -848,7 +839,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 		// for each application
 		// it memset with zeros, then SDM::processSync will read wrong value
 		// if it's unsigned type, then it will become UINT_MAX, ULONG_MAX, or ULLONG_MAX
-		intMsg_byteLen = sizeof(int) + (sizeof(int) * numUpdatedApps * 2); // sizeof(int) byte is for MSG_PEEK at the SDM
+		intMsg_byteLen = sizeof(int) + (sizeof(int) * numUpdatedApps * 2) + (sizeof(int) * numUpdatedApps_audio * 2); // sizeof(int) byte is for MSG_PEEK at the SDM
 		intMsg = (int *)malloc(intMsg_byteLen);
 		memset(intMsg, -1, intMsg_byteLen);
 		intMsg[0] = intMsg_byteLen;
@@ -884,6 +875,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 		fprintf(stderr, "\n");
 #endif
 		numUpdatedApps = 0; // reset
+		numUpdatedApps_audio = 0;
 
 		/** temporary delat_compensation for 1st phase only */
 		if ( This->syncLevel == 3 ) {

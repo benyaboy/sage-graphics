@@ -417,6 +417,18 @@ int sail::swapBuffer(int mode)
       return -1;
    }
 
+   /**
+    * App should pass some flag as well as frame number
+    * If (flag) then don't do doubleBuf->swapBuffer();
+    *
+    * It also should communicate with audio.
+    * Faster one should wait for slower one
+    *
+    * possible issue:
+    * empty swapBuffering will make app's frame rate higher than usual.
+    * maybe usleep(1000) for every empty swapBuffer ?
+    */
+
    if (mode == SAGE_NON_BLOCKING && !doubleBuf->isEmpty()) {
       return 1;
    }
@@ -785,6 +797,18 @@ int sail::parseMessage(sageMessage &msg)
             pixelStreamer->setFrameRate(frate);
          break;
 */
+      }
+
+      /*
+       * app window has minimized.
+       * There won't be no actual data streaming
+       * However, app is running -> keeps calling swapbuffer for both video and audio
+       */
+      case SAIL_MINIMIZED : {
+    	  // set a flag with parameter to execute empty swapBuffer
+    	  // parameter is doesn't mean frame rate. It's monitoring interval.
+    	  // only video needs to be sent
+    	  break;
       }
 
       case SAIL_PERF_INFO : {

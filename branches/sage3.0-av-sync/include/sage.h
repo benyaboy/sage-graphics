@@ -8,10 +8,10 @@
  * University of Illinois at Chicago
  *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *  * Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  *  * Redistributions in binary form must reproduce the above
@@ -20,7 +20,7 @@
  *  * Neither the name of the University of Illinois at Chicago nor
  *    the names of its contributors may be used to endorse or promote
  *    products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -33,7 +33,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or 
+ * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or
  * http://www.evl.uic.edu/cavern/forum/
  *
  *****************************************************************************/
@@ -73,12 +73,12 @@
 #define NOTIFY_APP_SHUTDOWN    FS_CORE_MESSAGE + 7
 
 // UI to fsManager
-#define SAGE_UI_REG   SAGE_UI_TO_FSM 
+#define SAGE_UI_REG   SAGE_UI_TO_FSM
 #define EXEC_APP      SAGE_UI_TO_FSM + 1
 #define SHUTDOWN_APP  SAGE_UI_TO_FSM + 2
 #define MOVE_WINDOW   SAGE_UI_TO_FSM + 3
 #define RESIZE_WINDOW   SAGE_UI_TO_FSM + 4
-#define PERF_INFO_REQ   SAGE_UI_TO_FSM + 5 
+#define PERF_INFO_REQ   SAGE_UI_TO_FSM + 5
 #define STOP_PERF_INFO  SAGE_UI_TO_FSM + 6
 #define SAGE_BG_COLOR   SAGE_UI_TO_FSM + 7
 #define SAGE_Z_VALUE      SAGE_UI_TO_FSM + 8
@@ -150,10 +150,10 @@
 #define BRIDGE_STREAM_INIT     BRIDGE_MESSAGE + 8
 #define BRIDGE_UI_REG          BRIDGE_MESSAGE + 9
 #define BRIDGE_APP_INST_READY BRIDGE_MESSAGE + 10
-#define CLEAR_APP_INSTANCE    BRIDGE_MESSAGE + 11 
+#define CLEAR_APP_INSTANCE    BRIDGE_MESSAGE + 11
 
 // fsManager to UI : 40000
-#define SAGE_STATUS      FSM_TO_SAGE_UI 
+#define SAGE_STATUS      FSM_TO_SAGE_UI
 #define APP_INFO_RETURN  FSM_TO_SAGE_UI + 1
 #define UI_PERF_INFO     FSM_TO_SAGE_UI + 2
 #define UI_APP_SHUTDOWN    FSM_TO_SAGE_UI + 3
@@ -193,6 +193,7 @@
 #define SAIL_CONNECT_TO_ARCV SAIL_MESSAGE + 107
 #define SAIL_RESEND_FRAME    SAIL_MESSAGE + 108
 #define SAIL_CONNECT_TO_RCV_PORT SAIL_MESSAGE + 109
+#define SAIL_MINIMIZED		SAIL_MESSAGE + 110
 
 // App UI to APP
 #define SAGE_EVT_CLICK            APP_MESSAGE
