@@ -130,6 +130,20 @@ public:
    void releaseLock();
 };
 
+class sageCircBuf : public sageBuf {
+protected:
+	pthread_cond_t notFull;
+
+public:
+   sageCircBuf(int len);
+   bool pushBack(sageBufEntry entry, bool blk);
+   bool pushBack(sageBufEntry entry) { return pushBack(entry, false); }
+	sageBufEntry front(bool blk);
+   sageBufEntry front() { return front(false); }
+   bool next();
+   void releaseLock();
+};
+
 class sageRAB : public sageBuf {
 protected:
    int *nextIdx;

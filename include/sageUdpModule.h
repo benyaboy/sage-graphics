@@ -45,52 +45,48 @@
 
 #include "streamProtocol.h"
 
+#define FLOW_WINDOW_NUM 5
+
 class sageBlockBuf;
+class sageCircBuf;
 class sageBlockGroup;
 
 class flowHistory {
 public:
-   double actualInterval;
+   double startTime;
    double windowInterval;
-   int    sentPackets;
    
-   flowHistory() : actualInterval(0), windowInterval(0), sentPackets(0) {}
+   flowHistory() : startTime(0.0), windowInterval(0.0) {}
 };
 
 class streamFlowData {
 private:
-   flowHistory *streamWindow;
-   int windowSize;
+   flowHistory streamWindow[FLOW_WINDOW_NUM];
+   double nextWindowTime;
+   int totalSentSize;
    int winIdx;
-   int packetSum;
-   double windowTimeSum;
-   double actualTimeSum;
+   bool firstRound;
+   double startTime;
    
 public:
    double frameRate;
+   int nextFrameSize;
    int frameSize;
-   int sentPackets;
+   int configID;
+   
    int blockSize;
    bool active;
    bool closed;
    
-   sageBlockGroup *curGrp;
-   sageBlockBuf  *blockBuf;
+   sageCircBuf *blockBuf;
    sageBlockPool *returnPlace;
    
-   streamFlowData(int wSize, sageBlockBuf *buf);
+   streamFlowData(sageCircBuf *buf);
    ~streamFlowData();
-   void pushBack(sageBlockGroup *grp);
-   double getPacketRate(int packetNum);
-   inline int totalSentPacketNum() { return (sentPackets + packetSum); }
-   inline double elapsedTime() { return windowTimeSum; }
-   int insertWindow(double aTime, double wTime);
 
-   // including idle time
-   inline double getAvePacketRate() { return packetSum/windowTimeSum; }     
-   
-   // excluding idle time
-   inline double getAvePacketInterval() { return actualTimeSum/packetSum; }  
+   inline double elapsedTime(double time) { return time - startTime; }
+   inline double pastTime(double time)    { return time - nextWindowTime; }
+   void insertWindow(double sTime, int dataSize);
 };
    
 class sageUdpModule : public streamProtocol{
@@ -113,6 +109,10 @@ private:
    pthread_cond_t  streamStart;
    pthread_cond_t  newData;
    
+   int send(int id, sagePixelBlock *spb);
+   int recv(int id, sagePixelBlock *spb, int pidx);
+   int skipBlock(int id, int pidx);
+
 public:
    sageUdpModule();
    int init(sageStreamMode m, int p, sageNwConfig &c);

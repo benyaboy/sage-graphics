@@ -253,6 +253,91 @@ bool sageCircBufSingle::next()
    return true;
 }
 
+sageCircBuf::sageCircBuf(int len)
+{
+	initArray(len);
+	pthread_cond_init(&notFull, NULL);
+   pthread_cond_init(&notEmpty, NULL);
+}
+
+bool sageCircBuf::pushBack(sageBufEntry entry, bool blk)
+{
+   if (blk && full) {
+      pthread_mutex_lock(&bufLock);
+      while(full) {
+         pthread_cond_wait(&notFull, &bufLock);
+      }   
+      pthread_mutex_unlock(&bufLock); 
+   }
+	else if (!blk && full)
+		return false;
+         
+   entries[writeIdx] = entry;
+   
+	pthread_mutex_lock(&bufLock);     
+   writeIdx++;      
+   if (writeIdx >= bufLen)
+      writeIdx = writeIdx - bufLen;
+
+   if (readIdx == writeIdx)   
+      full = true;
+   
+	entryNum++;
+   empty = false;
+   pthread_cond_signal(&notEmpty);
+   pthread_mutex_unlock(&bufLock);   
+   
+   return true;   
+}
+
+sageBufEntry sageCircBuf::front(bool blk)
+{
+   if (blk) {
+      pthread_mutex_lock(&bufLock);
+      while(empty) {
+         pthread_cond_wait(&notEmpty, &bufLock);
+      }   
+      pthread_mutex_unlock(&bufLock);
+   }  
+   else if (empty)
+      return NULL;
+   
+   return entries[readIdx];   
+}
+
+bool sageCircBuf::next()
+{
+   if (empty) {
+      return false;
+   }
+      
+   pthread_mutex_lock(&bufLock);    
+   entries[readIdx] = NULL;
+   while(!empty && !entries[readIdx]) {
+      readIdx++;
+      if (readIdx >= bufLen)
+         readIdx = readIdx - bufLen;
+
+      if (readIdx == writeIdx)
+         empty = true;
+   }
+   
+   entryNum--;
+   full = false;
+	pthread_cond_signal(&notFull);
+   pthread_mutex_unlock(&bufLock);
+            
+   return true;
+}
+
+void sageCircBuf::releaseLock() 
+{ 
+   empty = false;
+	full = false;
+   pthread_cond_signal(&notEmpty);
+	pthread_cond_signal(&notFull);  
+}
+
 sageRAB::sageRAB(int len) : head(-1), tail(-1), freeHead(0), freeTail(len-1)
 {
    initArray(len);

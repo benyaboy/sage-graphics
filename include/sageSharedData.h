@@ -88,7 +88,8 @@ class bridgeSharedData : public rcvSharedData {
 public:
    streamProtocol *sendObj;
    bool frameDrop;
-   bridgeSharedData() : sendObj(NULL), frameDrop(true) {}
+   nwProtocol protocol;
+   bridgeSharedData() : sendObj(NULL), frameDrop(true), protocol(SAGE_UDP) {}
    ~bridgeSharedData();
 };
 

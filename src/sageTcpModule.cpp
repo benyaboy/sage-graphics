@@ -280,7 +280,7 @@ int sageTcpModule::sendGrp(int id, sagePixelBlock *sb, int configID)
       dataSize = bGrp->sendData(clientSockFd);
       //std::cout << "send grp " << dataSize << std::endl;
       if (returnPlace) {
-         if (returnPlace->returnBlocks(bGrp) >= 0)
+         if (returnPlace->returnBlocks(bGrp) > 0)
             sage::printLog("sageTcpModule::sendGrp : block pool overflow...");
       }
       else {
@@ -320,7 +320,7 @@ int sageTcpModule::flush(int id, int configID)
    //std::cout << "flush grp " << dataSize << std::endl;
    
    if (returnPlace) {
-      if (returnPlace->returnBlocks(bGrp) >= 0) {
+      if (returnPlace->returnBlocks(bGrp) > 0) {
          sage::printLog("sageTcpModule::sendGrp : block pool overflow...");
       }
    }   

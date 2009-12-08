@@ -71,17 +71,20 @@ int bridgeStreamer::initNetworks(char *data, bool localPort)
    sageToken tokenBuf(data);
    tokenBuf.getToken(token);
       
-   int rcvPort = atoi(token) + (int)SAGE_UDP;
-   if (!nwObj) {
-      sage::printLog("bridgeStreamer::initNetworks : network object is NULL");
-      return -1;
-   }
-   
-
+	int rcvPort = atoi(token) + (int)config.protocol;
+   if (nwObj) {   
    nwObj->setConfig(rcvPort, config.blockSize, config.groupSize);
    sage::printLog("bridgeStreamer : network object was initialized successfully");
    std::cout << "block size = " << config.blockSize << std::endl;
-   std::cout << "group size = " << nwCfg.groupSize << std::endl;
+   	std::cout << "group size = " << config.groupSize << std::endl;
+	}
+	else {
+		nwCfg.blockSize = config.blockSize;
+   	nwCfg.groupSize = config.groupSize;
+		nwObj = (streamProtocol *)new sageTcpModule;
+      nwObj->init(SAGE_SEND, rcvPort, nwCfg);
+      sage::printLog("bridgeStreamer::initNetworks : initialize TCP object");
+	}
    
    connectToRcv(tokenBuf, localPort);
    setupBlockPool();
@@ -213,7 +216,7 @@ int bridgeStreamer::streamPixelData()
       blockBuffer->next(config.streamerID);
    }
    
-   if (sendControlBlock(SAGE_UPDATE_BLOCK, INACTIVE_CONNECTION) < 0)
+   if (sendControlBlock(SAGE_UPDATE_BLOCK, ALL_CONNECTION) < 0)
       return -1;
    
    frameID = curFrame + 1;

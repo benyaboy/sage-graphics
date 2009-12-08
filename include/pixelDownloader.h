@@ -134,9 +134,10 @@ protected:
    int reportRate;
    sageTimer perfTimer;
    unsigned long bandWidth;
-   unsigned packetLoss;
-   int frameBlockNum;
-   int frameSize;
+   unsigned long packetLoss;
+   unsigned frameBlockNum; /**< PDL is supposed to received this many blocks for given group */
+   int actualFrameBlockNum;
+   unsigned long frameSize;
 
    sageBlockPartition *partition;
    sageRect windowLayout;

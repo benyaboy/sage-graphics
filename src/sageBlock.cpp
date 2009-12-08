@@ -86,7 +86,7 @@ int sagePixelData::allocateBuffer(int size)
    return 0;
 }
 
-sagePixelBlock::sagePixelBlock(int size) : valid(false)
+sagePixelBlock::sagePixelBlock(int size) : valid(false), dirty(false), headerLen(0)
 {
    flag = SAGE_PIXEL_BLOCK;
    allocateBuffer(size);
@@ -112,18 +112,30 @@ int sagePixelBlock::updateBufferHeader()
    }
    
    memset(buffer, 0, BLOCK_HEADER_SIZE);
-   int headerSize = 0;
-
-#if defined(WIN32)
-   headerSize = _snprintf(buffer, BLOCK_HEADER_SIZE, "%d %d %d %d %d %d %d %d",
+   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d",
          bufSize, flag, x, y, width, height, frameID, blockID);
-#else
-   headerSize = snprintf(buffer, BLOCK_HEADER_SIZE, "%d %d %d %d %d %d %d %d",
-         bufSize, flag, x, y, width, height, frameID, blockID);
-#endif
          
-   if (headerSize >= BLOCK_HEADER_SIZE) {
-      sage::printLog("sagePixelBlock::updateBufferHeader : block header has been truncated.");
+   if (headerLen >= BLOCK_HEADER_SIZE) {
+      sage::printLog("sagePixelBlock::updateBufferHeader : block header exceeds the maximum length");
+      return -1;
+   }
+   
+   return 0;
+}
+
+int sagePixelBlock::updateHeader(int pid, int configID)
+{   
+   if (!buffer) {
+      sage::printLog("sagePixelBlock::updateBufferHeader : buffer is null");   
+      return -1;
+   }
+   
+   memset(buffer, 0, BLOCK_HEADER_SIZE);
+   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d %d %d",
+         bufSize, flag, x, y, width, height, frameID, blockID, pid, configID);
+         
+   if (headerLen >= BLOCK_HEADER_SIZE) {
+      sage::printLog("sagePixelBlock::updateBufferHeader : block header exceeds the maximum length");
       return -1;
    }
    
@@ -145,17 +157,17 @@ bool sagePixelBlock::updateBlockConfig()
    return true;
 }
 
+void sagePixelBlock::clearPixelBlock()
+{
+   dirty = false;
+   valid = true;
+   clearBuffer();
+}
+
 sagePixelBlock::~sagePixelBlock()
 {
    releaseBuffer();
 }
-
-/*
-void sagePixelBlock::recalcBufSize()
-{
-   bufSize = width*height*bytesPerPixel + BLOCK_HEADER_SIZE;
-}
-*/
 
 sageAudioBlock::sageAudioBlock() : frameID(0), gframeID(0),
                         bytesPerSample(4), sampleFmt(SAGE_SAMPLE_FLOAT32),
