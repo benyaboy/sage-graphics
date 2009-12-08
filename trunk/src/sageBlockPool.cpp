@@ -200,6 +200,22 @@ sagePixelBlock* sageBlockGroup::operator[] (int idx)
    return (sagePixelBlock *)(*buf)[idx];
 }
 
+int sageBlockGroup::returnBlock(sagePixelBlock *block)
+{
+   if (!buf) {
+      sage::printLog("sageBlockGroup::returnBlock : block buffer is NULL");
+      return -1;
+   }
+
+   if (block && block->dereference() == 0) {
+      if (!buf->pushBack((sageBufEntry)block)) {
+         return -1;
+      }
+   }
+   
+   return 0;
+}
+
 int sageBlockGroup::returnBlocks(sageBlockGroup* grp)
 {
    if (!buf) {
@@ -421,7 +437,13 @@ int sageBlockGroup::sendDatagram(int sockFd)
    ::WSASend(sockFd, iovs, iovNum, (DWORD*)&sendSize,
          WSAFlags, NULL, NULL);
 #else
-   sendSize = ::writev(sockFd, iovs, iovNum);
+   struct msghdr blockMsgHdr;
+   bzero((void *)&blockMsgHdr, sizeof(blockMsgHdr));
+   
+   blockMsgHdr.msg_iov = iovs;
+   blockMsgHdr.msg_iovlen = iovNum;
+
+   sendSize = ::sendmsg(sockFd, &blockMsgHdr, 0);
 #endif
 
    return sendSize;
@@ -434,52 +456,41 @@ int sageBlockGroup::readDatagram(int sockFd)
       return -1;
    }
 
-   int recvSize = 0;
-   blockNum = buf->getEntryNum();
-   int dataSize = blockNum*blockSize + GROUP_HEADER_SIZE;
-
-   while(recvSize < dataSize) {
-      int headerSize = sage::recv(sockFd, (void *)header, GROUP_HEADER_SIZE, MSG_PEEK);
+   int headerSize = 0, recvSize = 0;
+   headerSize = sage::recv(sockFd, (void *)header, GROUP_HEADER_SIZE, MSG_PEEK);
       if (headerSize > 0)
          sscanf(header, "%d %d %d", &blockNum, &frameID, &configID);
       else
          return -1;
 
+   //blockNum = buf->getEntryNum();
+   int dataSize = blockNum*blockSize + GROUP_HEADER_SIZE;
       int iovNum = blockNum+1;
-      dataSize = blockNum*blockSize + GROUP_HEADER_SIZE;
 
 #ifdef WIN32
       DWORD WSAFlags = 0;
       ::WSARecv(sockFd, iovs, iovNum, (DWORD*)&recvSize, &WSAFlags, NULL, NULL);
 #else
-      recvSize = ::readv(sockFd, iovs, iovNum);
+   struct msghdr blockMsgHdr;
+   bzero((void*)&blockMsgHdr, sizeof(blockMsgHdr));
+   blockMsgHdr.msg_iov = iovs;
+   blockMsgHdr.msg_iovlen = iovNum;
+   
+   recvSize = ::recvmsg(sockFd, &blockMsgHdr, MSG_WAITALL);
 #endif
 
+   if (recvSize < dataSize)
+      std::cout << "data loss " << dataSize << " , " <<  recvSize << "Bytes" << blockNum << " " <<
+      frameID << " " << configID << std::endl; 
+   
       if (recvSize <= 0) {
          sage::printLog("sageBlockGroup::readDatagram : error in reading io_vec");
          std::cout << "iov_num " << iovNum << " frameID " << frameID << std::endl;
          return -1;
       }
-   }
 
    return recvSize;
 }
-
-
-/*
-void sageBlockGroup::clearHeaders()
-{
-   if (!buf) {
-      sage::printLog("sageBlockGroup : block buffer is NULL");
-      return;
-   }
-
-   for (int i=0; i<blockNum; i++) {
-      sagePixelBlock *block = (sagePixelBlock *)(*buf)[i];
-      block->clearHeader();
-   }
-}
-*/
 
 bool sageBlockGroup::updateConfig()
 {
@@ -504,16 +515,25 @@ bool sageBlockGroup::updateConfig()
    return true;
 }
 
-void sageBlockGroup::clearBuffers()
+
+
+bool sageBlockGroup::updateConfig(int num, int frame, int conf)
 {
-   if (!buf) {
-      sage::printLog("sageBlockGroup::clearBuffers() : block buffer is NULL");
-      return;
+   blockNum = num;
+   frameID = frame;
+   configID = conf;
+   
+   return updateConfig();
    }
+
+
+void sageBlockGroup::clearBlocks()
+{
+   assert(buf);
 
    for (int i=0; i<buf->size(); i++) {
       sagePixelBlock *block = (sagePixelBlock *)(*buf)[i];
-      block->clearBuffer();
+      block->clearPixelBlock();
    }
 }
 
@@ -796,6 +816,8 @@ int sageBlockBuf::returnBG(sageBlockGroup* grp)
    }
 
    if (grp->getFlag() == sageBlockGroup::PIXEL_DATA) {
+		//std::cout << "push back (datapool)---> " << grp->getRefCnt() << " " << grp->getFrameID() << std::endl;
+
       if (multiReader && grp->getRefCnt() > 0) {
          if (!vacantPool->insert((sageBufEntry)grp)) {
             sage::printLog("sageBlockBuf::returnBG : error in pushing back to vacant pool");
@@ -810,8 +832,41 @@ int sageBlockBuf::returnBG(sageBlockGroup* grp)
       }
    }
    else {
+		//std::cout << "push back (ctrlPool)---> " << grp->getRefCnt() << " " << grp->getFrameID() << std::endl;
+
       if (!ctrlPool->pushBack((sageBufEntry)grp))
          sage::printLog("sageBlockBuf::returnBG : error in pushing back to control pool");
+   }
+
+   return 0;
+}
+
+int sageBlockBuf::returnBlock(sagePixelBlock *block)
+{
+   if (!vacantPool) {
+      sage::printLog("sageBlockBuf : vacant block group pool is NULL");
+      return -1;
+   }
+
+   if (block) {
+      //std::cout << "return block" << std::endl;
+      sageBlockGroup *parent = block->getGroup();
+      assert(parent);
+      if (parent && (parent->dereference() <= 0)) {
+         //std::cout << "return group" << std::endl;
+         int prev = -1;
+         for (int j=vacantPool->start(); j>=0; vacantPool->next(j)) {
+            sageBlockGroup *sbg = (sageBlockGroup *)(*vacantPool)[j];
+            if (sbg && (sbg == parent || sbg->getRefCnt() <= 0)) {
+               //std::cout << "move group" << std::endl;
+               vacantPool->remove(j, prev);
+               if (!dataPool->pushBack((sageBufEntry)sbg))
+                  sage::printLog("sageBlockBuf::garbageCollection : error in pushing back to data pool");
+               break;
+            }
+            prev = j;
+         }
+      }
    }
 
    return 0;

@@ -151,9 +151,10 @@ int sageBlockStreamer::sendPixelBlock(sagePixelBlock *block)
    }
    
    block->setRefCnt(map->count);
-   while(map) {
       block->setFrameID(frameID);
       block->updateBufferHeader();
+   
+   while(map) {
       //std::cerr << "---" <<  hostname << " pBlock " << block->getBuffer() << "  sent to " <<
       //   params[map->infoID].rcvID << std::endl;
       
@@ -229,13 +230,13 @@ int sageBlockStreamer::streamPixelData(sageBlockFrame *buf)
          return -1;
    }
 
-   if (sendControlBlock(SAGE_UPDATE_BLOCK, INACTIVE_CONNECTION) < 0)
+   if (sendControlBlock(SAGE_UPDATE_BLOCK, ALL_CONNECTION) < 0)
       return -1;
 
    //std::cerr << hostname << " frame " << frameID << " transmitted" << std::endl;
 
    frameID++;
-   frameCounter++;
+   //frameID = frameID + 10;
 
 	for (int j=0; j<rcvNodeNum; j++) {
 		int dataSize = nwObj->flush(params[j].rcvID, configID);
@@ -248,11 +249,6 @@ int sageBlockStreamer::streamPixelData(sageBlockFrame *buf)
       }   
 	}
    
-   //if (config.asyncUpdate) {
-   //   if (sendControlBlock(SAGE_UPDATE_BLOCK, ALL_CONNECTION) < 0)
-   //      return -1;
-   //}      
-	      
    return 0;
 }
 
