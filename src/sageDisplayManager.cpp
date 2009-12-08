@@ -432,7 +432,8 @@ void* sageDisplayManager::syncCheckThread(void *args)
 			syncMsgLen = This->shared->syncClientObj->waitForSyncPeek();
 			if ( syncMsgLen <= 0 ) {
 				fprintf(stderr, "[%d] SDM::syncCheckThread() : syncMsgLen %d\n", This->shared->nodeID, syncMsgLen);
-				continue;
+				//continue;
+				break;
 			}
 			else {
 				syncEvent = new sageSyncEvent(EVENT_SYNC_MESSAGE, syncMsgLen, NULL);
