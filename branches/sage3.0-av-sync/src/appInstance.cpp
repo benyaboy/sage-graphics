@@ -156,13 +156,19 @@ int appInstance::addStreamer(int fsIdx, int orgIdx, syncGroup *sGroup, int syncI
    sConfig.groupSize = groupSize;
    sConfig.totalWidth = imageWidth;
    sConfig.totalHeight = imageHeight;
-	sConfig.protocol = SAGE_UDP;
     
    sConfig.syncClientObj = shared->syncClientObj;   
    sConfig.syncClientObj->addSyncGroup(sConfig.syncID);
-   sConfig.frameDrop = shared->frameDrop;
+   //sConfig.frameDrop = shared->frameDrop;
+   sConfig.frameDrop = false;
    
-   bridgeStreamer *streamer = new bridgeStreamer(sConfig, blockBuf, shared->sendObj);
+   bridgeStreamer *streamer = NULL;
+   sConfig.protocol = shared->protocol;
+      
+   if (shared->protocol == SAGE_TCP)
+      streamer = new bridgeStreamer(sConfig, blockBuf, NULL);
+   else
+      streamer = new bridgeStreamer(sConfig, blockBuf, shared->sendObj);
       
    streamerList[fsIdx] = streamer;
    maxStreamerIdx = MAX(maxStreamerIdx, fsIdx);
@@ -347,7 +353,8 @@ int appInstance::parseMessage(sageMessage &msg, int fsIdx)
                   &nwCfg.mtuSize);      
 
             streamerList[fsIdx]->setWinID(winID);
-            //streamerList[fsIdx]->setNwConfig(nwCfg);
+	    if (shared->protocol == SAGE_TCP)
+               streamerList[fsIdx]->setNwConfig(nwCfg);
          }   
          break;
       }

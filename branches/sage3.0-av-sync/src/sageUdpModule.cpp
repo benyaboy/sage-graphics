@@ -44,59 +44,42 @@
 #include "sageBlock.h"
 #include "sageBlockPool.h"
 
-streamFlowData::streamFlowData(int wSize, sageBlockBuf *buf) : winIdx(0), frameRate(1),
-      frameSize(0), sentPackets(0), returnPlace(NULL), curGrp(NULL), packetSum(0),
-      windowTimeSum(0), actualTimeSum(0), active(true), closed(false)
+streamFlowData::streamFlowData(sageCircBuf *buf) : frameRate(60.0), configID(0), nextFrameSize(3072),
+      frameSize(3072), winIdx(-1), returnPlace(NULL), nextWindowTime(0.0), startTime(0.0),
+      totalSentSize(0), blockSize(0), active(true), closed(false), firstRound(true)
 {
-   streamWindow = new flowHistory[wSize];
-   windowSize = wSize;
    blockBuf = buf;
 }   
 
 streamFlowData::~streamFlowData()
 {
-   if (streamWindow)
-      delete [] streamWindow;
-   
    if (blockBuf)
       delete blockBuf;     
 }
 
-void streamFlowData::pushBack(sageBlockGroup *grp)
+void streamFlowData::insertWindow(double sTime, int dataSize)
 {  
-   if (blockBuf) {
-      blockBuf->pushBack(grp);
-      curGrp = blockBuf->getFreeBlocks();
-   }   
-}
+   if (firstRound && winIdx+1 == FLOW_WINDOW_NUM)
+      firstRound = false;
 
-int streamFlowData::insertWindow(double aTime, double wTime)
-{
-   windowTimeSum -= streamWindow[winIdx].windowInterval;
-   actualTimeSum -= streamWindow[winIdx].actualInterval;
-   packetSum -= streamWindow[winIdx].sentPackets;
+   winIdx = (winIdx+1)%FLOW_WINDOW_NUM;
+   streamWindow[winIdx].startTime = sTime;
+   startTime = sTime;
    
-   windowTimeSum += wTime;
-   actualTimeSum += aTime;
-   packetSum += sentPackets;
+   double dataRate = frameRate*frameSize;
+   assert(dataRate > 0);
+   streamWindow[winIdx].windowInterval = dataSize/dataRate*1000000.0;
    
-   streamWindow[winIdx].windowInterval = wTime;
-   streamWindow[winIdx].actualInterval = aTime;
-   streamWindow[winIdx].sentPackets = sentPackets;
+   int totalInterval = 0;
+   for (int i=0; i<FLOW_WINDOW_NUM; i++)
+      totalInterval += streamWindow[winIdx].windowInterval;
    
-   sentPackets = 0;
-   winIdx++;
+   int oldest = 0;
+   if (!firstRound)
+      oldest = (winIdx+1)%FLOW_WINDOW_NUM;
    
-   if (winIdx >= windowSize)
-      winIdx = 0;
-      
-   return 0;
+   nextWindowTime = streamWindow[oldest].startTime + totalInterval;
 }
-
-double streamFlowData::getPacketRate(int packetNum)
-{
-   return frameRate*packetNum/1000000.0; 
-}   
 
 sageUdpModule::sageUdpModule() : closeFlag(false), notStarted(true), waitData(true)
 {
@@ -191,7 +174,7 @@ void sageUdpModule::setFrameSize(int id, int size)
       return;
    }
    
-   flowList[id]->frameSize = size;
+   flowList[id]->nextFrameSize = size;
 }      
 
 void sageUdpModule::setFrameRate(double rate, int id)
@@ -283,7 +266,7 @@ int sageUdpModule::checkConnections(char *msg, sageApiOption op)
    memset(&udpLocalAddr, 0, sizeof(udpLocalAddr));
    udpLocalAddr.sin_family = AF_INET;
    udpLocalAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-   udpLocalAddr.sin_port = htons(0);
+   udpLocalAddr.sin_port = htons(rcvPort+10);
 
    //std::cout << "sageUdpModule::checkConnections() : bind UDP socket" << std::endl;
    if (bind(udpSockFd, (struct sockaddr *)&udpLocalAddr, sizeof(struct sockaddr_in)) != 0) {
@@ -321,6 +304,7 @@ int sageUdpModule::checkConnections(char *msg, sageApiOption op)
       sage::printLog("sageUdpModule::checkConnections()");
       return -1;
    }
+   //std::cout << "sageUdpModule::checkConnections() : connected back to UDP client " << std::endl;
       
    udpSendList.push_back(udpSockFd);
    if (idx != (udpSendList.size()-1)) {
@@ -454,11 +438,9 @@ int sageUdpModule::connect(char *ip, char *msg)
    }
    
    if (config.blockSize > 0 && config.groupSize > 0) {
-      sageBlockBuf *buf = new sageBlockBuf(config.sendBufSize, config.groupSize, 
-            config.blockSize, 0);
+      sageCircBuf *buf = new sageCircBuf(config.sendBufSize/config.blockSize);
       
-      streamFlowData *flowData = new streamFlowData(config.flowWindow, buf);
-      flowData->curGrp = buf->getFreeBlocks();
+      streamFlowData *flowData = new streamFlowData(buf);
       
       pthread_mutex_lock(&connectionLock);
       flowList.push_back(flowData);
@@ -470,9 +452,75 @@ int sageUdpModule::connect(char *ip, char *msg)
          
       pthread_mutex_unlock(&connectionLock);
    }   
+	else {
+		sage::printLog("sageUdpModule::connect() : invalid block size or group size");
+		return -1;
+	}   
+   
+   std::cerr << "send buf " << config.sendBufSize << std::endl
+         << "mtu " << config.mtuSize << std::endl
+         << "blockSize " << config.blockSize << std::endl;
    
    return idx;
 }//End of sageUdpModule::connect()
+
+// send pixel block data packet by packet
+int sageUdpModule::send(int id, sagePixelBlock *spb)
+{
+   int totalSendSize = 0;
+   int blockDataSize = config.blockSize - BLOCK_HEADER_SIZE;
+   int packetDataSize = config.mtuSize - BLOCK_HEADER_SIZE;
+   int packetNum = ((blockDataSize-1)/packetDataSize + 1); 
+      
+   for (int pidx = 0; pidx < packetNum; pidx++) {
+      int sendSize;
+      int dataPt = packetDataSize*pidx;
+      int dataBufSize = MIN(blockDataSize - dataPt, packetDataSize);
+        
+      spb->updateHeader(pidx, spb->getConfigID());
+      
+//std::cerr << "frameID " << spb->getFrameID() << " blockID " << spb->getID() << " pid " << pidx << std::endl;
+            
+      #ifdef WIN32
+      WSABUF iovs[2];
+      iovs[0].buf = spb->getBuffer();
+      iovs[0].len = BLOCK_HEADER_SIZE;
+      iovs[1].buf = spb->getPixelBuffer() + dataPt;
+      iovs[1].len = dataBufSize;
+
+      DWORD WSAFlags = 0;
+      ::WSASend(sockFd, iovs, 2, (DWORD*)&sendSize,
+            WSAFlags, NULL, NULL);
+      #else
+      struct iovec iovs[2];
+      iovs[0].iov_base = spb->getBuffer();
+      iovs[0].iov_len = BLOCK_HEADER_SIZE;
+      iovs[1].iov_base = spb->getPixelBuffer() + dataPt;
+      iovs[1].iov_len = dataBufSize;
+
+      struct msghdr blockMsgHdr;
+      bzero((void *)&blockMsgHdr, sizeof(blockMsgHdr));
+
+      blockMsgHdr.msg_iov = iovs;
+      blockMsgHdr.msg_iovlen = 2;
+
+      int udpSockFd = udpRcvList[id];
+         sendSize = ::sendmsg(udpSockFd, &blockMsgHdr, 0);
+      #endif
+
+      if (sendSize <= 0)
+         return -1;
+      else
+         if (sendSize < (BLOCK_HEADER_SIZE + dataBufSize))
+            sage::printLog("sageUdpModule::send() : a part of the message was not sent");
+
+      totalSendSize += sendSize;
+      if (spb->getFlag() == SAGE_UPDATE_BLOCK)
+         break;
+   }
+   
+   return totalSendSize;
+}
 
 int sageUdpModule::send(int id, sageBlock *sb, sageApiOption op)
 {
@@ -512,18 +560,19 @@ int sageUdpModule::send(int id, sageBlock *sb, sageApiOption op)
 
 int sageUdpModule::sendControl(int id, int frameID, int configID)
 {
-   if (flush(id, configID) < 0) {
+	if (id < 0 || id > rcvList.size()-1) {
+      sage::printLog("sageUdpModule::send() : invalid receiver ID");
       return -1;
    }
 
-   sageBlockGroup *bGrp = flowList[id]->curGrp;
-   bGrp->setFrameID(frameID);
-   bGrp->setConfigID(configID);
-   bGrp->setFrameSize(flowList[id]->frameSize);
-   bGrp->genIOV();
+   sagePixelBlock *cBlock = new sagePixelBlock(config.blockSize);
+   cBlock->setFlag(SAGE_UPDATE_BLOCK);
+	cBlock->setFrameID(frameID);
+   cBlock->setConfigID(configID);
+   cBlock->updateBufferHeader();
 
+   flowList[id]->blockBuf->pushBack((sageBufEntry)cBlock, true);
    waitData = false;
-   flowList[id]->pushBack(bGrp);
    pthread_cond_signal(&newData);
    
    return GROUP_HEADER_SIZE;
@@ -541,73 +590,31 @@ int sageUdpModule::sendGrp(int id, sagePixelBlock *sb, int configID)
       return 1;
    }
 
-   if (config.groupSize == 0) {
-      sage::printLog("sageUdpModule::sendGrp() : group transfer is not enabled");
-      return -1;
-   }
+   sb->setConfigID(configID);
    
-   sageBlockGroup *bGrp = flowList[id]->curGrp;
-   bGrp->pushBack(sb);
-   
-   if (bGrp->isFull()) {
-      bGrp->genIOV();
-      bGrp->setFrameID(sb->getFrameID());
-      bGrp->setFrameSize(flowList[id]->frameSize);
-      bGrp->setConfigID(configID);
-
+   flowList[id]->blockBuf->pushBack((sageBufEntry)sb, true);
       waitData = false;
-      flowList[id]->pushBack(bGrp);
       pthread_cond_signal(&newData);
-   }
    
    return sb->getBufSize();   
 }//End of sageUdpModule::sendGrp()
 
 int sageUdpModule::flush(int id, int configID)
 {
-   if (id < 0 || id > rcvList.size()-1) {
-      sage::printLog("sageTcpModule::send() : invalid receiver ID %d", id);
-      return -1;
-   }
-   
-   if (config.groupSize == 0) {
-      sage::printLog("sageTcpModule::sendGrp() : group transfer is not enabled");
-      return -1;
-   }
-   
-   sageBlockGroup *bGrp = flowList[id]->curGrp;
-   if (bGrp->isEmpty())
       return 0;
-      
-   bGrp->genIOV();
-   bGrp->setConfigID(configID);
-   int frameID = bGrp->front()->getFrameID(); 
-   bGrp->setFrameID(frameID);
-   bGrp->setFrameSize(flowList[id]->frameSize);
-
-   waitData = false;
-   flowList[id]->pushBack(bGrp);
-   pthread_cond_signal(&newData);
-
-   return 0;
 }//End of sageUdpModule::flush()
 
 int sageUdpModule::sendLoop()
 {
    double maxPriority = 0;
    double curTime = 0;
-   double packetInterval = config.mtuSize/config.maxBandWidth;  // in micro-second
-   double checkInterval = config.maxCheckInterval;              // in micro-second    
-   int checkPacketNum = (int)floor(checkInterval/packetInterval);
-   streamFlowData totalRecords(config.flowWindow, NULL);
+   sageTimer flowTimer;
    
    pthread_mutex_lock(&connectionLock);
    if (notStarted)
       pthread_cond_wait(&streamStart, &connectionLock);
    pthread_mutex_unlock(&connectionLock);
    
-   sageTimer flowTimer;
-
    while(!closeFlag) {
       pthread_mutex_lock(&connectionLock);
       int streamNum = flowList.size();
@@ -616,43 +623,37 @@ int sageUdpModule::sendLoop()
       maxPriority = 0;   
       int selectedStream = -1;
       
+      curTime = flowTimer.getTimeUS();
       waitData = true;
       
       // select a stream to send      
       for (int i=0; i<streamNum; i++) {
          if (flowList[i]->active) {
-            sageBlockGroup *bGrp = flowList[i]->blockBuf->front();
-            int packetNum = 0;
-            if (bGrp)
-               packetNum = (int)ceil((double)bGrp->getFrameSize()/config.mtuSize);
-
-            double targetRate = flowList[i]->getPacketRate(packetNum); 
-            int sentPackets = flowList[i]->totalSentPacketNum();
-            double elapsedTime = curTime + flowList[i]->elapsedTime();
-            double curRate;
-            if (elapsedTime > 0)
-               curRate = (double)sentPackets/elapsedTime;
-            else
-               curRate = 0;
+            if (flowList[i]->blockBuf->isEmpty())
+               continue;
 
             double priority; 
-            if (curRate > 0)
-               priority = targetRate / curRate;
+            if (curTime > 0)
+               priority = flowList[i]->elapsedTime(curTime)*flowList[i]->blockBuf->getEntryNum();
             else
-               priority = 1.0;   
+               priority = flowList[i]->blockBuf->getEntryNum();   
 
-            if (maxPriority < priority && !flowList[i]->blockBuf->isEmpty()) {
+            if (maxPriority < priority) {
                maxPriority = priority;
                selectedStream = i;
             }
          }
          else if (!flowList[i]->closed) {
             while (!flowList[i]->blockBuf->isEmpty()) {
-               sageBlockGroup *bGrp = flowList[i]->blockBuf->front();
+               sagePixelBlock *pBlock = (sagePixelBlock *)flowList[i]->blockBuf->front(false);
                flowList[i]->blockBuf->next();
 
-               if (bGrp && bGrp->getBlockNum() > 0)
-                  flowList[i]->returnPlace->returnBlocks(bGrp);
+               if (pBlock) {
+                  if (pBlock->getFlag() == SAGE_PIXEL_BLOCK)
+                     flowList[i]->returnPlace->returnBlock(pBlock);
+                  else
+                     delete pBlock;
+            }
             }
             
             flowList[i]->closed = true;
@@ -662,73 +663,44 @@ int sageUdpModule::sendLoop()
 
       //std::cout << "selected stream " << selectedStream << std::endl;
       
-      bool flowWindowEnd = false;
-      double actualTime = 0;   // actual time to be used for sending data
-      
       if (selectedStream == -1) {
-         actualTime = flowTimer.getTimeUS(false);
-         
          pthread_mutex_lock(&connectionLock);
-         if (waitData)
+         while (waitData)
             sage::condition_wait(&newData, &connectionLock, 10);
          pthread_mutex_unlock(&connectionLock);
-         
-         if (totalRecords.sentPackets > 0 || actualTime > checkInterval)
-            flowWindowEnd = true;
-      }
-      else if (maxPriority >= 1.0) {
-         sageBlockGroup *bGrp = flowList[selectedStream]->blockBuf->front();
-         flowList[selectedStream]->blockBuf->next();
-         
-         int udpSockFd = udpRcvList[selectedStream];
-         if (bGrp) {
-            int sentSize = bGrp->sendDatagram(udpSockFd);
-            if (sentSize > 0) {
-               int packetNum = (sentSize+config.mtuSize-1)/config.mtuSize;
-               totalRecords.sentPackets += packetNum;
-               flowList[selectedStream]->sentPackets += packetNum;
-               curTime += packetInterval*packetNum;
-            }
-            else
-               flowList[selectedStream]->active = false;
-               
-            if (bGrp->getBlockNum() > 0)
-               flowList[selectedStream]->returnPlace->returnBlocks(bGrp);
-            bGrp->resetGrp();
-            flowList[selectedStream]->blockBuf->returnBG(bGrp);
-         }
-         else
-            sage::printLog("sageUdpModule::sendLoop : stream %d block buffer is empty",
-                  selectedStream);
       }
       else {
-         actualTime = flowTimer.getTimeUS(false);
-         sage::switchThread();
-         if (totalRecords.sentPackets > 0 || actualTime > checkInterval)
-            flowWindowEnd = true;
-      }
-      
-      if (flowWindowEnd || totalRecords.sentPackets >= checkPacketNum) {
-         double windowTime = flowTimer.getTimeUS(false);  // overall time including idle time
-         if (!flowWindowEnd) {
-            actualTime = windowTime;
-            while (windowTime < checkInterval) {
-               sage::switchThread();
-               windowTime = flowTimer.getTimeUS(false);
+         curTime = flowTimer.getTimeUS();
+         unsigned sentDataSize = 0;
+         if (flowList[selectedStream]->pastTime(curTime) >= 0) {
+			   sagePixelBlock *block = (sagePixelBlock *)flowList[selectedStream]->blockBuf->front(false);
+         flowList[selectedStream]->blockBuf->next();
+         
+            while (block) {
+               if (block->getConfigID() > flowList[selectedStream]->configID) {
+                  flowList[selectedStream]->configID = block->getConfigID();
+                  flowList[selectedStream]->frameSize = flowList[selectedStream]->nextFrameSize;
             }
+               
+               int sentSize = send(selectedStream, block);
+               if (block->getFlag() == SAGE_PIXEL_BLOCK)
+                  flowList[selectedStream]->returnPlace->returnBlock(block);
+            else
+                  delete block;
+               
+               if (sentSize > 0) {
+                  sentDataSize += sentSize;
+                  if (sentDataSize > config.sendBufSize/config.flowWindow)
+                     break;
          }
-         
-         totalRecords.insertWindow(actualTime, windowTime);
-         for (int i=0; i<streamNum; i++)
-            flowList[i]->insertWindow(actualTime, windowTime);
-            
-         double nextInterval = checkPacketNum/totalRecords.getAvePacketRate();
-         checkInterval = MIN(nextInterval, config.maxCheckInterval);
-         packetInterval = totalRecords.getAvePacketInterval();
-         checkPacketNum = (int)floor(checkInterval/packetInterval);
-         
-         curTime = 0.0;
-         flowTimer.reset();
+         else
+                  flowList[selectedStream]->active = false;
+      
+               block = (sagePixelBlock*)flowList[selectedStream]->blockBuf->front(false);
+               flowList[selectedStream]->blockBuf->next();
+            }
+            flowList[selectedStream]->insertWindow(curTime, sentDataSize);
+         }
       }
    }
    
@@ -785,6 +757,112 @@ int sageUdpModule::recv(int id, sageBlock *sb, sageApiOption op)
    return retVal;
 }//End of sageUdpModule::recv()
 
+int sageUdpModule::recv(int id, sagePixelBlock *spb, int pidx)
+{
+   int blockDataSize = spb->getBufSize() - BLOCK_HEADER_SIZE;
+   int packetDataSize = config.mtuSize - BLOCK_HEADER_SIZE;
+   int dataPt = packetDataSize*pidx;
+   int dataBufSize = MIN(blockDataSize - dataPt, packetDataSize);
+   
+//std::cerr << "block " << spb->getBufSize() << " mtu " << config.mtuSize << " pid " << pidx << std::endl;   
+   
+   char dummy[BLOCK_HEADER_SIZE];
+   char *packetHeader;
+   if (spb->isDirty())
+      packetHeader = dummy;
+   else
+      packetHeader = spb->getBuffer();
+   
+   int recvSize = 0;;   
+   int udpSockFd = udpSendList[id];
+   
+//std::cerr << "data buf size " << dataBufSize << std::endl;   
+   
+   #ifdef WIN32
+   WSABUF iovs[2];
+   iovs[0].buf = packetHeader;
+   iovs[0].len = BLOCK_HEADER_SIZE;
+   iovs[1].buf = spb->getPixelBuffer() + dataPt;
+   iovs[1].len = dataBufSize;
+
+   DWORD WSAFlags = 0;
+   ::WSARead(udpSockFd, iovs, 2, (DWORD*)&recvSize,
+         WSAFlags, NULL, NULL);
+   #else
+   struct iovec iovs[2];
+   iovs[0].iov_base = packetHeader;
+   iovs[0].iov_len = BLOCK_HEADER_SIZE;
+   iovs[1].iov_base = spb->getPixelBuffer() + dataPt;
+   iovs[1].iov_len = dataBufSize;
+
+   struct msghdr blockMsgHdr;
+   bzero((void *)&blockMsgHdr, sizeof(blockMsgHdr));
+
+   blockMsgHdr.msg_iov = iovs;
+   blockMsgHdr.msg_iovlen = 2;
+
+   recvSize = ::recvmsg(udpSockFd, &blockMsgHdr, MSG_WAITALL);
+//std::cerr << "msg read size " << recvSize << std::endl;   
+
+   #endif
+   
+   if (recvSize < 0) {
+      perror("sageUdpModule::recv :"); 
+   }   
+   
+   if (recvSize > 0 && recvSize < (BLOCK_HEADER_SIZE + dataBufSize))
+      sage::printLog("sageUdpModule::recv - message size error");
+      
+   return recvSize;   
+}
+
+int sageUdpModule::skipBlock(int id, int pidx)
+{
+   int blockDataSize = config.blockSize - BLOCK_HEADER_SIZE;
+   int packetDataSize = config.mtuSize - BLOCK_HEADER_SIZE;
+   int dataPt = packetDataSize*pidx;
+   int dataBufSize = MIN(blockDataSize - dataPt, packetDataSize);
+   char dummy[config.blockSize];
+   int udpSockFd = udpSendList[id];
+   int recvSize;
+   
+   #ifdef WIN32
+   WSABUF iovs[2];
+   iovs[0].buf = dummy;
+   iovs[0].len = BLOCK_HEADER_SIZE;
+   iovs[1].buf = dummy + BLOCK_HEADER_SIZE;
+   iovs[1].len = dataBufSize;
+
+   DWORD WSAFlags = 0;
+   ::WSARead(udpSockFd, iovs, 2, (DWORD*)&recvSize,
+         WSAFlags, NULL, NULL);
+   #else
+   struct iovec iovs[2];
+   iovs[0].iov_base = dummy;
+   iovs[0].iov_len = BLOCK_HEADER_SIZE;
+   iovs[1].iov_base = dummy + BLOCK_HEADER_SIZE;
+   iovs[1].iov_len = dataBufSize;
+
+   struct msghdr blockMsgHdr;
+   bzero((void *)&blockMsgHdr, sizeof(blockMsgHdr));
+
+   blockMsgHdr.msg_iov = iovs;
+   blockMsgHdr.msg_iovlen = 2;
+
+   recvSize = ::recvmsg(udpSockFd, &blockMsgHdr, MSG_WAITALL);
+   #endif
+   
+   
+   if (recvSize < 0) {
+      perror("sageUdpModule::recv :"); 
+   }   
+   
+   if (recvSize > 0 && recvSize < (BLOCK_HEADER_SIZE + dataBufSize))
+      sage::printLog("sageUdpModule::skipBlock - message size error");
+      
+   return recvSize;   
+}
+
 int sageUdpModule::recvGrp(int id, sageBlockGroup *sbg)
 {
    if (id < 0 || id > sendList.size()-1) {
@@ -804,24 +882,149 @@ int sageUdpModule::recvGrp(int id, sageBlockGroup *sbg)
       return -1;
    }
    
-   int retVal = sbg->readDatagram(udpSockFd);
+   int curFrame = sbg->getFrameID();
+   int blockIdx = 0, maxBlockID = -1, grpConfigID = -1;
+   int totalReadSize = 0;
+   sbg->clearBlocks();
+   bool firstRead = true;
    
-   if (retVal < 0) {
+   while (blockIdx <sbg->size()) {
+      int flag, frameID, blockID, packetID, configID;
+      char header[BLOCK_HEADER_SIZE];
+      memset(header,0, BLOCK_HEADER_SIZE);
+      int headerSize = -1;
+      while (headerSize < 0) {
+         headerSize = sage::recv(udpSockFd, (void *)header, BLOCK_HEADER_SIZE, MSG_PEEK);
+      }
+      
+      if (headerSize == 0) {
+         #ifdef WIN32   
+         closesocket(sendList[id]);
+         #else
+         shutdown(sendList[id], SHUT_RDWR);
+         #endif
+         sendList[id] = -1;
+
+         sage::printLog("sageUdpModule::recvGrp : shutdown connection");
       return -1;
    }
-   else if (retVal == 0) {
+      
+//std::cerr << "header " << header << std::endl;
+      char *msgStr = sage::tokenSeek(header, 1);
+
+//std::cerr << "msg1 " << msgStr << std::endl;
+      sscanf(msgStr, "%d", &flag);
+      msgStr = sage::tokenSeek(header, 6);
+
+//std::cerr << "msg2 " << msgStr << std::endl;
+      sscanf(msgStr, "%d %d %d %d", &frameID, &blockID, &packetID, &configID);
+      
+//std::cerr << "packet header " << frameID << " " << blockID << " " << packetID << " " << configID
+//      << std::endl;
+
+//std::cerr << "cur frame " << curFrame << std::endl;
+      
+      sagePixelBlock *curBlock = (*sbg)[blockIdx];
+      bool nextBlock = false;
+      
+      if (frameID < curFrame) {
+         int readSize = -1; 
+         
+         while (readSize < 0) {
+            readSize = skipBlock(id, packetID);
+         }
+         
+         if (readSize == 0) {
       #ifdef WIN32   
       closesocket(sendList[id]);
       #else
       shutdown(sendList[id], SHUT_RDWR);
       #endif
       sendList[id] = -1;
+            
+            sage::printLog("sageUdpModule::recvGrp : shutdown connection");
       return -1;
    }
 
-   sbg->updateConfig();
+         totalReadSize += readSize;
+         curBlock = NULL;
+      }
+      else if (!firstRead && (frameID > curFrame || flag == SAGE_UPDATE_BLOCK)) {
+         blockIdx++;  // for counting block number
+         break;
+      }   
+      else if (frameID > curFrame)
+         curFrame = frameID;
    
-   return retVal;
+      if (curBlock && curBlock->isDirty()) {
+         if (curBlock->getID() != blockID) {
+            if (blockID > maxBlockID)
+               nextBlock = true;
+            else {
+               for (int i=blockIdx-1; i>=0; i--) {
+                  if ((*sbg)[i]->getID() == blockID) {
+                     curBlock = (*sbg)[i];
+                     break;
+                  }   
+               }
+               
+               if (curBlock->getID() != blockID)
+                  nextBlock = true;
+            }
+         }
+      }
+      
+      if (nextBlock) {  
+         blockIdx++;
+         if (blockIdx < sbg->size())
+            curBlock = (*sbg)[blockIdx];
+         else 
+            curBlock = NULL;     
+      }
+      
+      if (curBlock) {     
+         int readSize = -1;
+         while (readSize < 0) {
+            readSize = recv(id, curBlock, packetID);
+         }
+         
+         if (readSize == 0) {
+            #ifdef WIN32   
+            closesocket(sendList[id]);
+            #else
+            shutdown(sendList[id], SHUT_RDWR);
+            #endif
+            sendList[id] = -1;
+            
+            sage::printLog("sageUdpModule::recvGrp : shutdown connection");
+            return -1;
+         }
+         
+         totalReadSize += readSize;
+         curBlock->setID(blockID);
+         curBlock->setDirty();
+         firstRead = false;
+         
+         if (grpConfigID < 0) {
+            grpConfigID = configID;
+         }
+         else {
+            assert(grpConfigID == configID);
+         }   
+      }
+      
+      if (flag == SAGE_UPDATE_BLOCK) {
+         break;
+      }
+   }
+   
+//std::cerr << "group config " << blockIdx << " " << curFrame << " " << grpConfigID << std::endl;
+
+   sbg->updateConfig(blockIdx, curFrame, grpConfigID); 
+   
+//std::cerr << "read size " << totalReadSize << std::endl;
+   
+   return totalReadSize;
 }//End of sageUdpModule::recvGrp()
 
 int sageUdpModule::close(int id, int mode)
@@ -943,6 +1146,7 @@ bool sageUdpModule::setSockOpts(int fd, bool noDelay)
       return false;
    }
    
+std::cerr << "sendBufSize " << config.sendBufSize << std::endl;   
    optVal= config.sendBufSize;   
    optLen = sizeof(optVal);
    if(setsockopt(fd, SOL_SOCKET, SO_SNDBUF, (void*)&optVal, (socklen_t)optLen) != 0)
@@ -951,6 +1155,7 @@ bool sageUdpModule::setSockOpts(int fd, bool noDelay)
       return false;
    }
 
+std::cerr << "rcvBufSize " << config.rcvBufSize << std::endl;   
    optVal= config.rcvBufSize; optLen = sizeof(optVal);
    if(setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (void*)&optVal, (socklen_t)optLen) != 0)
    {

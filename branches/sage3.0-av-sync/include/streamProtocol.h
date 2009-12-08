@@ -46,7 +46,7 @@
 
 #include "sageBase.h"
 
-#define REG_MSG_SIZE    128
+#define REG_MSG_SIZE 1024
 
 class sageBlock;
 class sagePixelBlock;

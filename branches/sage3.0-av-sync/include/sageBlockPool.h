@@ -63,6 +63,7 @@ public:
 	virtual bool pushBack(sagePixelBlock* block) = 0;
 	virtual int returnBG(sageBlockGroup* grp) = 0;
 	virtual int returnBlocks(sageBlockGroup* grp) = 0;
+	virtual int returnBlock(sagePixelBlock* block) = 0;
    virtual bool garbageCollection() { return false; }
 };
 
@@ -114,6 +115,7 @@ public:
    bool isFull();
    int returnBG(sageBlockGroup* grp) { return returnBlocks(grp); }
    int returnBlocks(sageBlockGroup* grp);
+	int returnBlock(sagePixelBlock *block);
 
    int size();
    int getBlockNum();
@@ -132,9 +134,9 @@ public:
    inline void setFrameSize(int size) { frameSize = size; }
    inline int getFrameSize() { return frameSize; }
 
-   void clearHeaders();
-   void clearBuffers();
+   void clearBlocks();
    bool updateConfig();
+   bool updateConfig(int num, int frame, int config);
    bool genIOV();
    bool setRefCnt();
 
@@ -187,6 +189,7 @@ public:
    bool finishFrame();
    int returnBG(sageBlockGroup* grp);
    int returnBlocks(sageBlockGroup* grp);
+	int returnBlock(sagePixelBlock *block);
 
    bool isFull() { return false; }
    void getBufInfo(char *bufStatus);

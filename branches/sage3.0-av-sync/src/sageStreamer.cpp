@@ -109,10 +109,6 @@ int sageStreamer::initNetworks(char *data, bool localPort)
          udpObj->init(SAGE_SEND, rcvPort, nwCfg);
          nwObj = (streamProtocol *)udpObj;
          sage::printLog("sageStreamer::initNetworks : initialize UDP object");
-         if (config.groupSize > 65536) {
-            sage::printLog("sageStreamer::initNetworks : block group size can't exceed 64KB for UDP");
-            return -1;
-         }
          break;
       case LAMBDA_STREAM :
          break;

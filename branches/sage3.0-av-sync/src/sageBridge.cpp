@@ -68,7 +68,7 @@ sageBridge::sageBridge(int argc, char **argv) : syncPort(0), syncGroupID(0), aud
    instNum = 0;   
    
    if (argc < 2) {  // master mode with default configuration file
-      initMaster("sageBridge.conf");
+      initMaster(strdup("sageBridge.conf"));
    }
    else if (strcmp(argv[1], "slave") != 0) {  // master mode with user configuration file
       initMaster(argv[1]);
@@ -208,6 +208,14 @@ int sageBridge::initMaster(char *cFile)
          else
             shared->frameDrop = false;
       }
+      else if (strcmp(token, "nwProtocol") == 0) {
+         getToken(fileBridgeConf, token);
+         sage::toupper(token);
+         if (strcmp(token, "TCP") == 0) 
+            shared->protocol = SAGE_TCP;
+         else if (strcmp(token, "UDP") == 0)
+            shared->protocol = SAGE_UDP;   
+      }
 
       tokenIdx = getToken(fileBridgeConf, token);
    }
@@ -239,7 +247,7 @@ int sageBridge::initMaster(char *cFile)
 
    shared->syncClientObj = new sageSyncClient;
 
-   if (shared->syncClientObj->connectToServer("127.0.0.1", syncPort) < 0) {
+   if (shared->syncClientObj->connectToServer(strdup("127.0.0.1"), syncPort) < 0) {
       sage::printLog("SAGE Bridge : Fail to connect to sync master" );
       return -1;
    }
@@ -843,7 +851,7 @@ int sageBridge::parseMessage(sageMessage &msg, int clientID)
       if (msg.getData())
          msgData = (char *)msg.getData();
       else
-         msgData = "\0";
+         msgData = (char *)strdup("\0");
             
       sageToken tokenBuf(msgData);
       char token[TOKEN_LEN];

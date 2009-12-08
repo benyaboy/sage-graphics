@@ -52,6 +52,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 
 #ifdef WIN32
    #include <io.h>
@@ -92,10 +93,8 @@
 #define DISPLAY_BUF_NUM 2
 #define BRIDGE_BUF_NUM  5
 #define MAX_ENDPOINT_NUM 100
-//#define MAX_INST_NUM   100
-#define MAX_INST_NUM   80 // should be 80 for new sync algol
-#define MAX_FRAME_RATE 60
-//120
+#define MAX_INST_NUM   100
+#define MAX_FRAME_RATE 120
 #define DEFAULT_IMAGE_SIZE 3145728
 
 #define MESSAGE_HEADER_SIZE 36

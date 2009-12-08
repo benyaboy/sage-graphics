@@ -129,11 +129,13 @@ class sageBlockGroup;
  */
 class sagePixelBlock : public sagePixelData {
 protected:
-   bool valid;
+   bool valid, dirty;
    sageBlockGroup *grp;
+	int configID;
+   int headerLen;
 
 public:
-   sagePixelBlock() : valid(false), grp(NULL) {}
+   sagePixelBlock() : valid(true), grp(NULL), dirty(false), headerLen(0) {}
    sagePixelBlock(int size);
    sagePixelBlock(sagePixelBlock& block);
    //sagePixelBlock(int w, int h, int bytes, float compX, float compY,
@@ -141,12 +143,21 @@ public:
 
    inline sageBlockGroup* getGroup() { return grp; }
    inline void setGroup(sageBlockGroup *parent) { grp = parent; }
+	inline void setConfigID(int id) { configID = id; }
+	inline int  getConfigID() { return configID; }
    inline void clearHeader() { memset(buffer, 0, BLOCK_HEADER_SIZE); }
    inline void clearBuffer() { memset(buffer, 0, bufSize); }
+   inline bool isDirty() { return dirty; }
+   inline void setDirty() { dirty = true; }
+   void clearPixelBlock();
    int updateBufferHeader();
+   int updateHeader(int pid, int configID);
    bool updateBlockConfig();
 
+   inline int getHeaderLen(){ return headerLen; }
    inline bool isValid()    { return valid; }
+   inline void invalidate() { valid = false; }
+   inline void validate()   { valid = true; }
 
    //void recalcBufSize();
 
