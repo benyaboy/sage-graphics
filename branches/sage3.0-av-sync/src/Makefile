@@ -47,7 +47,7 @@ endif
 
 
 DIRT= *.o core core.* *.so $(PROJ_EXE)
-PROJ_EXE=fsManager sageDisplayManager uiConsole fsConsole sageBridge bridgeConsole
+PROJ_EXE=fsManager sageDisplayManager uiConsole $(FS_CONSOLE) sageBridge bridgeConsole
 ifdef AUDIO
 PROJ_EXE+=sageAudioManager
 endif
@@ -69,7 +69,7 @@ fsManager: $(COMMON_OBJ) $(FSM_OBJ)
 
 
 sageDisplayManager: $(COMMON_OBJ) $(RCV_OBJ)
-	$(COMPILER) $(FONT_LIB) $(MAGICK_LIBS) $(COMMON_OBJ) $(RCV_OBJ) $(LIBS) -o sageDisplayManager
+	$(COMPILER) $(COMMON_OBJ) $(RCV_OBJ) $(LIBS) -o sageDisplayManager
 
 ifdef AUDIO
 sageAudioManager: $(COMMON_OBJ) $(ARCV_OBJ)

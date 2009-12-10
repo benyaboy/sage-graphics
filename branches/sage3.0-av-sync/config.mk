@@ -1,9 +1,9 @@
 # To enable audio, uncomment the following line
 AUDIO=1
-GLSL_YUV=1
+#GLSL_YUV=1
 #SAIL_ONLY=1
 #SUN_GCC=1
-FS_CONSOLE=fsConsole
+#FS_CONSOLE=fsConsole
 
 COMPILER=g++
 SAGE_CFLAGS=-Wno-deprecated -fPIC
@@ -37,7 +37,8 @@ PAUDIO_LIB= -L${PORTAUDIO_DIR}/lib -lportaudio -lasound
 endif
 
 # SDL_ttf (freetype font library)
-FONT_LIB=-lSDL_ttf
+#FONT_LIB=-lSDL_ttf
+FONT_LIB=
 
 # imagemagick
 MAGICK_CFLAGS=`Wand-config --cflags --cppflags`
