@@ -42,6 +42,7 @@
 #include "sageSync.h"
 #include "sageBuf.h"
 
+
 int syncGroup::init(int startFrame, int p, int groupID, int frameRate, int sNum)
 {
    slaveNum = sNum;
@@ -751,7 +752,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 						if ( netStatus == 0 ) {
 							// close the socket and mark it as dead
 #ifdef WIN32
-							closesocket(syncSlaves[i].clientSockFd);
+							closesocket(This->syncSlaves[i].clientSockFd);
 #else
 							shutdown(This->syncSlavesMap[i].clientSockFd, SHUT_RDWR);
 							close(This->syncSlavesMap[i].clientSockFd);
@@ -1924,10 +1925,10 @@ int sageSyncClient::recvRefreshBarrier(bool nonblock) {
 
 	int status = 0;
 	if ( nonblock ) {
-		status = ::recv(barrierClientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN, MSG_DONTWAIT);
+		status = ::recv(barrierClientSockFd, (char*)msg, SAGE_SYNC_MSG_LEN, MSG_DONTWAIT);
 	}
 	else {
-		status = ::recv(barrierClientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN, 0);
+		status = ::recv(barrierClientSockFd, (char*)msg, SAGE_SYNC_MSG_LEN, 0);
 	}
 	return status;
 }
@@ -2041,7 +2042,7 @@ int sageSyncClient::waitForSyncData(char* &data)
 
 int sageSyncClient::waitForSyncPeek() {
 	int size = 0;
-	int status = ::recv(clientSockFd, (void *)&size, sizeof(int), MSG_PEEK);
+	int status = ::recv(clientSockFd, (char *)&size, sizeof(int), MSG_PEEK);
 
 	if ( status != sizeof(int) ) {
 		perror("sageSyncClient::waitForSyncPeek() : recv");

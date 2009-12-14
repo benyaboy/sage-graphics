@@ -64,6 +64,10 @@ int getPixelSize(sagePixFmt type);
 
 long getnumber( char *str );
 
+#if defined(WIN32)
+int gettimeofday(struct timeval *, void *);
+#endif
+
 namespace sage {
    void usleep(unsigned long usec);
    unsigned int sleep(unsigned int seconds);
