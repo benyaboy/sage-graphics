@@ -65,6 +65,10 @@
 #define NORMAL_SYNC          1
 #define SKIP_FRAME           2
 
+#ifndef	MSG_DONTWAIT
+#define	MSG_DONTWAIT	0
+#endif
+
 
 /**
  * class syncSlaveData.

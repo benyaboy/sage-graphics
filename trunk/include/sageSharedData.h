@@ -42,7 +42,7 @@
 #define SAGE_SHARED_DATA_H_
 
 #include "sageBase.h"
-#include <sys/time.h>
+//#include <sys/time.h>
 
 class sageDisplay;
 class sageSyncServer;
