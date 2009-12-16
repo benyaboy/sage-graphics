@@ -925,9 +925,11 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 		gettimeofday(&pTimer, NULL);
 		fprintf(profile, "%d:%d:%lu:Broadcast_B:%ld:%ld\n", -1,-1,loopCounter,pTimer.tv_sec, pTimer.tv_usec);
 #endif
-		for ( int i=0; i<This->syncSlavesMap.size(); i++ ) {
-			if ( sage::send(This->syncSlavesMap[i].clientSockFd, (void*)intMsg, intMsg_byteLen) < intMsg_byteLen ) {
-				sage::printLog("sageSyncBBServer::mainLoopThread() : send() error at the 1st phase\n");
+		for ( int i=0; i<This->syncSlavesList.size(); i++ ) {
+			int sdm = syncSlavesList[i];
+			if ( sdm < 0 ) continue;
+			if ( sage::send(This->syncSlavesMap[sdm].clientSockFd, (void*)intMsg, intMsg_byteLen) < intMsg_byteLen ) {
+				sage::printLog("sageSyncBBServer::mainLoopThread() : send() error at the 1st phase. to SDM %d\n", sdm);
 			}
 		}
 #ifdef PROFILING_SYNCMASTER
