@@ -810,7 +810,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 
 							// if all nodes of this application reported
 							//if ( slaveNumArray[pdl] <= SDMlistBitset[pdl].count() ) {
-							if ( slaveNum == (SDMlistBitsetMap[pdl]).count() ) {
+							if ( slaveNum > 0 && slaveNum == (SDMlistBitsetMap[pdl]).count() ) {
 								swapMontageReady = true;
 								numUpdatedApps++;
 
