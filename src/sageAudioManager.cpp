@@ -1,17 +1,17 @@
 /******************************************************************************
  * SAGE - Scalable Adaptive Graphics Environment
  *
- * Module: sageAudioManager.cpp 
+ * Module: sageAudioManager.cpp
  * Author : Byungil Jeong, Rajvikram Singh
  *
  * Copyright (C) 2004 Electronic Visualization Laboratory,
  * University of Illinois at Chicago
  *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *  * Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  *  * Redistributions in binary form must reproduce the above
@@ -20,7 +20,7 @@
  *  * Neither the name of the University of Illinois at Chicago nor
  *    the names of its contributors may be used to endorse or promote
  *    products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -33,7 +33,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or 
+ * Direct questions, comments etc about SAGE to sage_users@listserv.uic.edu or
  * http://www.evl.uic.edu/cavern/forum/
  *
  *****************************************************************************/
@@ -55,37 +55,37 @@ sageAudioManager::~sageAudioManager()
       delete eventQueue;
       eventQueue = NULL;
    }
-   
+
    if(syncClientObj)
    {
       delete syncClientObj;
       syncClientObj = NULL;
    }
-   
+
    if(tcpObj)
    {
       delete tcpObj;
       tcpObj = NULL;
    }
-   
+
    if(udpObj)
    {
       delete udpObj;
       udpObj = NULL;
    }
-   
-   if(audioModule) 
+
+   if(audioModule)
    {
       delete audioModule;
       audioModule = NULL;
    }
-            
+
 }
 
 sageAudioManager::sageAudioManager(int argc, char **argv)
 {
    if (argc < 5) {
-      sage::printLog("SAGE Audio receiver : More arguments are needed");   
+      sage::printLog("SAGE Audio receiver : More arguments are needed");
       exit(0);
    }
 
@@ -95,40 +95,40 @@ sageAudioManager::sageAudioManager(int argc, char **argv)
    char fsIP[SAGE_IP_LEN];
    strcpy(fsIP, argv[1]);
    int fsPort = atoi(argv[2]);
-   
+
    fsClient::init(fsPort);
    connect(fsIP);
-   
+
    //std::cout << "initialize : " << fsIP << " " << fsPort << " sync port : " << syncPort << std::endl;
-   
-   sage::printLog("SAGE Audio Manager : register to a Free Space Manager");   
+
+   sage::printLog("SAGE Audio Manager : register to a Free Space Manager");
    sendMessage(REG_ARCV, argv[3]);
-      
-   rcvEnd = false;   
+
+   rcvEnd = false;
    receiverList.clear();
 	for(int i=0; i < 20; i++)
 	{
 		receiverList.push_back(NULL);
 	}
-   
+
    eventQueue = new sageEventQueue;
-         
+
    pthread_t thId;
-   
+
    if (pthread_create(&thId, 0, msgCheckThread, (void*)this) != 0) {
       sage::printLog("sageAudioManager: can't create message checking thread");
    }
-   
+
    if (pthread_create(&thId, 0, perfReportThread, (void*)this) != 0) {
       sage::printLog("sageAudioManager: can't create performance report thread");
    }
-}   
+}
 
 int sageAudioManager::init(char *data)
 {
 ///////////////////
-//   sprintf(msgStr, "%d %d %d %d %d %d %d %s", fsm->nwInfo->rcvBufSize, 
-//         fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize,   fsm->rInfo.audioSyncPort, 
+//   sprintf(msgStr, "%d %d %d %d %d %d %d %s", fsm->nwInfo->rcvBufSize,
+//         fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize,   fsm->rInfo.audioSyncPort,
 //         fsm->rInfo.audioPort, fsm->rInfo.bufSize, fsm->vdt->getNodeNum(), info);
 //////////////////
    std::cout << "---> message : " << data << std::endl;
@@ -143,7 +143,7 @@ int sageAudioManager::init(char *data)
 
    getToken(data, token);
    nwCfg.mtuSize = atoi(token);
-   
+
    getToken(data, token);
    //syncPort = atoi(token);
 
@@ -158,39 +158,39 @@ int sageAudioManager::init(char *data)
 
    int tokenNum = getToken(data, token);
    totalRcvNum = atoi(token);
-   
+
    if (tokenNum < 1) {
       std::cout << "aStreamRcv::init : insufficient parameters in RCV_INIT message" << std::endl;
       return -1;
    }
-   
+
    //audioOn = true;
-   
-///////////////////   
+
+///////////////////
 //   sprintf(info, "%s %d %d %ld %d %d", ipStr, audio->deviceId, (int)audio->sampleFmt, audio->samplingRate,
-//          audio->channels, audio->framePerBuffer); 
-///////////////////          
+//          audio->channels, audio->framePerBuffer);
+///////////////////
    char masterIp[SAGE_IP_LEN];
    getToken(data, masterIp);
-   
+
    getToken(data, token);
    audioCfg.deviceNum = atoi(token);
    //std::cout << "---------> devce " << audioCfg.deviceNum << std::endl;
 
    getToken(data, token);
    audioCfg.sampleFmt = (sageSampleFmt) atoi(token);
-   
+
    getToken(data, token);
    audioCfg.samplingRate = atoi(token);
-   
+
    getToken(data, token);
    audioCfg.channels = atoi(token);
-   
+
    getToken(data, token);
    audioCfg.framePerBuffer = atoi(token);
 
    audioCfg.audioMode = SAGE_AUDIO_PLAY;
-   
+
    //std::cout << "SAGE Receiver : initialization message was successfully parsed" << std::endl;
 
    sageAudioModule::instance();
@@ -208,26 +208,28 @@ int sageAudioManager::init(char *data)
       sage::printLog("SAGE receiver : Fail to connect to sync master");
       return -1;
    }
-   
+
    sendMessage(SYNC_INIT_ARCV, nodeID);
 
    pthread_t thId;
-   
+
+   /*
    if (pthread_create(&thId, 0, syncCheckThread, (void*)this) != 0) {
       sage::printLog("sageAudioManager::init : can't create sync checking thread");
    }
-   
+   */
+
    if (pthread_create(&thId, 0, refreshThread, (void*)this) != 0) {
       sage::printLog("sageAudioManager: can't create UI event check thread");
    }
-      
+
    return 0;
 }
 
 void* sageAudioManager::msgCheckThread(void *args)
 {
    sageAudioManager *This = (sageAudioManager *)args;
-   
+
    sageMessage *msg;
 
    while (!This->rcvEnd) {
@@ -235,9 +237,9 @@ void* sageAudioManager::msgCheckThread(void *args)
       if (This->rcvMessageBlk(*msg) > 0 && !This->rcvEnd) {
          //std::cout << "----> message arrive" << std::endl;
          This->eventQueue->sendEvent(EVENT_NEW_MESSAGE, 0, (void *)msg);
-      }   
+      }
    }
-   
+
    sage::printLog("sageAudioManager::msgCheckThread : exit");
    pthread_exit(NULL);
    return NULL;
@@ -246,7 +248,7 @@ void* sageAudioManager::msgCheckThread(void *args)
 void* sageAudioManager::syncCheckThread(void *args)
 {
    sageAudioManager *This = (sageAudioManager *)args;
-   
+
    while (!This->rcvEnd) {
       sageEvent *syncEvent = new sageEvent;
       syncEvent->eventType = EVENT_SYNC_MESSAGE;
@@ -254,9 +256,9 @@ void* sageAudioManager::syncCheckThread(void *args)
       if (This->syncClientObj->waitForSync(syncMsg) == 0) {
          //std::cout << "rcv sync " << syncEvent->eventMsg << std::endl;
          This->eventQueue->sendEvent(syncEvent);
-      }   
+      }
    }
-   
+
    sage::printLog("sageAudioManager::syncCheckThread : exit");
    pthread_exit(NULL);
    return NULL;
@@ -265,13 +267,13 @@ void* sageAudioManager::syncCheckThread(void *args)
 void* sageAudioManager::perfReportThread(void *args)
 {
    sageAudioManager *This = (sageAudioManager *)args;
-   
+
    while (!This->rcvEnd) {
       This->perfReport();
       // if (This->shared->context && !This->rcvEnd) This->shared->context->checkEvent();
       sage::usleep(100000);
    }
-   
+
    sage::printLog("sageAudioManager::perfReportThread : exit");
    pthread_exit(NULL);
    return NULL;
@@ -280,12 +282,12 @@ void* sageAudioManager::perfReportThread(void *args)
 void* sageAudioManager::refreshThread(void *args)
 {
    sageAudioManager *This = (sageAudioManager *)args;
-   
+
    while (!This->rcvEnd) {
       This->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
       sage::usleep(16666);  // 1/60fps = 0.016666sec/frame
    }
-   
+
    sage::printLog("sageAudioManager::refreshThread : exit");
    pthread_exit(NULL);
    return NULL;
@@ -300,24 +302,24 @@ int sageAudioManager::initNetworks()
       sage::printLog("sageAudioManager is already running");
       return -1;
    }
-   
+
    sage::printLog("SAGE sageAudioManager Manager : tcp network object was initialized successfully");
-   
+
    udpObj = new sageUdpModule;
    udpObj->init(SAGE_ARCV, streamPort+(int)SAGE_UDP, nwCfg);
-   
+
    sage::printLog("SAGE sageAudioManager Manager : udp network object was initialized successfully");
-   
+
    pthread_t thId;
    nwCheckThreadParam *param = new nwCheckThreadParam;
    param->This = this;
    param->nwObj = tcpObj;
-   
+
    if (pthread_create(&thId, 0, nwCheckThread, (void*)param) != 0) {
       sage::printLog("sageAudioManager::initNetwork : can't create network checking thread");
          return -1;
    }
-   
+
    param = new nwCheckThreadParam;
    param->This = this;
    param->nwObj = udpObj;
@@ -325,7 +327,7 @@ int sageAudioManager::initNetworks()
       sage::printLog("sageAudioManager::initNetwork : can't create network checking thread");
          return -1;
    }
-   
+
    return 0;
 }
 
@@ -334,20 +336,20 @@ void* sageAudioManager::nwCheckThread(void *args)
    nwCheckThreadParam *param = (nwCheckThreadParam *)args;
    streamProtocol *nwObj = (streamProtocol *)param->nwObj;
    sageAudioManager *This = (sageAudioManager *)param->This;
-   
+
    int senderID = -1;
    char regMsg[SAGE_EVENT_SIZE];
-   
+
    if (nwObj) {
       while (!This->rcvEnd) {
          senderID = nwObj->checkConnections(regMsg);
          if (senderID >= 0 && !This->rcvEnd) {
             This->eventQueue->sendEvent(EVENT_NEW_CONNECTION, regMsg, (void *)nwObj);
-         }   
+         }
       }
    }
-   
-   sage::printLog("sageAudioManager::nwCheckThread : exit");   
+
+   sage::printLog("sageAudioManager::nwCheckThread : exit");
    pthread_exit(NULL);
    return NULL;
 }
@@ -356,9 +358,9 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 {
    int senderID, instID, sailNodeNum, streamType, blockSize, frameRate;
    int syncType, keyframe;
-   sscanf(msg, "%d %d %d %d %d %d %d %d %d %d %d %d", 
-					&senderID, &streamType, &instID, &sailNodeNum, &blockSize, 
-					&syncType, (int*) &audioCfg.sampleFmt, &audioCfg.samplingRate, 
+   sscanf(msg, "%d %d %d %d %d %d %d %d %d %d %d %d",
+					&senderID, &streamType, &instID, &sailNodeNum, &blockSize,
+					&syncType, (int*) &audioCfg.sampleFmt, &audioCfg.samplingRate,
 					&audioCfg.channels, &audioCfg.framePerBuffer, &frameRate, &keyframe);
 
 	if(instID >= receiverList.size())
@@ -368,13 +370,13 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 			receiverList.push_back(NULL);
 		}
 	}
-   
+
 	if(receiverList[instID] != NULL) {
 		receiverList[instID]->addStream(senderID);
 		std::cout << "[sageAudioManager::initStreams] existing stream " << instID << std::endl;
 		return 0;
 	}
-	else { 
+	else {
 		std::cout << "[sageAudioManager::initStreams] init stream " << instID << std::endl;
       sageAudioCircBuf *buffer = audioModule->createObject(instID, &audioCfg);
 
@@ -392,9 +394,9 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 
          std::cout << "[sageAudioManager::initStreams] inst init " << instID << std::endl;
       }
-                        
-   }      
-   
+
+   }
+
    return 0;
 }
 
@@ -402,7 +404,7 @@ int sageAudioManager::shutdownApp(int instID)
 {
    //sage::printLog("sageAudioManager is shutting down an application");
    int audioID = -1;
-	if (instID < 0 || instID >= receiverList.size()) 
+	if (instID < 0 || instID >= receiverList.size())
 		return -1;
 
    sageAudioReceiver *receiver = receiverList[instID];
@@ -413,28 +415,28 @@ int sageAudioManager::shutdownApp(int instID)
 		receiverList[instID] = NULL;
 		std::cout << "[sageAudioManager::shutdownApp] " << instID << " is shutting down" << std::endl;
    }
-   
+
    return 0;
 }
 
 int sageAudioManager::parseEvent(sageEvent *event)
-{   
+{
    if (!event) {
       sage::printLog("sageAudioManager::parseEvent : event object is Null");
       return -1;
    }
-   
+
    switch (event->eventType) {
       case EVENT_NEW_CONNECTION : {
          initStreams(event->eventMsg, (streamProtocol *)event->param);
          break;
       }
-      
+
       case EVENT_NEW_MESSAGE : {
          parseMessage((sageMessage *)event->param);
          break;
       }
-      
+
       case EVENT_SYNC_MESSAGE : {
          processSync((char *)event->eventMsg);
          break;
@@ -442,21 +444,21 @@ int sageAudioManager::parseEvent(sageEvent *event)
    }
 
    delete event;
-   
+
    return 0;
 }
 
 int sageAudioManager::parseMessage(sageMessage *msg)
-{   
+{
    if (!msg) {
       sage::printLog("sageAudioManager::parseMessage : message is NULL");
       return -1;
    }
-      
+
 	//std::cout << msg->getCode() << " parse mesage : " << (char *)msg->getData() << std::endl;
    switch (msg->getCode()) {
       case ARCV_AUDIO_INIT : {
-         if (init((char *)msg->getData()) < 0) 
+         if (init((char *)msg->getData()) < 0)
             rcvEnd = true;
          break;
       }
@@ -478,7 +480,7 @@ int sageAudioManager::parseMessage(sageMessage *msg)
 		}
       case ARCV_WINDOW : {
 			//std::cout << "parse mesage : " << (char *)msg->getData() << std::endl;
-			// id, x, y, width, height 
+			// id, x, y, width, height
    		char token[TOKEN_LEN];
 			char* data = (char *)msg->getData();
 
@@ -510,19 +512,19 @@ int sageAudioManager::parseMessage(sageMessage *msg)
 		}
       case SHUTDOWN_RECEIVERS : {
          shutdownApp(-1);
-         
+
          if(audioModule) {
-            delete audioModule; 
+            delete audioModule;
             audioModule = NULL;
          }
          if(syncClientObj) {
             delete syncClientObj;
             syncClientObj = NULL;
-         }   
-         
+         }
+
          rcvEnd = true;
          break;
-      }         
+      }
       case ARCV_SHUTDOWN_APP : {
          //std::cout << "message: " <<  msg << std::endl;
          shutdownApp(atoi((char *)msg->getData()));
@@ -531,20 +533,20 @@ int sageAudioManager::parseMessage(sageMessage *msg)
       }
 
       case RCV_PERF_INFO_REQ : {
-         startPerformanceReport(msg);   
+         startPerformanceReport(msg);
          break;
       }
 
       case RCV_PERF_INFO_STOP : {
-         stopPerformanceReport(msg);   
+         stopPerformanceReport(msg);
          break;
-      }         
+      }
 
    }
-      
+
    msg->destroy();
    delete msg;
-   
+
    return 0;
 }
 
@@ -552,21 +554,21 @@ int sageAudioManager::processSync(char *msg)
 {
    int groupID, syncFrame;
    sscanf(msg, "%d %d", &groupID, &syncFrame);
-   
+
    sageAudioReceiver *recv;
-   
+
    for (int i=0; i<receiverList.size(); i++) {
       recv = receiverList[i];
-      
+
       if (!recv)
          continue;
 
       if (recv->getInstID() == groupID) {
-         recv->processSync(syncFrame);   
-         break;   
-      }      
+         recv->processSync(syncFrame);
+         break;
+      }
    }
-   
+
    return 0;
 }
 
@@ -593,15 +595,15 @@ int sageAudioManager::perfReport()
             //std::cout << "send frame rate " << frameStr << std::endl;
             delete [] frameStr;
          }
-         
-         if (bandStr) {   
+
+         if (bandStr) {
             sendMessage(DISP_RCV_BANDWITH_RPT, bandStr);
             //std::cout << "send bandwidth " << bandStr << std::endl;
             delete [] bandStr;
          }
-      }   
+      }
    }
-   
+
    return 0;
 }
 
@@ -610,13 +612,13 @@ int sageAudioManager::startPerformanceReport(sageMessage *msg)
    char *perfStr = (char *)msg->getData();
    int instID, rate;
    sscanf(perfStr, "%d %d", &instID, &rate);
-   
+
    //std::cout << "start perf report " << rate << std::endl;
-   
+
    for (int i=0; i<receiverList.size(); i++) {
       if (!receiverList[i])
          continue;
-      
+
       if (receiverList[i]->getInstID() == instID) {
          receiverList[i]->setReportRate(rate);
          receiverList[i]->resetTimer();
@@ -635,13 +637,13 @@ int sageAudioManager::stopPerformanceReport(sageMessage *msg)
    for (int i=0; i<receiverList.size(); i++) {
       if (!receiverList[i])
          continue;
-      
+
       if (receiverList[i]->getInstID() == instID) {
          receiverList[i]->setReportRate(0);
          break;
       }
    }
-   
+
    return 0;
 }
 
@@ -657,7 +659,7 @@ int main(int argc, char **argv)
 
    sageAudioManager manager(argc, argv);
    manager.mainLoop();
-   
+
    return 0;
 }
 

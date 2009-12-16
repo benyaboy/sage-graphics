@@ -980,7 +980,7 @@ int sageDisplayManager::processSync(sageEvent *e)
 			swapMontageDone = true;
 
 #ifdef DEBUG_SYNC
-			fprintf(stderr, "[%d,%d] SDM::processSync() : It's ready for frame %d\n", shared->nodeID, intMsg[2*i], intMsg[2*i+1]);
+			fprintf(stderr, "[%d,%d] SDM::processSync() : It's ready for frame %d\n", shared->nodeID, intMsg[2*i+1], intMsg[2*i+2]);
 #endif
 
 			// trigger to swapMontage
