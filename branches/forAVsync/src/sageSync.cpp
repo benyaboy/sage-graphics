@@ -770,7 +770,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 							FD_CLR(This->syncSlavesMap[sdm_num].clientSockFd, &(This->slaveFds));
 							This->syncSlavesMap[sdm_num].clientSockFd = -1;
 						}
-						else {
+						else if ( netStatus > 0 ) {
 							// receive message from a node
 							sscanf(msg, "%d %d %d %d %d", &pdl, &updatedFrame, &slaveNum, &sdm, &nodeLatency);
 
@@ -780,7 +780,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 
 							//printf("\t SDM %d PDL %d : upFrm %d, actRcvs %d\n", sdm, pdl, updatedFrame, slaveNum);
 #ifdef DEBUG_SYNC
-							fprintf(stderr, "\trecved update : [%d,%d] updF %d, activeRcv %d\n", sdm, pdl, updatedFrame, slaveNum);
+							fprintf(stderr, "\trecved update from socket %d, netStatus %d : [%d,%d] updF %d, activeRcv %d\n",This->syncSlavesMap[sdm_num].clientSockFd, netStatus,sdm, pdl, updatedFrame, slaveNum);
 #endif
 
 							// add this node to the activeNode per application
@@ -833,6 +833,9 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 								fprintf(stderr,"\n\t ActRcv %d > SDMlist %d\n", slaveNum, (SDMlistBitsetMap[pdl]).count() );
 							}
 						} // if ( netStatus > 0) // sage::recv() returned with data
+						else {
+							// netStatus < 0
+						}
 					} // if (FD_ISSET)
 				} // foreach node
 			} // if (selectRetval > 0)
@@ -882,23 +885,25 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 					else {
 						// video leading
 					}
-
+					if ( intMsgIndex >= numUpdatedApps ) {
+						fprintf(stderr, "syncMaster : numUpdatedApps exdeeds sync message array index !\n ");
+						break;
+					}
 					intMsg[2*intMsgIndex + 1] = appID;
 					intMsg[2*intMsgIndex + 2] = syncFrameMap[appID];
 					intMsgIndex++;
-				}
-				if ( intMsgIndex >= numUpdatedApps ) {
-					break;
 				}
 			}
 		}
 
 #ifdef DEBUG_SYNC
-		fprintf(stderr, "\tUpdatedApps : ");
-		for ( int i=0; i<numUpdatedApps; i++ ) {
-			fprintf(stderr, "(%d,%d) ", intMsg[2*i], intMsg[2*i+1]);
+		if ( numUpdatedApps > 0 ) {
+			fprintf(stderr, "\tUpdatedApps : ");
+			for ( int i=0; i<numUpdatedApps; i++ ) {
+				fprintf(stderr, "(%d,%d) ", intMsg[2*i+1], intMsg[2*i+2]);
+			}
+			fprintf(stderr, "\n");
 		}
-		fprintf(stderr, "\n");
 #endif
 		numUpdatedApps = 0; // reset
 
@@ -928,7 +933,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 #endif
 		for ( int i=0; i<This->syncSlavesList.size(); i++ ) {
 			int sdm = This->syncSlavesList[i];
-			if ( sdm < 0 ) continue;
+			if ( sdm < 0 ) continue; // only sends to SDMs
 			if ( sage::send(This->syncSlavesMap[sdm].clientSockFd, (void*)intMsg, intMsg_byteLen) < intMsg_byteLen ) {
 				sage::printLog("sageSyncBBServer::mainLoopThread() : send() error at the 1st phase. to SDM %d\n", sdm);
 			}
@@ -1023,16 +1028,17 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 			int nodeID,deltaT; // in usec
 			int maxDeltaT = 0;
 
-			while(barrierCount < This->syncSlavesMap.size()) {
+			while(barrierCount < This->syncSlavesList.size()) {
 				fd_set rfds2 = This->barrierSlaveFds;
 				selectRetval = select( This->maxBarrierSlaveSockFd+1, &rfds2, NULL, NULL, NULL ); // blocking
 				if ( selectRetval < 0 ) {
 					sage::printLog("sageSyncBBServer::mainLoopThread() : select(refresh barrier) error\n");
 					exit(1);
 				}
-				for ( int i=0; i<This->syncSlavesMap.size(); i++ ) {
-					if ( FD_ISSET( This->syncSlavesMap[i].barrierClientSockFd, &rfds2 ) ) {
-						netStatus = sage::recv(This->syncSlavesMap[i].barrierClientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN);
+				for ( int i=0; i<This->syncSlavesList.size(); i++ ) {
+					int sdm = This->syncSlavesList[i];
+					if ( FD_ISSET( This->syncSlavesMap[sdm].barrierClientSockFd, &rfds2 ) ) {
+						netStatus = sage::recv(This->syncSlavesMap[sdm].barrierClientSockFd, (void*)msg, SAGE_SYNC_MSG_LEN);
 						/*
 #ifdef DELAY_COMPENSATION
 					sscanf(msg, "%d %d", &nodeID, &deltaT);
