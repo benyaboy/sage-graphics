@@ -1005,7 +1005,7 @@ void sageAudioCircBuf::connectSyncClient(sageSyncClient* synch)
    syncClientObj = synch;
    if(syncClientObj != NULL)
    {
-      syncClientObj->sendSlaveUpdate(1, instID, syncKeyFrame, SAGE_UPDATE_AUDIO);
+		//syncClientObj->sendSlaveUpdateToBBS(-1, instID, 0, nodeID);
    } 
 }
    

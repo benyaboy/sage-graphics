@@ -80,9 +80,8 @@ int sageAudioStreamer::connectToRcv(sageToken &tokenBuf, bool localPort)
       sprintf(regMsg, "%d %d %d %d %d %d %d %d %d %d %d", config.streamType, winID,
                         config.nodeNum, blockSize, config.syncType, (int)config.sampleFmt, 
                         config.samplingRate, config.channels, config.framePerBuffer,  config.frameRate, config.audioKeyFrame);
-      std::cout << "winID : " << winID << std::endl;
-
-      cout << "------------> " << regMsg << endl;
+      //std::cout << "winID : " << winID << std::endl;
+      //cout << "------------> " << regMsg << endl;
 
       params[i].rcvID = nwObj->connect(rcvIP, regMsg);
    }
