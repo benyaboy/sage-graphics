@@ -115,6 +115,8 @@ private:
    std::vector<sageRect *> drawObjectList;
    std::vector<sageVirtualDesktop *> vdtList;
    std::vector<displayConnection *> dispConnectionList;
+	// HYEJUNG
+	std::vector<int> audioList; // sageAudioManager list
 
    char fsIP[SAGE_IP_LEN];
    char pubIP[SAGE_IP_LEN];

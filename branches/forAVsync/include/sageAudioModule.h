@@ -68,6 +68,18 @@ public:
    ~sageAudioConfig() { }
 };
 
+class audioAppInfo {
+public:
+	int instID;
+	int left;
+	int bottom;
+	int width;
+	int height;
+	int depth;
+	int channel;
+	audioAppInfo() : channel(-1) { }
+	~audioAppInfo() { }
+};
 
 /**
  * \brief one instance per sageAudioManager
@@ -87,32 +99,31 @@ public:
    */
    void init(sailConfig &conf);
    virtual void init(sageAudioConfig &conf);
-   void updateConfig(sageAudioConfig &conf);
 
    sageAudioCircBuf* load(char* filename, bool loop, int nframes, long totalframes=0);
    int save(char* filename);
 
    /** open audio stream and play
    */
-   int play(int id);
-
-   int pause(int id);
-   int stop(int id);
+   int play(void);
+   int pause(void);
+   int stop(void);
 
    /**
     * sageAudio is instantiated in here
     */
-   sageAudioCircBuf* createObject(sageAudioConfig &conf, int instID =-1);
-   // temporaly....
-   sageAudioCircBuf* createObject(int instID =-1);
+   sageAudioCircBuf* createObject(int instID, sageAudioConfig* conf);
+   sageAudioCircBuf* createObject(int instID=-1);
    int deleteObject(int id);
 
+   sageAudioCircBuf* createBuffer(int instID, sageAudioConfig* conf, int size=8);
    sageAudioCircBuf* createBuffer(int instID=-1);
-   sageAudioCircBuf* createBuffer(sageAudioConfig &conf, int size=64, int instID=-1);
 
    /** test audio input/output device
    */
    void testDevices();
+
+   sageSampleFmt getSampleFmt(void);
 
    ~sageAudioModule();
 
@@ -121,6 +132,13 @@ public:
 
    std::vector<sageAudioCircBuf*>& getBufferList(void);
 	sageAudioConfig* getAudioConfig();
+
+	void setTileInfo(int width, int height, int dimX, int dimY);
+	void changeWindow(int id, int left, int bottom, int width, int height, int zvalue); 
+	audioAppInfo* findApp(int id, int& index);
+
+   static void* mergeThread(void *args); 
+	void setNodeID(int id);
 
 protected:
 	/**
@@ -134,10 +152,21 @@ protected:
    void init();
 
 protected:
+	int nodeID;
+   std::vector<int> removeList;
+	bool removeLock;
+
+   std::vector<sageAudioCircBuf*> addList;
+	bool addLock;
+
+   std::vector<audioAppInfo *> channelList;
+   std::vector<int> appList;
+	bool appLock;
+
    /** audio pointer
    */
-   //sageAudio* audio;
-   std::vector<sageAudio*> audioList;
+	sageAudio* mainAudio;
+	sageAudioCircBuf* mainBuffer;
 
    /** audio circular buffer list
    */
@@ -152,7 +181,11 @@ protected:
    audioFormatManager* formatManager;
 
    long gFrameNum;
+	bool rcvEnd;
+	int playFlag;
 
+	int resolution[2];
+	int dimension[2];
 };
 
 #endif

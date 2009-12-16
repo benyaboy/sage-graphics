@@ -43,8 +43,8 @@
 #include "sageAudioCircBuf.h"
 #include "sageEvent.h"
 
-sageAudioReceiver::sageAudioReceiver(char *msg, sageEventQueue *queue, streamProtocol *obj, sageAudioCircBuf *buff)
-: sageReceiver(), activeRecv(true), masterFlag(false), m_senderID(-1)
+sageAudioReceiver::sageAudioReceiver(char *msg, sageEventQueue *queue, streamProtocol *obj, sageAudioCircBuf *buff, sageSampleFmt fmt)
+: sageReceiver(), activeRecv(true), m_senderID(-1), mainFmt(fmt)
 {
    buffer = buff;
    nwObj = obj;
@@ -62,7 +62,7 @@ sageAudioReceiver::sageAudioReceiver(char *msg, sageEventQueue *queue, streamPro
    sscanf(msgPt, "%d %d %d %d %d %d %d %d %d %d", &instID, &senderNum, &blockSize, &syncMode, (int*) &sampleFmt,
                                  &samplingRate, &channels, &framePerBuffer, &frameRate, &keyFrame);
    buffer->setKeyframe(keyFrame);
-   std::cout << "------------------>audioReceiver : " << instID << " keyFrame : " << keyFrame << std::endl;
+   //std::cout << "------------------>audioReceiver : " << instID << " keyFrame : " << keyFrame << std::endl;
 	streamList = new streamData[senderNum];
 	streamIdx = 0;
    
@@ -93,6 +93,21 @@ sageAudioReceiver::sageAudioReceiver(char *msg, sageEventQueue *queue, streamPro
 
 }
 
+sageAudioReceiver::~sageAudioReceiver()
+{
+	endFlag = true;
+		  
+	for (int i=0; i<senderNum; i++) {
+		if (nwObj)
+			nwObj->close(streamList[i].senderID);
+	}
+
+	pthread_join(thId, NULL);
+
+	delete [] streamList;
+	sage::printLog("<sageAudioReceiver shutdown>");
+}
+
 void sageAudioReceiver::processSync(int frame)
 {
    syncFrame = frame;
@@ -102,21 +117,6 @@ void sageAudioReceiver::processSync(int frame)
    //if (updateFrame == syncFrame-1) {
    //swapMontages();
    //}
-}
-
-void sageAudioReceiver::setMaster(bool flag)
-{
-   masterFlag = flag;
-}
-
-bool sageAudioReceiver::isMaster(void)
-{
-   return masterFlag;
-}
-
-void sageAudioReceiver::setResetFlag(void)
-{
-   resetFlag = true;
 }
 
 int sageAudioReceiver::addStream(int senderID)
@@ -168,12 +168,6 @@ int sageAudioReceiver::readData()
    audioBlock* block;
    while(!endFlag) {
       
-      if(resetFlag == true) {
-         buffer->reset();
-         std::cout << "buffer is reset" << std::endl;
-         resetFlag = false;
-      }
-
       block = buffer->getNextWriteBlock();
       if(block == NULL) {
          std::cout << "could not get buffer for writing" << std::endl;
@@ -193,15 +187,12 @@ int sageAudioReceiver::readData()
          if(audioNBlock.getFlag() == SAGE_AUDIO_BLOCK)  {
             //std::cout << "---------->audioInstance::rcvStream " << buffer->getAudioId() << " " <<  audioNBlock.getFrameID() << std::endl;
             char* tempbuff = audioNBlock.getAudioBuffer(); 
+
+				//mainFmt
             buffer->convertToFloat(sampleFmt, tempbuff, block);
+            //buffer->copy(tempbuff, block);
 
             block->frameIndex = audioNBlock.getgFrameID();
-            if(masterFlag == true)
-            {
-               // merge current available version
-               buffer->merge(block);
-            }
-         
             block->reformatted = 1;
             buffer->updateWriteIndex();
          }         
@@ -209,12 +200,6 @@ int sageAudioReceiver::readData()
       }      
    } 
 
-   // delete buffer
-   if(buffer) {
-      delete buffer;
-      buffer = NULL;
-   }
-   
    return 0;
 }
 

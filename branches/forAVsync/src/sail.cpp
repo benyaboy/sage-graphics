@@ -373,7 +373,7 @@ int sail::init(sailConfig &conf)
 
          //buffer = audioObj->load(config.audioFileName, true);   // for the test
          if(buffer != NULL) {
-            audioModule->play(0);
+            audioModule->play();
          }
       }
 
@@ -713,7 +713,7 @@ int sail::parseMessage(sageMessage &msg)
 
 				audioStreamer->enqueMsg(msgData);
 				if(config.audioMode == SAGE_AUDIO_CAPTURE || config.audioMode == SAGE_AUDIO_PLAY) {
-				   audioModule->play(0);
+				   audioModule->play();
 				} else if(config.audioMode ==  SAGE_AUDIO_APP && audioAppDataHander){
 					audioAppDataHander->start();
 				}

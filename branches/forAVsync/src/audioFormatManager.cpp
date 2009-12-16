@@ -74,7 +74,7 @@ audioConverter* audioFormatManager::createConverter(char* filename, FILE* fp)
       }
    }
    
-   std::cout << " audioFormatManager::createConverter: " << tag << " : " << filename << std::endl; 
+   std::cout << "[audioFormatManager::createConverter] " << tag << " : " << filename << std::endl; 
    int result;
    if( (strcmp(tag, "wav") ==0) || (strcmp(tag, "wave")==0) ) {
       wavConverter* object = new wavConverter();
