@@ -347,7 +347,11 @@ int sageDisplayManager::init(char *data)
 
 	   // starting sync mainLoop
 	   if (syncMaster) {
-		   syncBBServerObj->startManagerThread(totalRcvNum, syncRefreshRate, syncMasterPollingInterval);
+		   int retvalsm = syncBBServerObj->startManagerThread(totalRcvNum, syncRefreshRate, syncMasterPollingInterval);
+		   if ( retvalsm != 0 ) {
+			   fprintf(stderr,"[%d] SDM::init() : syncBBServerObj->startManagerThread() failed. Change to NO SYNC mode !\n");
+			   syncLevel = 0;
+		   }
 	   }
    }
    else if ( syncLevel == -1 ) {
