@@ -15,8 +15,8 @@ endif
 default: imageviewer
 
 install: imageviewer
-	cd $(VIEWER_DIR); make install; cd -
 	/bin/mkdir -p -m 775 $(SAGE_DIR)/bin/file_server
+	cd $(VIEWER_DIR); make install; cd -
 	$(CP) $(SERVER_DIR)/*.py $(SERVER_DIR)/*.conf $(SERVER_DIR)/misc $(SAGE_DIR)/bin/file_server
 
 
