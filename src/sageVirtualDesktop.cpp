@@ -154,6 +154,18 @@ int sageVirtualDesktop::launchReceivers(char *fsIP, int port, int syncPort, bool
    return 0;
 }
 
+// HYEJUNG
+int sageVirtualDesktop::getTileInfo(char *info)
+{
+	displayNode *disp = displayCluster[0];
+	if (!disp) {
+		sage::printLog("sageVirtualDesktop:getTileInfo Can't find the display node 0");
+		return -1;
+	}
+	sprintf(info, "%d %d %d %d", disp->tiles[0]->width, disp->tiles[0]->height, dimX, dimY);
+	return 0;
+}
+
 int sageVirtualDesktop::getRcvInfo(int nodeID, char *info)
 {
    displayNode *disp = displayCluster[nodeID];
@@ -303,18 +315,23 @@ int sageVirtualDesktop::launchAudioReceivers(char *fsIP, int port, int syncPort)
    }
 
    int audioSyncPort = 14999;
+	// HYEJUNG
+	//int total_sdm = displayCluster.size();
+	int total_sdm = -100;
    for (int i=0; i< audioCluster.size(); i++) {
       char command[TOKEN_LEN];
 
 #if defined(WIN32)
+		// HYEJUNG
       sprintf(command, "start /B /D%s %s\\bin\\sageAudioManager %s %d %d %d",
-         sageDir, sageDir, fsIP, port, i, syncPort/*,audioSyncPort*/);
+         sageDir, sageDir, fsIP, port, total_sdm - i, syncPort/*,audioSyncPort*/);
 
       std::cout << "ATTENTION: SAGE on Windows works only locally, no remote execution" << std::endl;
       std::cout << "\t" << command << std::endl;
       system( command );
 #else
-      sprintf(command, "%s/bin/sageAudioManager %s %d %d %d", sageDir, fsIP, port, i, syncPort /*, audioSyncPort*/);
+		// HYEJUNG
+      sprintf(command, "%s/bin/sageAudioManager %s %d %d %d", sageDir, fsIP, port, total_sdm - i, syncPort /*, audioSyncPort*/);
       std::cout << "audio " << command << std::endl;
       if (execRemBin(audioCluster[i]->ip, command) < 0)
          return -1;
@@ -342,7 +359,7 @@ int sageVirtualDesktop::getAudioRcvInfo(int nodeID, char *info)
    sprintf(info, "%s %d %d %ld %d %d", ipStr, audio->deviceId, (int)audio->sampleFmt, audio->samplingRate,
                         audio->channels, audio->framePerBuffer);
 
-   std::cout << "recv " << nodeID << " : " << info << std::endl;
+   //std::cout << "recv " << nodeID << " : " << info << std::endl;
 
    return 0;
 }

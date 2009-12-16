@@ -107,14 +107,14 @@ sageAudioCircBuf* audioFileReader::load(char* filename, bool loop, int nframes, 
          break;
    } 
    //buffer = sageAudioModule::_instance->createBuffer(config, 32);
-   buffer = sageAudioModule::_instance->createBuffer(config, 8);
+   buffer = sageAudioModule::_instance->createBuffer(-1, &config, 8);
    if(buffer == NULL) {
       std::cerr << "Could not create Buffer" << std::endl;
       return NULL;
    }
    gapTime = 1000000/ (config.samplingRate / config.framePerBuffer * config.channels); 
    //gapTime *=  0.3; 
-   std::cout << "----------gaptime "  << gapTime << std::endl;
+   //std::cout << "----------gaptime "  << gapTime << std::endl;
    if(gapTime < 100) gapTime = 1000;
    
    totalLoadedFrames = totalframes;

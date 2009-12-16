@@ -134,6 +134,9 @@
 #define ARCV_AUDIO_INIT        ARCV_MESSAGE
 #define ARCV_SYNC_INIT         ARCV_MESSAGE + 1
 #define ARCV_SHUTDOWN_APP      ARCV_MESSAGE + 2
+#define ARCV_WINDOW           ARCV_MESSAGE + 3
+#define ARCV_WINDOW_INIT      ARCV_MESSAGE + 4
+#define ARCV_WINDOW_DEPTH     ARCV_MESSAGE + 5
 
 // sage bridge messages
 #define BRIDGE_REG_NODE        BRIDGE_MESSAGE

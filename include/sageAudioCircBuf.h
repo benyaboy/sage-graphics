@@ -85,6 +85,8 @@ private:
    int readIndex;
    int writeIndex;
 
+	int assignedChannel;
+
    pthread_mutex_t *queueLock;
    pthread_cond_t *notFull;
 
@@ -129,6 +131,7 @@ private:
    int refRead;
    int refMutex;
    std::vector<int> readers;
+	int nodeID;
 
 protected:
    void clearBlocks();
@@ -138,7 +141,7 @@ public:
 	 * keyframe is set to 100 by default<BR>
 	 * every 100 frame, sendslaveupdate will be called
 	 */
-   sageAudioCircBuf(sageSyncClient *sync= NULL, int nID=0, int keyframe = 100);
+   sageAudioCircBuf(int id, sageSyncClient *sync= NULL, int nID=0, int keyframe = 100);
    ~sageAudioCircBuf();
 
    /** create aduio blocks and create buffers in each audio block.
@@ -174,6 +177,7 @@ public:
 
    int getReadIndex();
    int getWriteIndex();
+	int isAvaible();
 
    /** get numbers of audio blocks
    */
@@ -181,9 +185,14 @@ public:
    int getAudioId();
    int getBytesBlock();
 
-   int merge(audioBlock* block);
-   int convertToFloat(sageSampleFmt fmt, void* rawdata, audioBlock* block);
+	sageSampleFmt getSampleFmt(void);
 
+   int merge(audioBlock* block, std::vector<sageAudioCircBuf*>& bufferList);
+   int convertToFloat(sageSampleFmt fmt, void* rawdata, audioBlock* block);
+	int copy(void* rawdata, audioBlock* block);
+
+	// assign channel
+	void assignChannel(int channel);
 
    void clearBlock(int frameNum);
    void reset();
@@ -196,6 +205,7 @@ public:
    void connectSyncClient(sageSyncClient* synch);
 
    void setInstID(int ID);
+   int getInstID(void) { return instID; } 
 
    /** use for synchronization
    */

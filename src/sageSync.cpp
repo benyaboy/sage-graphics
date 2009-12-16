@@ -479,11 +479,12 @@ void* sageSyncBBServer :: syncServerThread(void *args)
       // syncSlave sends its SDM number
       sage::recv(tempSockFd, (void*)&newClient.SDM, sizeof(int), MSG_WAITALL);
 
-      //This->syncSlaves.push_back(newClient); // copy occurs here
-      This->syncSlavesMap[newClient.SDM] = newClient; // copy occurs
+		// HYEJUNG
+     	//This->syncSlaves.push_back(newClient); // copy occurs here
+     	This->syncSlavesMap[newClient.SDM] = newClient; // copy occurs
       This->syncSlavesList.push_back(newClient.SDM);
 
-      sage::printLog("\nsageSyncBBServer::syncServerThread() : SDM %d (socket %d) has connected. MaxFD is %d", newClient.SDM, This->syncSlavesMap[newClient.SDM].clientSockFd, This->maxSlaveSockFd);
+     	sage::printLog("\nsageSyncBBServer::syncServerThread() : SDM %d (socket %d) has connected. MaxFD is %d", newClient.SDM, This->syncSlavesMap[newClient.SDM].clientSockFd, This->maxSlaveSockFd);
 
    } // end of while(!This->syncEnd)
    //pacify compiler
@@ -926,7 +927,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 		fprintf(profile, "%d:%d:%lu:Broadcast_B:%ld:%ld\n", -1,-1,loopCounter,pTimer.tv_sec, pTimer.tv_usec);
 #endif
 		for ( int i=0; i<This->syncSlavesList.size(); i++ ) {
-			int sdm = syncSlavesList[i];
+			int sdm = This->syncSlavesList[i];
 			if ( sdm < 0 ) continue;
 			if ( sage::send(This->syncSlavesMap[sdm].clientSockFd, (void*)intMsg, intMsg_byteLen) < intMsg_byteLen ) {
 				sage::printLog("sageSyncBBServer::mainLoopThread() : send() error at the 1st phase. to SDM %d\n", sdm);

@@ -79,6 +79,9 @@ public:
    int getNodeId(int tileId) { return tileList[tileId]->nodeID; }
    int getNodeIPs(int nodeId, char *ipStr);
    int getForwardIP(int nodeId, char *ipStr);
+
+	// HYEJUNG
+	int getTileInfo(char *info);
    
    int getRcvInfo(int nodeID, char *info);
    int regRcv(int cId, int nodeID);

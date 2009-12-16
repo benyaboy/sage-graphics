@@ -61,6 +61,7 @@ protected:
 
    sageEventQueue *eventQueue;
    sageSampleFmt sampleFmt;
+   sageSampleFmt mainFmt;
 	streamData *streamList; /**< list of streams */
 	int streamIdx;
 
@@ -72,8 +73,6 @@ protected:
    unsigned packetLoss;
 
    bool activeRecv;
-   bool masterFlag;
-   bool resetFlag;
    int  m_senderID;
 
 public:
@@ -84,7 +83,7 @@ public:
 	 */
    virtual int addStream(int senderID);
 
-   sageAudioReceiver(char *msg, sageEventQueue *queue, streamProtocol *obj, sageAudioCircBuf *buff);
+   sageAudioReceiver(char *msg, sageEventQueue *queue, streamProtocol *obj, sageAudioCircBuf *buff, sageSampleFmt fmt);
    //virtual int readAudioData(int senderID);
    //virtual int readData(int senderID, sageBlockQueue *queue);
 
@@ -92,7 +91,7 @@ public:
     * It defines function body of sageReceiver::readData() which is pure virtual
     */
    virtual int readData();
-   virtual ~sageAudioReceiver() {}
+   virtual ~sageAudioReceiver();
 
    /**
     * just sets sageAudioReceiver::syncFrame = frame
@@ -104,10 +103,7 @@ public:
    int getSenderID();
    bool isActive();
    int getAudioId();
-   void setMaster(bool flag);
-   bool isMaster(void);
 
-   void setResetFlag(void);
    int evalPerformance(char **frameStr, char **bandStr);
    inline void setReportRate(int rate) { reportRate = rate; }
    inline void resetTimer() { perfTimer.reset(); }

@@ -75,7 +75,6 @@ private:
    sageAudioModule *audioModule; /**< sageAudioModule */
    sageAudioConfig audioCfg;
 
-
    std::vector<sageAudioReceiver *> receiverList; /**< a list of sageAudioReceiver object. It responsible for receiving streams from sageAudioStreamer */
 
    int syncPort, streamPort;
@@ -95,6 +94,7 @@ private:
    int startPerformanceReport(sageMessage *msg);
    int stopPerformanceReport(sageMessage *msg);
    int shutdownApp(int appId);
+	sageAudioReceiver* findApp(int id, int& index);
 
    /**
     * sets tcpObj, udpObj and starts nwCheckThread() for each protocol
