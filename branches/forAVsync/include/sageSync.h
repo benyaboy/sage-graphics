@@ -224,11 +224,16 @@ protected:
    std::vector<syncSlaveData> syncSlaves; /**< a list of sync slaves */
 
    /**
-    * a list of sync slaves
+    * a map of sync slaves
     * key is SDM id
     * value is its data(mainly socket)
     */
    std::map<int,syncSlaveData> syncSlavesMap;
+
+   /**
+    * a list of SDMs that has connected to syncMaster
+    */
+   std::vector<int> syncSlavesList;
 
    sockaddr_in barrierServerAddr;
    int barrierServerSockFd;
@@ -464,7 +469,7 @@ public:
 	*/
    int connectToServer(char *serverIP, int port, int SDMnum=-1);
 
-   int connectToBarrierServer(char *serverIP, int port, int SDMnum=-1);
+   int connectToBarrierServer(char *serverIP, int port, int SDMnum);
 
 
    /**
@@ -506,12 +511,12 @@ public:
 	* @param type an integer, default SAGE_UPDATE_FOLLOW
 	* @return -1 on error, 0 otherwise
 	*/
-   int sendSlaveUpdate(int frame, int id = 0, int rcvNum = 0, int type = SAGE_UPDATE_FOLLOW, int nodeID=-1);
+   int sendSlaveUpdate(int frame, int appid = 0, int rcvNum = 0, int type = SAGE_UPDATE_FOLLOW);
 
    /**
     * when a PDL received new frame (END_FRAME flag) it reports to the syncMaster before doing swapMontage()
 	*/
-   int sendSlaveUpdateToBBS(int frame, int id = 0, int rcvNum = 0, int SDMnum = -1, int delayCompenLatency=0);
+   int sendSlaveUpdateToBBS(int frame, int appid, int rcvNum, int SDMnum, int delayCompenLatency=0);
 
    /** THE FINAL CASE , sageSync_theFinal.cpp */
    int sendRefreshBarrier(int nodeID);
