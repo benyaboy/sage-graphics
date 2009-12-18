@@ -271,7 +271,7 @@ char* syncGroup::dequeSyncMsg()
 
 
 //--------------------------------------------  S E R V E R   C O D E  ---------------------------------------------//
-sageSyncBBServer::sageSyncBBServer(int sl) : maxSyncGroupID(-1), syncEnd(false), maxSlaveSockFd(0), maxBarrierSlaveSockFd(0)
+sageSyncBBServer::sageSyncBBServer(char* ip, int port, int sl) : maxSyncGroupID(-1), syncEnd(false), maxSlaveSockFd(0), maxBarrierSlaveSockFd(0)
 {
    //for (int i=0; i<MAX_SYNC_GROUP; i++) {
      // syncGroupArray[i] = NULL;
@@ -285,6 +285,19 @@ sageSyncBBServer::sageSyncBBServer(int sl) : maxSyncGroupID(-1), syncEnd(false),
    barrierPort = 0;
    syncSlavesMap.clear();
    syncSlavesList.clear();
+
+	char fsIP[SAGE_IP_LEN];
+	strcpy(fsIP, ip);
+	fsClient::init(port);
+	connect(fsIP);
+
+	sage::printLog("SAGE Sync Master : register to a Free Space Manager");
+	sendMessage(REG_SYNC_MASTER);
+
+	pthread_t thId;
+	if (pthread_create(&thId, 0, msgCheckThread, (void*)this) != 0) {
+			sage::printLog("sageSyncBBServer: can't create message checking thread");
+	}
 }
 
 int sageSyncBBServer::init(int port)
@@ -418,6 +431,23 @@ int sageSyncBBServer::initBarrier(int barrierPort)
    return 0;
 }
 
+// Thread for getting message from fsManager
+void* sageSyncBBServer::msgCheckThread(void *args)
+{
+	sageSyncBBServer *This = (sageSyncBBServer*) args;
+	sageMessage *msg;
+	while(!This->syncEnd) {
+		msg = new sageMessage;
+		if (This->rcvMessageBlk(*msg) > 0 && !This->syncEnd) 
+		{
+			std::cout << "[sageSyncBBServer::msgCheckThread] ----> got message from fsManger" << std::endl;
+		}
+	}
+	sage::printLog("sageSyncBBServer::msgCheckThread : exit");
+	pthread_exit(NULL);
+	return NULL;
+}
+
 // The sync server thread, which is responsible for listening for new sync clients
 // This thread also polls each connected slave to look for frame updates
 // and then updates the slave data vector
@@ -479,7 +509,6 @@ void* sageSyncBBServer :: syncServerThread(void *args)
       // syncSlave sends its SDM number
       sage::recv(tempSockFd, (void*)&newClient.SDM, sizeof(int), MSG_WAITALL);
 
-		// HYEJUNG
      	//This->syncSlaves.push_back(newClient); // copy occurs here
      	This->syncSlavesMap[newClient.SDM] = newClient; // copy occurs
       This->syncSlavesList.push_back(newClient.SDM);

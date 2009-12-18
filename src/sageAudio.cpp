@@ -184,7 +184,7 @@ int sageAudio::reset( int id, sageAudioCircBuf *buf )
 int   sageAudio::openStream()
 {
    if( buffer == NULL ) {
-      std::cerr << "audio stream could not open because buffer is NULL" << std::endl;
+      std::cerr << "[sageAudio::openStream] audio stream could not open because buffer is NULL" << std::endl;
       return -1;
    }
    
@@ -204,7 +204,7 @@ int   sageAudio::openStream()
    
       PaError err;
       if( audioStream != NULL ) {
-         std::cerr << "audio stream is already opened" << std::endl;
+         std::cerr << "[sageAudio::openStream] audio stream is already opened" << std::endl;
          return -1;   
       }
       
@@ -221,7 +221,7 @@ int   sageAudio::openStream()
                this );
 
          if( err != paNoError ) {
-            std::cerr << "audio stream could not open" << std::endl;
+            std::cerr << "[sageAudio::openStream] audio stream could not open" << std::endl;
             return err;
          }
 
@@ -238,10 +238,10 @@ int   sageAudio::openStream()
             this );
 
          if( err != paNoError ) {
-            std::cerr << "audio stream could not open" << std::endl;
+            std::cerr << "[sageAudio::openStream] audio stream could not open" << std::endl;
             return err;      
          }
-         std::cout << "audio stream is opened" << std::endl;
+         std::cout << "[sageAudio::openStream] audio stream is opened" << std::endl;
       }
       /** todo */
       //startTime = Pa_GetStreamTime( audioStream );
@@ -268,10 +268,10 @@ int   sageAudio::closeStream()
       PaError err;
       err = Pa_CloseStream( audioStream );
       if( err != paNoError ) {
-         std::cerr << "audio stream could not close" << std::endl;
+         std::cerr << "[sageAudio::closeStream] audio stream could not close" << std::endl;
          return err;
       }
-	  std::cerr << "audio stream is closed" << std::endl;
+	  std::cerr << "[sageAudio::closeStream] audio stream is closed" << std::endl;
       audioStream = NULL;
    }
 
@@ -348,7 +348,7 @@ int sageAudio::play()
          PaError err;   
          err = Pa_StartStream( audioStream );
          if( err != paNoError ) {
-            std::cerr << "audio stream could not open" << std::endl;
+            std::cerr << "[sageAudio::play] audio stream could not open" << std::endl;
             return err;   
          }
       }
@@ -372,7 +372,7 @@ int sageAudio::pause()
          PaError err;
          err = Pa_StopStream( audioStream );
          if( err != paNoError ) {
-            std::cerr << "audio stream could not stop" << std::endl;
+            std::cerr << "[sageAudio::pause] audio stream could not stop" << std::endl;
             return err;
          }
       }
@@ -396,9 +396,9 @@ int sageAudio::stop()
       else {   
          PaError err;
          err = Pa_StopStream( audioStream );
-         std::cout << "audio stream stop" << std::endl;
+         std::cout << "[sageAudio::stop] audio stream stop" << std::endl;
          if( err != paNoError ) {
-            std::cerr << "audio stream could not stop" << std::endl;
+            std::cerr << "[sageAudio::stop] audio stream could not stop" << std::endl;
             return err;
          }
       }

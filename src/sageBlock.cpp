@@ -112,9 +112,10 @@ int sagePixelBlock::updateBufferHeader()
    }
    
    memset(buffer, 0, BLOCK_HEADER_SIZE);
-   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d",
-         bufSize, flag, x, y, width, height, frameID, blockID);
+   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d %ld %ld",
+         bufSize, flag, x, y, width, height, frameID, blockID, timestamp_s, timestamp_u);
          
+   //std::cout << "buf : " << buffer << std::endl;
    if (headerLen >= BLOCK_HEADER_SIZE) {
       sage::printLog("sagePixelBlock::updateBufferHeader : block header exceeds the maximum length");
       return -1;
@@ -131,9 +132,10 @@ int sagePixelBlock::updateHeader(int pid, int configID)
    }
    
    memset(buffer, 0, BLOCK_HEADER_SIZE);
-   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d %d %d",
-         bufSize, flag, x, y, width, height, frameID, blockID, pid, configID);
+   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d %d %d &ld %ld",
+         bufSize, flag, x, y, width, height, frameID, blockID, pid, configID, timestamp_s, timestamp_u);
          
+   //std::cout << "buf : " << buffer << std::endl;
    if (headerLen >= BLOCK_HEADER_SIZE) {
       sage::printLog("sagePixelBlock::updateBufferHeader : block header exceeds the maximum length");
       return -1;
@@ -149,10 +151,11 @@ bool sagePixelBlock::updateBlockConfig()
       return false;
    }
    
+   sscanf(buffer, "%d %d %d %d %d %d %d %d %ld %ld", &bufSize, &flag, &x, &y, &width, &height, 
+               &frameID, &blockID, &timestamp_s, &timestamp_u);
+
    //std::cout << "buf : " << buffer << std::endl;
-   
-   sscanf(buffer, "%d %d %d %d %d %d %d %d", &bufSize, &flag, &x, &y, &width, &height, 
-               &frameID, &blockID);
+	//std::cout << "timestamp : get = " << timestamp_s << " " << timestamp_u << std::endl;
          
    return true;
 }
@@ -246,21 +249,14 @@ int sageAudioBlock::updateBufferHeader()
    memset(buffer, 0, BLOCK_HEADER_SIZE);
    int headerSize = 0;
 
-   /*
-        if (frameID >= 0)
-                frameID = frameID % 10000;      // 4 digit frame number
-
-        if (gframeID >= 0)
-                gframeID = gframeID % 10000; // 4 digit frame number
-   */
-
-
 #if defined(WIN32)
-   headerSize = _snprintf(buffer, BLOCK_HEADER_SIZE, "%d %d %d %d %d %d %d %d %d %d",
-         bufSize, flag,(int)sampleFmt, sampleRate, channels, framePerBuffer, frameID, gframeID, tileID, nodeID);
+   headerSize = _snprintf(buffer, BLOCK_HEADER_SIZE, "%d %d %d %d %d %d %d %d %d %d %ld %ld",
+         bufSize, flag,(int)sampleFmt, sampleRate, channels, framePerBuffer, frameID, gframeID, tileID, nodeID, timestamp_s, timestamp_u);
 #else
-   headerSize = snprintf(buffer, BLOCK_HEADER_SIZE, "%d %d %d %d %d %d %d %d %d %d",
-         bufSize, flag, (int)sampleFmt, sampleRate, channels, framePerBuffer, frameID, gframeID, tileID, nodeID);
+   headerSize = snprintf(buffer, BLOCK_HEADER_SIZE, "%d %d %d %d %d %d %d %d %d %d %ld %ld",
+         bufSize, flag, (int)sampleFmt, sampleRate, channels, framePerBuffer, frameID, gframeID, tileID, nodeID, timestamp_s, timestamp_u);
+
+   //std::cout << buffer << std::endl;
 #endif
 
    if (headerSize >= BLOCK_HEADER_SIZE) {
@@ -273,28 +269,20 @@ int sageAudioBlock::updateBufferHeader()
 
 bool sageAudioBlock::updateBlockConfig()
 {
-   /*
-        if (frameID >= 0)
-                frameID = frameID % 10000;      // 4 digit frame number
-
-        if (gframeID >= 0)
-                gframeID = gframeID % 10000; // 4 digit frame number
-   */
-
-
    if (!buffer) {
       sage::printLog("sageAudioBlock::updateBlockConfig : buffer is null");
       return false;
    }
 
-   sscanf(buffer, "%d %d %d %d %d %d %d %d %d %d", &bufSize, &flag, &sampleFmt, &sampleRate, 
-         &channels, &framePerBuffer, &frameID,  &gframeID, &tileID, &nodeID);
-
+   sscanf(buffer, "%d %d %d %d %d %d %d %d %d %d %ld %ld", &bufSize, &flag, &sampleFmt, &sampleRate, 
+         &channels, &framePerBuffer, &frameID,  &gframeID, &tileID, &nodeID, &timestamp_s, &timestamp_u);
    //std::cout << buffer << std::endl;
-   extraInfo = sage::tokenSeek(buffer, 10);
-   if (!extraInfo && flag == SAGE_AUDIO_BLOCK) {
-      // sage::printLog("sageAudioBlock::updateBlockConfig : extraInfo is NULL");
-   }
+	//std::cout << "timestamp : get = " << timestamp_s << " " << timestamp_u << std::endl;
+
+   //extraInfo = sage::tokenSeek(buffer, 10);
+   //if (!extraInfo && flag == SAGE_AUDIO_BLOCK) {
+   //  // sage::printLog("sageAudioBlock::updateBlockConfig : extraInfo is NULL");
+   //}
 
    return true;
 }

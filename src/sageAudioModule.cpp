@@ -59,10 +59,6 @@ sageAudioModule::sageAudioModule()
 	dimension[0] = 1;
 	dimension[1] = 1;
 
-	for(int i=0; i < 20; i++)
-	{
-		channelList.push_back(NULL);
-	}
 }
 
 sageAudioModule::~sageAudioModule()
@@ -134,7 +130,6 @@ sageAudioModule::~sageAudioModule()
 		app = NULL;
 	}
 	channelList.clear();
-
 }
 
 void sageAudioModule::setNodeID(int id)
@@ -251,25 +246,36 @@ void sageAudioModule::setTileInfo(int width, int height, int dimX, int dimY)
 	dimension[1] = dimY;
 }
 
+audioAppInfo* sageAudioModule::findApp(int id, int& index)
+{
+	audioAppInfo* temp_app= NULL;
+	std::vector<audioAppInfo*>::iterator iter;
+	index =0;
+	for(iter = channelList.begin(); iter != channelList.end(); iter++, index++)
+	{
+		if ((*iter)->instID == id)
+		{
+			temp_app =(audioAppInfo*) *iter;
+			break;
+		}
+	}
+	return temp_app;
+}
+
 void sageAudioModule::changeWindow(int id, int left, int bottom, int width, int height, int zvalue)
 {
 	while(appLock == true) sage::usleep(1000);
 
 	appLock = true;
-	if(id >= channelList.size())
-	{
-		for(int i=0; i < 20; i++)
-		{
-			channelList.push_back(NULL);
-		}
-	}
-	audioAppInfo* app = NULL;
-	if(channelList[id] == NULL)
+	int index;
+	audioAppInfo* app = findApp(id, index);
+	if(app == NULL)
 	{
 		app = new audioAppInfo();
-		channelList[id] = app;
-	} else 
-		app = channelList[id];
+		channelList.push_back(app);
+		app->instID = id;
+		index = channelList.size() -1;
+	} 
 
 	app->left = left;
 	app->bottom = bottom;
@@ -287,7 +293,7 @@ void sageAudioModule::changeWindow(int id, int left, int bottom, int width, int 
 	} else 
 		app->channel = center_x;
 
-	appList.push_back(id);
+	appList.push_back(index);
 	appLock = false;
 
 	//int center_y = bottom + (height /2);
@@ -349,7 +355,7 @@ void* sageAudioModule::mergeThread(void *args)
 			}
 			This->removeList.clear();
 			if(This->bufferList.size() == 0);
-				buffer->reset();
+				output->reset();
    	}
 		This->removeLock = false;
 

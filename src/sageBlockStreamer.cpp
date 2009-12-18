@@ -151,8 +151,15 @@ int sageBlockStreamer::sendPixelBlock(sagePixelBlock *block)
    }
    
    block->setRefCnt(map->count);
-      block->setFrameID(frameID);
-      block->updateBufferHeader();
+	block->setFrameID(frameID);
+
+	// TEST : HYEJUNG
+	struct timeval timestamp;
+	gettimeofday(&timestamp, NULL);
+	block->setTimeStamp(timestamp.tv_sec, timestamp.tv_usec);
+	///////////////////
+
+	block->updateBufferHeader();
    
    while(map) {
       //std::cerr << "---" <<  hostname << " pBlock " << block->getBuffer() << "  sent to " <<

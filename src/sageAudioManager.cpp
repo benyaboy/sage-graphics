@@ -106,11 +106,11 @@ sageAudioManager::sageAudioManager(int argc, char **argv)
 
    rcvEnd = false;
    receiverList.clear();
-	for(int i=0; i < 20; i++)
+	/*for(int i=0; i < 20; i++)
 	{
 		receiverList.push_back(NULL);
 	}
-
+	*/
    eventQueue = new sageEventQueue;
 
    pthread_t thId;
@@ -131,7 +131,7 @@ int sageAudioManager::init(char *data)
 //         fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize,   fsm->rInfo.audioSyncPort,
 //         fsm->rInfo.audioPort, fsm->rInfo.bufSize, fsm->vdt->getNodeNum(), info);
 //////////////////
-   std::cout << "---> message : " << data << std::endl;
+   //std::cout << "---> message : " << data << std::endl;
 
    char token[TOKEN_LEN];
 
@@ -203,9 +203,9 @@ int sageAudioManager::init(char *data)
 
    syncClientObj = new sageSyncClient;
 
-	std::cout << "nodeID = " << nodeID << std::endl;
+	//std::cout << "nodeID = " << nodeID << std::endl;
    if (syncClientObj->connectToServer(masterIp, syncPort, nodeID) < 0) {
-      sage::printLog("SAGE receiver : Fail to connect to sync master");
+      sage::printLog("SAGE Audio Manager : Fail to connect to sync master");
       return -1;
    }
 
@@ -363,26 +363,25 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 					&syncType, (int*) &audioCfg.sampleFmt, &audioCfg.samplingRate,
 					&audioCfg.channels, &audioCfg.framePerBuffer, &frameRate, &keyframe);
 
-	if(instID >= receiverList.size())
-	{
-		for(int i=0; i < 20; i++)
-		{
-			receiverList.push_back(NULL);
+	std::cout << "[sageAudioManager::initStreams] got init stream" << std::endl;
+	bool instExist = false;
+	for (int i=0; i<receiverList.size(); i++) {
+		if (!receiverList[i])
+			continue;
+		if (receiverList[i]->getInstID() == instID) {
+			instExist = true;
+			receiverList[i]->addStream(senderID);
+			std::cout << "[sageAudioManager::initStreams] existing stream " << instID << std::endl;
+			return 0;
 		}
 	}
 
-	if(receiverList[instID] != NULL) {
-		receiverList[instID]->addStream(senderID);
-		std::cout << "[sageAudioManager::initStreams] existing stream " << instID << std::endl;
-		return 0;
-	}
-	else {
-		std::cout << "[sageAudioManager::initStreams] init stream " << instID << std::endl;
+	if (instExist == false) {
+
       sageAudioCircBuf *buffer = audioModule->createObject(instID, &audioCfg);
 
       if(buffer != NULL) {
          buffer->setInstID(instID);
-         buffer->setKeyframe(keyframe);
          if(streamType != SAGE_BLOCK_NO_SYNC)
          {
             buffer->connectSyncClient(syncClientObj);
@@ -390,8 +389,7 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 
          sageAudioReceiver *recv = new sageAudioReceiver(msg, eventQueue, nwObj, buffer, audioModule->getSampleFmt());
          recv->addStream(senderID);
-         receiverList[instID] = recv;
-
+			receiverList.push_back(recv);
          std::cout << "[sageAudioManager::initStreams] inst init " << instID << std::endl;
       }
 
@@ -400,19 +398,35 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
    return 0;
 }
 
+sageAudioReceiver* sageAudioManager::findApp(int id, int& index)
+{
+	sageAudioReceiver* temp_app= NULL;
+	std::vector<sageAudioReceiver*>::iterator iter;
+	index =0;
+	for(iter = receiverList.begin(); iter != receiverList.end(); iter++, index++)
+	{
+		if ((*iter)->instID == id)
+		{
+			temp_app =(sageAudioReceiver*) *iter;
+			break;
+		}
+	}
+	return temp_app;
+}
+
 int sageAudioManager::shutdownApp(int instID)
 {
    //sage::printLog("sageAudioManager is shutting down an application");
-   int audioID = -1;
-	if (instID < 0 || instID >= receiverList.size())
-		return -1;
+	//if (instID < 0 || instID >= receiverList.size())
+	//	return -1;
 
-   sageAudioReceiver *receiver = receiverList[instID];
+	int index;
+   sageAudioReceiver *receiver = findApp(instID, index);
 	if(receiver != NULL) {
 		delete receiver;
       audioModule->deleteObject(instID);
 		receiver = NULL;
-		receiverList[instID] = NULL;
+		receiverList.erase(receiverList.begin() + index);
 		std::cout << "[sageAudioManager::shutdownApp] " << instID << " is shutting down" << std::endl;
    }
 
@@ -581,6 +595,7 @@ void sageAudioManager::mainLoop()
       parseEvent(newEvent);
 
    }
+	std::cout << "---->end" << std::endl;
 }
 
 int sageAudioManager::perfReport()

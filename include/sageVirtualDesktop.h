@@ -80,7 +80,6 @@ public:
    int getNodeIPs(int nodeId, char *ipStr);
    int getForwardIP(int nodeId, char *ipStr);
 
-	// HYEJUNG
 	int getTileInfo(char *info);
    
    int getRcvInfo(int nodeID, char *info);

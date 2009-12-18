@@ -48,6 +48,7 @@
 #include <list>
 #include <map>
 #include <bitset>
+#include "fsClient.h"
 
 #define SAGE_SYNC_MSG_LEN  1280 // must be equal to SAGE_EVENT_SIZE
 #define MAX_SYNC_GROUP     100
@@ -200,7 +201,7 @@ public:
 /**
  * class sageSyncBBServer
  */
-class sageSyncBBServer {
+class sageSyncBBServer : public fsClient {
 protected:
    int serverSockFd; /**< syncServer's socket */
    int maxSyncGroupID;
@@ -261,6 +262,8 @@ protected:
     * The period is defined in the syncGroup.interval
     */
    static void* mainLoopThread(void*);
+	// receives new message 
+	static void* msgCheckThread(void *args); 
 
    sageTimer timer;
 
@@ -268,7 +271,7 @@ public:
 	/**
 	 *  Constructor. Called in sageDisplayManager::sageDisplayManager() and sail::init()
 	 */
-   sageSyncBBServer(int syncLevel = 2);
+   sageSyncBBServer(char* ip, int port, int syncLevel = 2);
    ~sageSyncBBServer();
 
    /**

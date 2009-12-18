@@ -262,9 +262,7 @@ int sageMontage::renewTexture()
    newHeight = getMax2n(texInfo.height);
    
    int maxt;
-//HYEJUNG
    glGetIntegerv(GL_MAX_TEXTURE_SIZE, (GLint*)&maxt);
-//HYEJUNG
    if (newWidth > maxt)  {
       fprintf(stderr, "Warning: trying to create texture %d, bigger than maximun %d\n", newWidth, maxt);
       newWidth = maxt;

@@ -78,31 +78,28 @@ int fsCore::initDisp(appInExec* app)
 
 int fsCore::initAudio()
 {
-   appInExec *appExec;
-   int execNum = fsm->execList.size();
+   int i = fsm->execList.size()-1;
 
    //int msgLen = 8 + SAGE_IP_LEN * execNum;
    int msgLen = 8 + SAGE_IP_LEN * fsm->vdtList[0]->getNodeNum();
    char *msgStr = new char[msgLen];
    memset(msgStr, 0, msgLen);
 
-   int i = execNum -1;
-	i =  fsm->m_execIndex;
-   appExec = fsm->execList[i];
+   appInExec* appExec = fsm->execList[i];
    if (!appExec) {
       //continue;
    }
    else 
    {
       fsm->vdtList[0]->generateAudioRcvInfo(fsm->rInfo.audioPort, msgStr);
-      //printf("initaudio --> %s\n", msgStr);
       char conMessage[TOKEN_LEN];
       sprintf(conMessage, "%s %d", msgStr, i);
+      //std::cout <<"initaudio --> " << conMessage << std::endl;
+
       if (fsm->sendMessage(appExec->sailClient, SAIL_CONNECT_TO_ARCV, conMessage) < 0) {
-			sage::printLog("fsCore : %s(%d) is stuck or shutdown", appExec->appName, i);
+			sage::printLog("fsCore::initAudio : %s(%d) is stuck or shutdown", appExec->appName, i);
 			clearAppInstance(i);
 		}		
-		// HYEJUNG
 		int audio_size = fsm->audioList.size();
 		if(audio_size == 0) return 0;
 		char msgStr[TOKEN_LEN];
@@ -241,8 +238,11 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
 			app->fsInstID  = fsm->m_execIndex;
 			std::cout << "[fsCore::parseMessage] inst id : " << app->fsInstID << std::endl;
 
-         sprintf(sailInitMsg, "%d %d %d %d", fsm->m_execIndex, fsm->nwInfo->rcvBufSize,
-               fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize);
+			int audio_size = fsm->audioList.size();
+			if(audio_size == 0) 
+				app->audioOn = 0; 
+         sprintf(sailInitMsg, "%d %d %d %d %d", fsm->m_execIndex, fsm->nwInfo->rcvBufSize,
+               fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize, audio_size);
          
 			if (fsm->sendMessage(clientID, SAIL_INIT_MSG, sailInitMsg) < 0) {
 				sage::printLog("fsCore : %s is stuck or shutdown", app->appName);
@@ -372,7 +372,6 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
    
          //cout << " ----> fsCore : " << msgStr << endl;         
          fsm->sendMessage(clientID, ARCV_AUDIO_INIT, msgStr);
-			// HYEJUNG
 			memset(info, 0, TOKEN_LEN);
 			fsm->vdtList[0]->getTileInfo(info);
 			fsm->sendMessage(clientID, ARCV_WINDOW_INIT, info);
@@ -380,6 +379,15 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
 
          break;
       }
+      case REG_SYNC_MASTER : {
+			// register Sync
+         std::cout << "[fsCore::parseMessage] ----> register sync master" << std::endl;         
+			fsm->syncMaster = clientID; 
+         char msgStr[TOKEN_LEN]; 
+			sprintf(msgStr, "syncmaster init");
+         fsm->sendMessage(clientID, SYNC_MASTER_INIT, msgStr);
+			break;
+		}
       
       /*case SYNC_INIT_ARCV : {
          // find gStreamRcvs connected to this aStreamRcv
@@ -1061,8 +1069,6 @@ int fsCore::windowChanged(int appId)
 		}
 	}	
 
-	// HYEJUNG
-	std::cout << "change requested ... " << std::endl;
 	int audio_size = fsm->audioList.size();
 	if(audio_size == 0) return 0;
 	char msgStr[TOKEN_LEN];
@@ -1073,13 +1079,12 @@ int fsCore::windowChanged(int appId)
 		app = findApp(appId, index);
 		if(!app) return -1;
 	}
-	displayInstance *disp = fsm->dispList[appId];
+	displayInstance *disp = fsm->dispList[index];
 	sprintf(msgStr, "%d %d %d %d %d %d", appId, app->x, app->y, app->width, app->height, disp->getZValue());
 	for(int audio_id=0; audio_id < audio_size; audio_id++)
 	{
 		fsm->sendMessage(fsm->audioList[audio_id], ARCV_WINDOW, msgStr);
 	}
-	std::cout << "end ... " << std::endl;
 
    return 0;
 }         
@@ -1314,7 +1319,6 @@ int fsCore::bringToFront(int winID)
 	}	
    
 
-	// HYEJUNG
 	int audio_size = fsm->audioList.size();
 	for(int audio_id=0; audio_id < audio_size; audio_id++)
 	{

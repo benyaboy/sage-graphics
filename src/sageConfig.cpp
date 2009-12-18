@@ -41,7 +41,6 @@
 #include "sageConfig.h"
 #include "sageSync.h"
 
-// HYEJUNG
 streamerConfig::streamerConfig() : rank(0), resX(0), resY(0), rowOrd(TOP_TO_BOTTOM), 
       master(true), protocol(SAGE_TCP), asyncUpdate(true), blockX(64), blockY(64), blockSize(0), 
       compression(NO_COMP), pixFmt(PIXFMT_888), streamType(SAGE_BLOCK_HARD_SYNC), 

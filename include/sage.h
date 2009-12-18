@@ -61,7 +61,8 @@
 #define FSM_TO_SAGE_UI 40000
 #define FSM_TO_APP_UI  41000
 #define BRIDGE_MESSAGE 50000
-#define ARCV_MESSAGE 15000
+#define ARCV_MESSAGE 60000
+#define SYNC_MESSAGE 70000
 
 // fsManager Messages
 #define REG_APP  FS_CORE_MESSAGE + 1  // app_name block_width block_height pixel_size sync_mode
@@ -71,6 +72,7 @@
 #define REG_ARCV FS_CORE_MESSAGE + 5
 #define SYNC_INIT_ARCV FS_CORE_MESSAGE + 6
 #define NOTIFY_APP_SHUTDOWN    FS_CORE_MESSAGE + 7
+#define REG_SYNC_MASTER FS_CORE_MESSAGE + 8 
 
 // UI to fsManager
 #define SAGE_UI_REG   SAGE_UI_TO_FSM 
@@ -131,12 +133,15 @@
 #define UPDATE_OBJECT_POSITION GRCV_MESSAGE + 9
 
 // aStreamRcv Messages
-#define ARCV_AUDIO_INIT        ARCV_MESSAGE
-#define ARCV_SYNC_INIT         ARCV_MESSAGE + 1
-#define ARCV_SHUTDOWN_APP      ARCV_MESSAGE + 2
-#define ARCV_WINDOW           ARCV_MESSAGE + 3
+#define ARCV_AUDIO_INIT  		ARCV_MESSAGE
+#define ARCV_SYNC_INIT   		ARCV_MESSAGE + 1
+#define ARCV_SHUTDOWN_APP		ARCV_MESSAGE + 2
+#define ARCV_WINDOW       		ARCV_MESSAGE + 3
 #define ARCV_WINDOW_INIT      ARCV_MESSAGE + 4
 #define ARCV_WINDOW_DEPTH     ARCV_MESSAGE + 5
+
+// SyncMaster Message
+#define SYNC_MASTER_INIT		SYNC_MESSAGE
 
 // sage bridge messages
 #define BRIDGE_REG_NODE        BRIDGE_MESSAGE
