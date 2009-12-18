@@ -112,10 +112,10 @@ private:
    std::vector<displayInstance *> dispList;
    std::vector<int> uiList;
    std::vector<int> appUiList;
+   int syncMaster; 
    std::vector<sageRect *> drawObjectList;
    std::vector<sageVirtualDesktop *> vdtList;
    std::vector<displayConnection *> dispConnectionList;
-	// HYEJUNG
 	std::vector<int> audioList; // sageAudioManager list
 
    char fsIP[SAGE_IP_LEN];

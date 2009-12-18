@@ -154,7 +154,6 @@ int sageVirtualDesktop::launchReceivers(char *fsIP, int port, int syncPort, bool
    return 0;
 }
 
-// HYEJUNG
 int sageVirtualDesktop::getTileInfo(char *info)
 {
 	displayNode *disp = displayCluster[0];
@@ -315,14 +314,12 @@ int sageVirtualDesktop::launchAudioReceivers(char *fsIP, int port, int syncPort)
    }
 
    int audioSyncPort = 14999;
-	// HYEJUNG
 	//int total_sdm = displayCluster.size();
 	int total_sdm = -100;
    for (int i=0; i< audioCluster.size(); i++) {
       char command[TOKEN_LEN];
 
 #if defined(WIN32)
-		// HYEJUNG
       sprintf(command, "start /B /D%s %s\\bin\\sageAudioManager %s %d %d %d",
          sageDir, sageDir, fsIP, port, total_sdm - i, syncPort/*,audioSyncPort*/);
 
@@ -330,7 +327,6 @@ int sageVirtualDesktop::launchAudioReceivers(char *fsIP, int port, int syncPort)
       std::cout << "\t" << command << std::endl;
       system( command );
 #else
-		// HYEJUNG
       sprintf(command, "%s/bin/sageAudioManager %s %d %d %d", sageDir, fsIP, port, total_sdm - i, syncPort /*, audioSyncPort*/);
       std::cout << "audio " << command << std::endl;
       if (execRemBin(audioCluster[i]->ip, command) < 0)

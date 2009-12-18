@@ -260,7 +260,7 @@ int fsManager::init(char *conf_file)
 #ifdef SAGE_AUDIO
    if(rInfo.audioOn) {
       FILE *audioFp = fopen(audioConfigFile, "r");
-      std::cout << "audio on " << std::endl;
+      //std::cout << "audio on " << std::endl;
 
       if (!audioFp) {
          printf("fsManager::init() : fail to open tile config file [%s]\n", audioConfigFile);

@@ -131,6 +131,10 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
    else
 	   syncMaster = (shared->nodeID == 0);
 
+   char fsIP[SAGE_IP_LEN];
+   strcpy(fsIP, argv[1]);
+   int fsPort = atoi(argv[2]);
+
 
    /**
     * creating syncServerObject
@@ -139,7 +143,7 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
 	   syncServerObj = NULL;
 	   sage::printLog("\nSDM::SDM() : SDM %d creating the syncBBServer.", shared->nodeID);
 
-	   syncBBServerObj = new sageSyncBBServer(syncLevel);
+	   syncBBServerObj = new sageSyncBBServer(fsIP, fsPort, syncLevel);
 
 	   // init opens socket and starts syncServerThread
 	   if (syncBBServerObj->init(syncPort) < 0) {
@@ -169,10 +173,6 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
 		   exit(0);
 	   }
    }
-
-   char fsIP[SAGE_IP_LEN];
-   strcpy(fsIP, argv[1]);
-   int fsPort = atoi(argv[2]);
 
    /**
     * connecting to fsManager

@@ -177,7 +177,7 @@ int sageAudioReceiver::readData()
       int rcvSize = nwObj->recv(streamList[0].senderID, &audioNBlock, SAGE_BLOCKING);
       if (rcvSize <= 0) {
          activeRecv = false;
-         sage::printLog("sageAudioReceiver::readSampleData : exit loop");
+         sage::printLog("[sageAudioReceiver::readSampleData] exit loop");
          endFlag = true;
       }
       else {
@@ -230,7 +230,6 @@ int sageAudioReceiver::evalPerformance(char **frameStr, char **bandStr)
       float obsLoss = (float) (packetLoss * 8.0 / (elapsedTime));
       bandWidth = 0;
       packetLoss = 0;
-// HYEJUNG
       /*
       sprintf(*bandStr, "%d %d %7.2f %7.2f", instID, shared->nodeID, obsBandWidth, obsLoss);      
       
@@ -248,7 +247,6 @@ int sageAudioReceiver::evalPerformance(char **frameStr, char **bandStr)
          oldFrame = updateFrame;
          sprintf(*frameStr, "%d %f", instID, frameRate);
       }*/
-// HYEJUNG      
       
       perfTimer.reset();
    }

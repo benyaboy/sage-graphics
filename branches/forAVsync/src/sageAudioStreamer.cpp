@@ -114,6 +114,11 @@ int sageAudioStreamer::sendControlBlock(int flag, int cond)
          sageAudioBlock ctrlBlock; // ?????
          ctrlBlock.setFlag(flag);
          ctrlBlock.setFrameID(frameID);
+
+			struct timeval timestamp;
+			gettimeofday(&timestamp, NULL);
+			ctrlBlock.setTimeStamp(timestamp.tv_sec, timestamp.tv_usec);
+
          ctrlBlock.updateBufferHeader();
 
          int dataSize = nwObj->send(params[j].rcvID, &ctrlBlock, SAGE_BLOCKING);

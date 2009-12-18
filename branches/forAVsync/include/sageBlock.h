@@ -70,6 +70,8 @@ protected:
    int flag;      //   specify the function of block
    int rcnt;
    int blockID;
+	long int timestamp_s;
+	long int timestamp_u;
 
 public:
    sageBlock() : flag(SAGE_PIXEL_BLOCK), buffer(NULL), bufSize(0), rcnt(0) {}
@@ -84,6 +86,7 @@ public:
    inline int dereference(int cnt = 1) { rcnt -= cnt; return rcnt; }
    inline void setID(int id) { blockID = id; }
    inline int getID() { return blockID; }
+   inline void setTimeStamp(long int sec, long int usec) { timestamp_s = sec; timestamp_u =usec; }
 
    virtual int updateBufferHeader() = 0;
    virtual bool updateBlockConfig() = 0;

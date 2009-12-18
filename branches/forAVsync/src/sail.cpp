@@ -373,7 +373,7 @@ int sail::init(sailConfig &conf)
 
          //buffer = audioObj->load(config.audioFileName, true);   // for the test
          if(buffer != NULL) {
-            audioModule->play();
+			audioModule->play();
          }
       }
 
@@ -577,21 +577,42 @@ int sail::parseMessage(sageMessage &msg)
       case SAIL_INIT_MSG : {
          if (msgData) {
             sageNwConfig nwCfg;
-            sscanf(msgData, "%d %d %d %d", &winID, &nwCfg.rcvBufSize, &nwCfg.sendBufSize,
-                  &nwCfg.mtuSize);
+				int audio_available =0;
+            sscanf(msgData, "%d %d %d %d %d", &winID, &nwCfg.rcvBufSize, &nwCfg.sendBufSize,
+                  &nwCfg.mtuSize, &audio_available);
 
             if (config.rendering) {
                pixelStreamer->setWinID(winID);
                pixelStreamer->setNwConfig(nwCfg);
             }
-
-            if (config.audioOn) {
-               if(audioStreamer)
-               {
-                  audioStreamer->setWinID(winID);
-                  audioStreamer->setNwConfig(nwCfg);
-               }
-            }
+				if(audio_available == 0)
+				{
+					std::cout << " got init mesage  & audio is not available ... " << std::endl;
+					config.audioOn = false;
+					if (audioStreamer) {
+						delete audioStreamer;
+						audioStreamer = NULL;
+					}
+#ifdef SAGE_AUDIO
+					if(audioAppDataHander) {
+						delete audioAppDataHander;
+						audioAppDataHander = NULL;
+					}
+					if(audioModule) {
+				   	audioModule->stop();
+						delete audioModule;
+						audioModule = NULL;
+					}
+#endif
+				} else {
+            	if (config.audioOn) {
+               	if(audioStreamer)
+               	{
+                  	audioStreamer->setWinID(winID);
+                  	audioStreamer->setNwConfig(nwCfg);
+               	}
+            	}
+				}
          }
          else {
             sage::printLog("sail::parseMessage : SAGE_INIT_MSG is NULL\n");
@@ -706,18 +727,17 @@ int sail::parseMessage(sageMessage &msg)
          if (config.audioOn) {
             if (!audioStreamer)
                sage::printLog("sail::parseMessage : No audioStreamer object\n");
-			else {
-				sage::printLog("SAIL is initializing network connections for audio streaming\n");
+				else {
+					sage::printLog("SAIL is initializing network connections for audio streaming\n");
+					audioStreamer->initNetworks(msgData);
 
-				audioStreamer->initNetworks(msgData);
-
-				audioStreamer->enqueMsg(msgData);
-				if(config.audioMode == SAGE_AUDIO_CAPTURE || config.audioMode == SAGE_AUDIO_PLAY) {
-				   audioModule->play();
-				} else if(config.audioMode ==  SAGE_AUDIO_APP && audioAppDataHander){
-					audioAppDataHander->start();
+					audioStreamer->enqueMsg(msgData);
+					if(config.audioMode == SAGE_AUDIO_CAPTURE || config.audioMode == SAGE_AUDIO_PLAY) {
+				   	audioModule->play();
+					} else if(config.audioMode ==  SAGE_AUDIO_APP && audioAppDataHander){
+						audioAppDataHander->start();
+					}
 				}
-			}
          }
 #endif
          break;
