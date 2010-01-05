@@ -43,9 +43,9 @@
 #include <string>
 #include <wand/magick-wand.h>
 
-#if MagickLibVersion >= 0x645
-#define MagickGetImagePixels MagickGetAuthenticPixels
-#endif
+//#if MagickLibVersion >= 0x645
+//#define MagickGetImagePixels MagickGetAuthenticPixels
+//#endif
 
 // for dxt compression
 #include "libdxt.h"
