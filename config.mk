@@ -1,5 +1,5 @@
 # To enable audio, uncomment the following line
-AUDIO=1
+#AUDIO=1
 #GLSL_YUV=1
 #SAIL_ONLY=1
 #SUN_GCC=1

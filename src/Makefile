@@ -11,7 +11,11 @@ QUANTA_LDFLAGS=-L../lib -lquanta
 MYFLAGS=-g ${SAGE_CFLAGS} -O3 -I../include $(SDL_CFLAGS) $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS) $(SUN_INCLUDE) -DDEBUG_RECEIVER
 #-DBRIDGE_DEBUG_
 
-LIBS=$(SDL_LIBS) $(XLIBS) -lpthread -lm -ldl $(QUANTA_LDFLAGS) $(GLEW_LIB) $(SUN_LIBS) $(SAGE_LDFLAGS)
+ifdef AUDIO
+LIBS=-L../lib $(PAUDIO_LIB) $(SDL_LIBS) $(XLIBS) -lpthread -lm -ldl $(QUANTA_LDFLAGS) $(GLEW_LIB) $(SUN_LIBS) $(SAGE_LDFLAGS)
+else
+LIBS=-L../lib $(SDL_LIBS) $(XLIBS) -lpthread -lm -ldl $(QUANTA_LDFLAGS) $(GLEW_LIB) $(SUN_LIBS) $(SAGE_LDFLAGS)
+endif
 
 
 COMMON_OBJ= misc.o sageMessage.o sageRect.o streamInfo.o sageBlock.o sageBuf.o sageBlockPool.o sageFrame.o sageBlockPartition.o
@@ -82,11 +86,10 @@ fsManager: $(COMMON_OBJ) $(FSM_OBJ)
 
 sageDisplayManager: $(COMMON_OBJ) $(RCV_OBJ)
 	$(COMPILER) $(MYFLAGS) $(COMMON_OBJ) $(RCV_OBJ) $(LIBS) -o sageDisplayManager
-#	$(COMPILER) $(MYFLAGS) $(COMMON_OBJ) $(RCV_OBJ) $(LIBS) -o sageDisplayManager
 
 ifdef AUDIO
 sageAudioManager: $(COMMON_OBJ) $(ARCV_OBJ)
-	$(COMPILER) $(MYFLAGS) $(COMMON_OBJ) $(ARCV_OBJ) $(PAUDIO_LIB) $(LIBS) -o sageAudioManager
+	$(COMPILER) $(MYFLAGS) $(COMMON_OBJ) $(ARCV_OBJ) $(LIBS) -o sageAudioManager
 endif
 
 sageBridge: $(COMMON_OBJ) $(BRIDGE_OBJ)
@@ -101,13 +104,8 @@ bridgeConsole: bridgeConsole.o messageInterface.o sageMessage.o misc.o
 fsConsole: fsConsole.o fsClient.o suil.o  sageMessage.o misc.o
 	$(COMPILER) ${SAGE_CFLAGS} fsConsole.o fsClient.o suil.o sageMessage.o misc.o $(LIBS) $(READLINE_LIB) -o fsConsole
 
-ifdef AUDIO
-$(SAIL_LIB): $(COMMON_OBJ) $(SAIL_OBJ)
-	$(COMPILER) $(SHLD_FLAGS) $(COMMON_OBJ) $(SAIL_OBJ) $(PAUDIO_LIB) $(LIBS) -o $(SAIL_LIB)
-else
 $(SAIL_LIB): $(COMMON_OBJ) $(SAIL_OBJ)
 	$(COMPILER) $(SHLD_FLAGS) $(COMMON_OBJ) $(SAIL_OBJ) $(LIBS) -o $(SAIL_LIB)
-endif
 
 .cpp.o :
 	$(COMPILER) $(MYFLAGS) -c -o $@ $<

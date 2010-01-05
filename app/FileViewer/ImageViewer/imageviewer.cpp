@@ -50,11 +50,9 @@
 #include "misc.h"
 
 
-
-#if MagickLibVersion >= 0x645
-#define MagickGetImagePixels MagickGetAuthenticPixels
-#endif
-
+//#if MagickLibVersion >= 0x645
+//#define MagickGetImagePixels MagickGetAuthenticPixels
+//#endif
 
 
 #ifdef USE_DXT

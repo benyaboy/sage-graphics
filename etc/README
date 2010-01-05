@@ -1,0 +1,24 @@
+To build the SAGE RPM:
+	rpmbuild -ba SPECS/sage.spec
+
+
+Directory /etc/profile.d:
+
+file sage.csh:
+	# Add paths for the SAGE package
+	setenv SAGE_DIRECTORY /usr/local/sage
+	setenv PATH ${PATH}:${SAGE_DIRECTORY}/bin
+
+file sage.sh:
+	# Add paths for the SAGE package
+	export SAGE_DIRECTORY=/usr/local/sage
+	export PATH="$PATH:$SAGE_DIRECTORY/bin"
+
+
+
+
+Directory /etc/ld.so.conf.d:
+
+file sage.conf:
+	/usr/local/sage/lib64
+
