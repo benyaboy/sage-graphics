@@ -48,7 +48,7 @@ class suil : public fsClient {
 public:
    suil() {}
    ~suil() {}
-   int init(char *config);
+   int init(const char *config);
 };
 
 #endif

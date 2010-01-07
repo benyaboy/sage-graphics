@@ -148,4 +148,32 @@ public:
    ~sageIndexTable();   
 };
 
+// Inspired by NVIDIA Toolkit
+
+class data_path
+{
+public:
+  std::string              file_path;
+  std::string              path_name;
+  std::vector<std::string> path;
+
+	// Finds and returns the directory (or NULL) to a given filename
+  std::string get_path(std::string filename);
+	// Finds and returns the complete path (or NULL) to a given filename
+  std::string get_file(std::string filename);
+
+	// Finds and opens a given filename
+  FILE *fopen(std::string filename, const char * mode = "rb");
+
+	// Prints the list of directories in the search list
+  void print();
+
+#ifdef WIN32
+  int fstat(std::string filename, struct _stat * stat);
+#else
+  int fstat(std::string filename, struct stat * stat);
+#endif
+};
+
+
 #endif

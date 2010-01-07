@@ -86,7 +86,7 @@ sailConfig::sailConfig() : nwID(1), fsPort(0), syncPort(0), msgPort(0), appID(0)
    sprintf(streamIP, "127.0.0.1");
 }
 
-int sailConfig::setAppName(char *name)
+int sailConfig::setAppName(const char *name)
 {
    int len = strlen(name);
    if (len > SAGE_NAME_LEN) {
@@ -100,11 +100,36 @@ int sailConfig::setAppName(char *name)
    return 0;
 }
 
-int sailConfig::init(char *fname)
+int sailConfig::init(const char *fname)
 {
-   FILE *fp = fopen(fname, "r");   
+        char *sageDir = getenv("SAGE_DIRECTORY");
+        if (!sageDir) {
+                sage::printLog("sailConfig: cannot find the environment variable SAGE_DIRECTORY");
+                return -1;
+        }
+
+        data_path path;
+        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
+        std::string sagedir = std::string( sageDir ) + "/bin";
+                // First search in current directory
+        path.path.push_back( "." );
+                // Then search in ~/.sage/ directory
+        path.path.push_back( homedir );
+                // Finally search in SAGE_DIRECTORY/bin directory
+        path.path.push_back( sagedir );
+
+        std::string found = path.get_file(fname);
+        if (found.empty()) {
+                sage::printLog("sailConfig: cannot find the file [%s]", fname);
+                return -1;
+        }
+        const char *configName = found.c_str();
+        sage::printLog("sailConfig: using [%s] configuration file", configName);
+
+
+   FILE *fp = fopen(configName, "r");   
    if (!fp) {
-      printf("fail to open sail config file\n");
+      sage::printLog("sailConfig: fail to open sail config file [%s]\n", configName);
       return -1;
    }
 

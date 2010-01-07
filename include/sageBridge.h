@@ -90,7 +90,7 @@ protected:
    bool bridgeEnd;
    int syncGroupID;
    
-   int initMaster(char *cFile);
+   int initMaster(const char *cFile);
    int initSlave(char *data);
    int launchSlaves();
    int regApp(sageMessage &msg, int clientID);

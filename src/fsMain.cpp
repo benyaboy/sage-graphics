@@ -45,15 +45,16 @@ int main(int argc, char *argv[])
    fsManager fsm;
 
    if (argc > 1) {
-      std::cerr << "fsManager using configuration file <" << argv[1] << ">" << std::endl;
+      sage::printLog("fsManager: using configuration file [%s]\n", argv[1]);
       if (fsm.init(argv[1]) < 0)
          exit(-1);
    }
    else {
-      std::cerr << "fsManager using configuration file <fsManager.conf>" << std::endl;
+      sage::printLog("fsManager: using default configuration file [fsManager.conf]\n");
       if (fsm.init("fsManager.conf") < 0)
          exit(-1);
    }
    
    fsm.mainLoop();
 }
+

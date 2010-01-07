@@ -58,24 +58,40 @@ void* readThread(void *args)
    return NULL;
 } 
 
-int initInterface(messageInterface &inf, char *configFile)
+int initInterface(messageInterface &inf, const char *configFile)
 {
    msgInfConfig conf;
    conf.master = false;
    
-   char *sageDir = getenv("SAGE_DIRECTORY");
-   if (!sageDir) {
-      std::cout << "sageBridgeUI : cannot find the environment variable SAGE_DIRECTORY" << std::endl;
-      return -1;
-   }   
-   
-   char bridgeConfigFile[TOKEN_LEN];
-   sprintf(bridgeConfigFile, "%s/bin/%s", sageDir, configFile);
-   
+
+        char *sageDir = getenv("SAGE_DIRECTORY");
+        if (!sageDir) {
+                sage::printLog("sageBridgeUI: cannot find the environment variable SAGE_DIRECTORY");
+                return -1;
+        }
+
+        data_path path;
+        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
+        std::string sagedir = std::string( sageDir ) + "/bin";
+                // First search in current directory
+        path.path.push_back( "." );
+                // Then search in ~/.sage/ directory
+        path.path.push_back( homedir );
+                // Finally search in SAGE_DIRECTORY/bin directory
+        path.path.push_back( sagedir );
+
+        std::string found = path.get_file(configFile);
+        if (found.empty()) {
+                sage::printLog("bridgeConsole: cannot find the file [%s]", configFile);
+                return -1;
+        }
+        const char *bridgeConfigFile = found.c_str();
+        sage::printLog("bridgeConsole: using [%s] configuration file", bridgeConfigFile);
+
    FILE *fileBridgeConf = fopen(bridgeConfigFile, "r");
    
    if (!fileBridgeConf) {
-      std::cout << "fail to open SAGE Bridge config file [" << bridgeConfigFile << "]" << std::endl;
+      sage::printLog("bridgeConsole: fail to open SAGE Bridge config file [%s]\n", bridgeConfigFile);
       return -1;
    }
 

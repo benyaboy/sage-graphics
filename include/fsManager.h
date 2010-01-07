@@ -148,7 +148,7 @@ public:
 	* creates sageVirtualDesktop objects that will launch sageDIsplayManager and sageAudioManager<BR>
 	* starts msgThread().
 	*/
-   int init(char *config);
+   int init(const char *config);
 
    void printAppList();
    char* getFsIP() { return fsIP; }

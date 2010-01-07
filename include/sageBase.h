@@ -82,6 +82,9 @@
    #include <sys/select.h>
 #endif
 
+#include <fcntl.h>
+
+
 #define SAGE_IP_LEN 128
 #define SAGE_MAX_DOMAIN 10
 #define SAGE_CMD_LEN 1024

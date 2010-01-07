@@ -466,9 +466,9 @@ public:
 	* @param port an integer
 	* @return -1 on error, 0 otherwise
 	*/
-   int connectToServer(char *serverIP, int port, int SDMnum=-1);
+   int connectToServer(const char *serverIP, int port, int SDMnum=-1);
 
-   int connectToBarrierServer(char *serverIP, int port, int SDMnum=-1);
+   int connectToBarrierServer(const char *serverIP, int port, int SDMnum=-1);
 
 
    /**

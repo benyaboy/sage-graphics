@@ -705,3 +705,158 @@ sageIndexTable::~sageIndexTable()
       
    entries.clear();    
 }
+
+
+
+// Inspired by Nvidia toolkit
+
+using namespace std;
+
+string data_path::get_path(std::string filename)
+{
+  FILE* fp;
+  bool found = false;
+  for(unsigned int i=0; i < path.size(); i++)
+    {
+      path_name = path[i] + "/" + filename;
+      fp = ::fopen(path_name.c_str(), "r");
+
+      if(fp != 0)
+        {
+	  fclose(fp);
+	  found = true;
+	  break;
+        }
+    }
+
+  if (found == false)
+    {
+      path_name = filename;
+      fp = ::fopen(path_name.c_str(),"r");
+      if (fp != 0)
+        {
+	  fclose(fp);
+	  found = true;
+        }
+    }
+
+  if (found == false)
+    return "";
+
+  int loc = path_name.rfind('\\');
+  if (loc == -1)
+    {
+      loc = path_name.rfind('/');
+    }
+
+  if (loc != -1)
+    file_path = path_name.substr(0, loc);
+  else
+    file_path = ".";
+  return file_path;
+}
+
+string data_path::get_file(std::string filename)
+{
+  FILE* fp;
+
+  for(unsigned int i=0; i < path.size(); i++)
+    {
+      path_name = path[i] + "/" + filename;
+      fp = ::fopen(path_name.c_str(), "r");
+
+      if(fp != 0)
+        {
+	  fclose(fp);
+	  return path_name;
+        }
+    }
+
+  path_name = filename;
+  fp = ::fopen(path_name.c_str(),"r");
+  if (fp != 0)
+    {
+      fclose(fp);
+      return path_name;
+    }
+  return "";
+}
+
+// Print the list of directories
+void data_path::print()
+{
+  std::cout << "---------------------" << std::endl;
+  std::cout << "File search list:" << std::endl;
+  for(unsigned int i=0; i < path.size(); i++)
+    {
+      std::cout << "\t" << path[i] << std::endl;
+    }
+  std::cout << "---------------------" << std::endl;
+}
+
+
+// data files, for read only
+FILE * data_path::fopen(std::string filename, const char * mode)
+{
+
+  for(unsigned int i=0; i < path.size(); i++)
+    {
+      std::string s = path[i] + "/" + filename;
+      FILE * fp = ::fopen(s.c_str(), mode);
+
+      if(fp != 0)
+	return fp;
+      else if (!strcmp(path[i].c_str(),""))
+	{
+	  FILE* fp = ::fopen(filename.c_str(),mode);
+	  if (fp != 0)
+	    return fp;
+	}
+    }
+  // no luck... return null
+  return 0;
+}
+
+//  fill the file stats structure
+//  useful to get the file size and stuff
+int data_path::fstat(std::string filename,
+#ifdef WIN32
+		     struct _stat
+#else
+		     struct stat
+#endif
+		     * stat)
+{
+  for(unsigned int i=0; i < path.size(); i++)
+    {
+      std::string s = path[i] + "/" + filename;
+#ifdef WIN32
+      int fh = ::_open(s.c_str(), _O_RDONLY);
+#else
+      int fh = ::open(s.c_str(), O_RDONLY);
+#endif
+      if(fh >= 0)
+        {
+#ifdef WIN32
+	  int result = ::_fstat( fh, stat );
+#else
+	  int result = ::fstat (fh,stat);
+#endif
+	  if( result != 0 )
+            {
+	      fprintf( stderr, "An fstat error occurred.\n" );
+	      return 0;
+            }
+#ifdef WIN32
+	  ::_close( fh );
+#else
+	  ::close (fh);
+#endif
+	  return 1;
+    	}
+    }
+  // no luck...
+  return 0;
+}
+
+

@@ -1705,7 +1705,7 @@ sageSyncClient::sageSyncClient(int sl) : maxGroupID(-1), syncEnd(false)
    }
 } // End of sageSyncClient :: sageSyncClient()
 
-int sageSyncClient::connectToServer(char *syncServIP, int port, int SDMnum)
+int sageSyncClient::connectToServer(const char *syncServIP, int port, int SDMnum)
 {
    int noOfConnAttempts = 0;
    sockaddr_in tempAddr;
@@ -1741,7 +1741,7 @@ int sageSyncClient::connectToServer(char *syncServIP, int port, int SDMnum)
    return -1;
 }
 
-int sageSyncClient::connectToBarrierServer(char *syncServIP, int port, int SDMnum)
+int sageSyncClient::connectToBarrierServer(const char *syncServIP, int port, int SDMnum)
 {
 	if ( syncLevel != 2 ) {
 		fprintf(stderr,"sageSyncClient::connectToBarrierServer() : syncLevel id %d. No swapbuffer barrier\n", syncLevel);

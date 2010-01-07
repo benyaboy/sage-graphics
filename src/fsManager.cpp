@@ -69,21 +69,37 @@ fsManager::~fsManager()
       delete execList[i];
 }
 
-int fsManager::init(char *conf_file)
+int fsManager::init(const char *conf_file)
 {
-   char *sageDir = getenv("SAGE_DIRECTORY");
-   if (!sageDir) {
-      std::cout << "fsManager::init() : cannot find the environment variable SAGE_DIRECTORY" << std::endl;
-      return -1;
-   }
+        char *sageDir = getenv("SAGE_DIRECTORY");
+        if (!sageDir) {
+                sage::printLog("fsManager: cannot find the environment variable SAGE_DIRECTORY");
+                return -1;
+        }
 
-   char fsConfigFile[TOKEN_LEN];
-   sprintf(fsConfigFile, "%s/bin/%s", sageDir, conf_file);
+        data_path path;
+        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
+        std::string sagedir = std::string( sageDir ) + "/bin";
+                // First search in current directory
+        path.path.push_back( "." );
+                // Then search in ~/.sage/ directory
+        path.path.push_back( homedir );
+                // Finally search in SAGE_DIRECTORY/bin directory
+        path.path.push_back( sagedir );
+
+        std::string found = path.get_file(conf_file);
+        if (found.empty()) {
+                sage::printLog("fsManager: cannot find the file [%s]", conf_file);
+                return -1;
+        }
+        const char *fsConfigFile = found.c_str();
+        sage::printLog("fsManager: using [%s] configuration file", fsConfigFile);
+
 
    FILE *fileFsConf = fopen(fsConfigFile, "r");
 
    if (!fileFsConf) {
-      printf("fsManager::init() : fail to open fsManager config file [%s]\n",fsConfigFile);
+      sage::printLog("fsManager: fail to open fsManager config file [%s]\n", fsConfigFile);
       return -1;
    }
 
