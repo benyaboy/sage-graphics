@@ -72,7 +72,7 @@ extern "C" void glCompressedTexSubImage2D (GLenum, GLint, GLint, GLint, GLsizei,
 #endif
 
 
-int GLprintError(char *file, int line)
+int GLprintError(const char *file, int line)
 {
    //
    // Returns 1 if an OpenGL error occurred, 0 otherwise.

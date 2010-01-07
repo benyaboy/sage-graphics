@@ -38,7 +38,7 @@
 static int ok = 0;
 
 
-void aLog(char* format,...)
+void aLog(const char* format,...)
 {
 	va_list vl;
 	char line[2048];
@@ -50,7 +50,7 @@ void aLog(char* format,...)
     fprintf(stderr, "%s", line);
 }
 
-void aError(char* format,...)
+void aError(const char* format,...)
 {
 	va_list vl;
 	char line[2048];

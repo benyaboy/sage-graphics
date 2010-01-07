@@ -68,7 +68,7 @@ sageBridge::sageBridge(int argc, char **argv) : syncPort(0), syncGroupID(0), aud
    instNum = 0;   
    
    if (argc < 2) {  // master mode with default configuration file
-      initMaster(strdup("sageBridge.conf"));
+      initMaster("sageBridge.conf");
    }
    else if (strcmp(argv[1], "slave") != 0) {  // master mode with user configuration file
       initMaster(argv[1]);
@@ -113,26 +113,41 @@ sageBridge::sageBridge(int argc, char **argv) : syncPort(0), syncGroupID(0), aud
    }
 }   
 
-int sageBridge::initMaster(char *cFile)
+int sageBridge::initMaster(const char *cFile)
 {
    shared = new bridgeSharedData;
    shared->nodeID = 0;
    master = true;
    bridgeEnd = false;
    
-   char *sageDir = getenv("SAGE_DIRECTORY");
-   if (!sageDir) {
-      sage::printLog("sageBridge : cannot find the environment variable SAGE_DIRECTORY");
-      return -1;
-   }   
-   
-   char bridgeConfigFile[TOKEN_LEN];
-   sprintf(bridgeConfigFile, "%s/bin/%s", sageDir, cFile);
-   
+        char *sageDir = getenv("SAGE_DIRECTORY");
+        if (!sageDir) {
+		sage::printLog("sageBridge: cannot find the environment variable SAGE_DIRECTORY");
+                return -1;
+        }
+
+        data_path path;
+        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
+        std::string sagedir = std::string( sageDir ) + "/bin";
+                // First search in current directory
+        path.path.push_back( "." );
+                // Then search in ~/.sage/ directory
+        path.path.push_back( homedir );
+                // Finally search in SAGE_DIRECTORY/bin directory
+        path.path.push_back( sagedir );
+
+        std::string found = path.get_file(cFile);
+        if (found.empty()) {
+		sage::printLog("sageBridge: cannot find the file [%s]", cFile);
+                return -1;
+        }
+	const char *bridgeConfigFile = found.c_str();
+	sage::printLog("sageBridge: using [%s] configuration file", bridgeConfigFile);
+
    FILE *fileBridgeConf = fopen(bridgeConfigFile, "r");
    
    if (!fileBridgeConf) {
-      printf("fail to open SAGE Bridge config file [%s]\n",bridgeConfigFile);
+      sage::printLog("sageBridge: fail to open SAGE Bridge config file [%s]\n",bridgeConfigFile);
       return -1;
    }
 

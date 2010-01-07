@@ -94,29 +94,3 @@ void aligned_free(void *ptr);
 #define memfree(x) free(x)
 #endif
 
-
-// From NVIDIA Toolkit
-
-#ifndef DATA_PATH_H
-#define DATA_PATH_H
-
-class data_path
-{
-public:
-  std::string              file_path;
-  std::string              path_name;
-  std::vector<std::string> path;
-
-  std::string get_path(std::string filename);
-  std::string get_file(std::string filename);
-
-  FILE *fopen(std::string filename, const char * mode = "rb");
-
-#ifdef WIN32
-  int fstat(std::string filename, struct _stat * stat);
-#else
-  int fstat(std::string filename, struct stat * stat);
-#endif
-};
-
-#endif

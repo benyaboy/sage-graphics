@@ -127,8 +127,8 @@ public:
    int   portForwarding;
       
    sailConfig();
-   int init(char *fname); //initialize app configuration by config file
-   int setAppName(char *name);
+   int init(const char *fname); //initialize app configuration by config file
+   int setAppName(const char *name);
 };   
 
 class appInExec : public sageRect {

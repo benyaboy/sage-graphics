@@ -40,18 +40,33 @@
 
 #include "suil.h"
 
-int suil::init(char *config)
+int suil::init(const char *config)
 {
-   char *sageDir = getenv("SAGE_DIRECTORY");
-   if (!sageDir) {
-      std::cout << "suil : cannot find the environment variable SAGE_DIRECTORY" << std::endl;
-      return -1;
-   }   
+	char *sageDir = getenv("SAGE_DIRECTORY");
+	if (!sageDir) {
+		sage::printLog("suil: cannot find the environment variable SAGE_DIRECTORY");
+		return -1;
+	}   
 
-   char fsConfigFile[TOKEN_LEN];
-   sprintf(fsConfigFile, "%s/bin/%s", sageDir, config);
+	data_path path;
+	std::string homedir = std::string( getenv("HOME") ) + "/.sage";
+	std::string sagedir = std::string( sageDir ) + "/bin";
+		// First search in current directory
+	path.path.push_back( "." );
+		// Then search in ~/.sage/ directory
+	path.path.push_back( homedir );
+		// Finally search in SAGE_DIRECTORY/bin directory
+	path.path.push_back( sagedir );
 
-   fsClient::init(fsConfigFile, "uiPort");
-   
-   return 0;
+	std::string found = path.get_file(config);
+	if (found.empty()) {
+		sage::printLog("suil: cannot find any file called [%s]", config);
+		return -1;
+	}
+	else {
+		sage::printLog("suil: using file [%s]", found.c_str());
+		fsClient::init(found.c_str(), "uiPort");
+		return 0;
+	}
 }
+

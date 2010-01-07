@@ -52,7 +52,34 @@ int envInterface::init(sailConfig &conf)
    config = conf;
    
    if (config.master) {
-      fsClient::init("fsManager.conf", "systemPort");
+
+        char *sageDir = getenv("SAGE_DIRECTORY");
+        if (!sageDir) {
+                sage::printLog("envInterface: cannot find the environment variable SAGE_DIRECTORY");
+                return -1;
+        }
+
+        data_path path;
+        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
+        std::string sagedir = std::string( sageDir ) + "/bin";
+                // First search in current directory
+        path.path.push_back( "." );
+                // Then search in ~/.sage/ directory
+        path.path.push_back( homedir );
+                // Finally search in SAGE_DIRECTORY/bin directory
+        path.path.push_back( sagedir );
+
+        std::string found = path.get_file("fsManager.conf");
+        if (found.empty()) {
+                sage::printLog("envInterface: cannot find the file [%s]", "fsManager.conf");
+                return -1;
+        }
+        const char *fsConfigFile = found.c_str();
+        sage::printLog("envInterface: using [%s] configuration file", fsConfigFile);
+
+
+      fsClient::init(fsConfigFile, "systemPort");
+
       while(connect(NULL) < 0)
          sage::sleep(1);
       

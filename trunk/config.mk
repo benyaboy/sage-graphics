@@ -6,7 +6,7 @@
 FS_CONSOLE=fsConsole
 
 COMPILER=g++
-SAGE_CFLAGS=-Wno-deprecated -fPIC 
+SAGE_CFLAGS=-fPIC 
 SAGE_LDFLAGS=
 
 # QUANTA settings

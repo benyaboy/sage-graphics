@@ -50,7 +50,7 @@ int fsClient::init(int port)
    return 0;
 }
 
-int fsClient::init(char *config, char *portType)
+int fsClient::init(const char *config, const char *portType)
 {
    client = new QUANTAnet_tcpClient_c;
 
@@ -149,7 +149,7 @@ int fsClient::sendMessage(int code, int data)
    return sendMessage(FS_ID, code, 0, strlen(token)+1, (void *)token);
 }
 
-int fsClient::sendMessage(int code, char* data)
+int fsClient::sendMessage(int code, const char* data)
 {
    return sendMessage(FS_ID, code, 0, strlen(data)+1, (void *)data);
 }
@@ -167,13 +167,12 @@ int fsClient::sendMessage(int dst, int code, int data)
    return sendMessage(dst, code, 0, strlen(dataStr)+1, (void *)dataStr);
 }
 
-int fsClient::sendMessage(int dst, int code, int app, char *data)
+int fsClient::sendMessage(int dst, int code, int app, const char *data)
 {
    return sendMessage(dst, code, app, strlen(data)+1, (void *)data);
 }
 
-int fsClient::sendMessage(int dst, int code, int app, int size,
-                        void *data)
+int fsClient::sendMessage(int dst, int code, int app, int size, void *data)
 {
    sageMessage msg;
 

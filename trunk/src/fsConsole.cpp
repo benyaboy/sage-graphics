@@ -103,9 +103,9 @@ int com_share    (char *arg);
 // this program can understand.
 
 typedef struct {
-   char *name;                   // User printable name of the function.
+   const char *name;                   // User printable name of the function.
    rl_icpfunc_t *func;           // Function to call to do the job.
-   char *doc;                    // Documentation for this function.
+   const char *doc;                    // Documentation for this function.
 } COMMAND;
 
 //###
@@ -152,7 +152,7 @@ COMMAND commands[] = {
 // Functions locally defined
 void*  readThread(void *args);
 char*  dupstr (char *s);
-char*  rl_gets (char *prompt);
+char*  rl_gets (const char *prompt);
 char*  command_generator (const char * text, int state);
 char** fileman_completion (const char * text, int start, int end);
 char*  stripwhite (char *thestring);
@@ -201,8 +201,29 @@ void* readThread(void *args)
                // Create a file for each application
                char fn[256];
                memset(fn, 0, 256);
-                    
-               sprintf(fn, "log/%s-%s.log", Applications[appID]->name, execArg);
+
+		char *sageDir = getenv("SAGE_DIRECTORY");
+		if (!sageDir) {
+			sage::printLog("fsConsole: cannot find the environment variable SAGE_DIRECTORY");
+			return NULL;
+		}
+
+		data_path path;
+		std::string homedir = std::string( getenv("HOME") ) + "/.sage";
+		std::string sagedir = std::string( sageDir ) + "/bin";
+		// First search in current directory
+		path.path.push_back( "." );
+		// Then search in ~/.sage/ directory
+		path.path.push_back( homedir );
+		// Finally search in SAGE_DIRECTORY/bin directory
+		path.path.push_back( sagedir );
+
+		std::string found = path.get_file("log");
+		if (found.empty()) {
+			sage::printLog("fsConsole: cannot find the directory [%s]", "log");
+			return NULL;
+		}
+		const char *logPath = found.c_str();
                         
                     /*
                     if (noRecv == 0) {
@@ -216,7 +237,9 @@ void* readThread(void *args)
                               noRecv, noSend, dispX, dispY, intval);
                     }         
                     */
-               fprintf(stderr, "Opening log file <%s>\n", fn);
+
+		sprintf(fn, "%s/%s-%s.log", logPath, Applications[appID]->name, execArg);
+		sage::printLog("fsConsole: opening [%s] log file", fn);
                Applications[appID]->log = fopen(fn, "w+");
                     
                if (noRecv > 0) {
@@ -314,7 +337,7 @@ void* readThread(void *args)
 
 
 
-char *dupstr (char *s)
+char *dupstr (const char *s)
 {
    char *r;
 
@@ -325,7 +348,7 @@ char *dupstr (char *s)
 
 // Read a string, and return a pointer to it.
 // Returns NULL on EOF.
-char *rl_gets (char *prompt)
+char *rl_gets (const char *prompt)
 {
   /* If the buffer has already been allocated,
      return the memory to the free pool. */
@@ -352,7 +375,7 @@ char*
 command_generator (const char * text, int state)
 {
    static int list_index, len;
-   char *name;
+   const char *name;
 
         /* If this is a new word to complete, initialize now.  This
            includes saving the length of TEXT for efficiency, and
@@ -373,7 +396,7 @@ command_generator (const char * text, int state)
       {
          memset(current_command, 0, 256);
          strcpy(current_command, name);
-         return (dupstr(name));
+         return dupstr(name);
       }
    }
 
@@ -577,7 +600,7 @@ main(int argc, char **argv)
       }
       else
       {
-         line =  rl_gets(">>> ");
+         line = rl_gets(">>> ");
         
          if (!line) break;
      

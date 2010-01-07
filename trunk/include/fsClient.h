@@ -61,17 +61,17 @@ protected:
 public:
    fsClient() {}
    ~fsClient(); 
-   int init(char *config, char *portType);
+   int init(const char *config, const char *portType);
    int init(int port);
    int connect(char *ip); /**< connects to sage */
    int getSelfIP(char *ip);
    int sendMessage(sageMessage &msg);
    int sendMessage(int code);  
    int sendMessage(int code, int data);
-   int sendMessage(int code, char *data); // string data 
+   int sendMessage(int code, const char *data); // string data 
    int sendMessage(int code, int size, void *data);
    int sendMessage(int dst, int code, int data);
-   int sendMessage(int dst, int code, int app, char *data);
+   int sendMessage(int dst, int code, int app, const char *data);
    int sendMessage(int dst, int code, int app, int size, void *data); /**< send message to fsManager */
    int rcvMessage(sageMessage &msg);
    int rcvMessageBlk(sageMessage &msg); /**< blocking read of SAGE messages. return the message size */

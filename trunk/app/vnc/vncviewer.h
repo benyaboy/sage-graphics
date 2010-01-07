@@ -56,8 +56,8 @@ typedef int Bool;
 
 
 // Util functions
-void aLog(char* format,...);
-void aError(char* format,...);
+void aLog(const char* format,...);
+void aError(const char* format,...);
 
 
 
