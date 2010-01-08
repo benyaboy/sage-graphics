@@ -337,9 +337,11 @@ class SageData:
                     stAppName = sageApp.getName()
                     stDateTime = time.strftime("%Y%m%d-%H%M%S", time.localtime())
                     stFilename = stAppName + '-' + str(windowId) + '-' + stDateTime
-                    stPath = "./data/" + stFilename + ".txt"
-                    if not os.path.isdir("./data/"):  #make the directory if it doesnt exist
-                        os.mkdir("./data/")
+                    # stPath = "./data/" + stFilename + ".txt"
+                    # luc
+                    stPath = os.path.expanduser("~/.sage/") + "data/" + stFilename + ".txt"
+                    if not os.path.isdir( os.path.expanduser("~/.sage/") + "data/"):  #make the directory if it doesnt exist
+                        os.mkdir( os.path.expanduser("~/.sage") + "data/")
                     stFilename = os.path.normpath( stPath )
                     fileObject = open(stFilename, "w")
 
@@ -462,9 +464,10 @@ class SageData:
             if not totalsID in self.hashFileInfo and self.__bPerformanceLogging:  
                 stDateTime = time.strftime("%Y%m%d-%H%M%S", time.localtime())
                 stFilename = "SITE_TOTAL-" + siteName + '-' + stDateTime
-                stPath = "./data/" + stFilename + ".txt"
-                if not os.path.isdir("./data/"):  #make the directory if it doesnt exist
-                    os.mkdir("./data/")
+                #stPath = "./data/" + stFilename + ".txt"
+                stPath = os.path.expanduser("~/.sage/") + "data/" + stFilename + ".txt"
+                if not os.path.isdir( os.path.expanduser("~/.sage/") + "data/"):  #make the directory if it doesnt exist
+                    os.mkdir( os.path.expanduser("~/.sage/") + "data/")
                 stFilename = os.path.normpath( stPath )
                 fileObject = open(stFilename, "w")
 
@@ -733,16 +736,16 @@ class SageData:
 
 
         # create the directory if it doesn't exist
-        if not os.path.isdir("saved-states"):  # make the directory if it doesnt exist
+        if not os.path.isdir( os.path.expanduser("~/.sage/") + "saved-states"):  # make the directory if it doesnt exist
             try:   # in case the file and directory permissions are not right
-                os.mkdir("saved-states")    
+                os.mkdir( os.path.expanduser("~/.sage/") + "saved-states")    
             except:
                 print "\nFailed to create directory \"saved-states\"\n"
                 return False
 
         # open the file and write to it
         try:   #in case the file and directory permissions are not right
-            f = open("saved-states/"+stateName+".state", "wb")
+            f = open( os.path.expanduser("~/.sage/") + "saved-states/"+stateName+".state", "wb")
             pickle.Pickler(f, pickle.HIGHEST_PROTOCOL).dump( (description, appList) )
             f.close()
         except IOError:
@@ -797,12 +800,13 @@ class SageData:
         appList = []
         description = ""
         
-        if not os.path.isdir("saved-states"):
+        if not os.path.isdir( os.path.expanduser("~/.sage/") + "saved-states"):
+            os.mkdir( os.path.expanduser("~/.sage") + "saved-states")
             return {}
         
         # load all the states and read descriptions from them
-        for fileName in os.listdir("saved-states"):
-            filePath = os.path.join("saved-states", fileName)
+        for fileName in os.listdir( os.path.expanduser("~/.sage/") + "saved-states"):
+            filePath = os.path.join( os.path.expanduser("~/.sage/") + "saved-states", fileName)
             if os.path.isfile(filePath) and os.path.splitext(filePath)[1] == ".state":
                 try:
                     stateName = os.path.splitext( os.path.split(filePath)[1] )[0]
