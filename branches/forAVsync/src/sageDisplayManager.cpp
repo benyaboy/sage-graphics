@@ -89,6 +89,7 @@ sageDisplayManager::~sageDisplayManager()
 
 sageDisplayManager::sageDisplayManager(int argc, char **argv)
 {
+	rcvRefreshEnd = false;
    if (argc < 7) {
       sage::printLog("SAGE receiver : More arguments are needed");
       exit(0);
@@ -387,13 +388,14 @@ int sageDisplayManager::init(char *data)
 
 void* sageDisplayManager::refreshThread(void *args) {
    sageDisplayManager *This = (sageDisplayManager *)args;
+	std::cout << "[SDM] Refresh thread is created" << std::endl;
 
-   while (!This->rcvEnd) {
+   while (!This->rcvRefreshEnd) {
       This->shared->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
       sage::usleep(DISPLAY_REFRESH_INTERVAL);
    }
 
-   //sage::printLog("sageDisplayManager::refreshThread : exit");
+   sage::printLog("sageDisplayManager::refreshThread : exit");
    pthread_exit(NULL);
    return NULL;
 }
@@ -403,12 +405,19 @@ void* sageDisplayManager::msgCheckThread(void *args)
    sageDisplayManager *This = (sageDisplayManager *)args;
 
    sageMessage *msg;
+	int rcvSize = 0;
 
    while (!This->rcvEnd) {
       msg = new sageMessage;
-      if (This->rcvMessageBlk(*msg) > 0 && !This->rcvEnd) {
+		rcvSize = This->rcvMessageBlk(*msg);
+      if (rcvSize > 0 && !This->rcvEnd) {
          //std::cout << "message arrive" << std::endl;
          This->shared->eventQueue->sendEvent(EVENT_NEW_MESSAGE, 0, (void *)msg);
+		} else if(rcvSize < 0)
+		{
+         This->shutdownApp(-1);
+			This->rcvEnd = true;
+			break;
       }
    }
 
@@ -1075,6 +1084,9 @@ void sageDisplayManager::mainLoop()
       //std::cout << "get the event " << newEvent->eventType << std::endl;
       parseEvent(newEvent);
    }
+	rcvRefreshEnd = true;
+	sage::usleep(1);
+	std::cout << "[SDM:mainLoop] Terminated" << std::endl;
 }
 
 int sageDisplayManager::perfReport()

@@ -47,7 +47,7 @@
 #include "displayInstance.h"
 #include "streamProtocol.h"
 
-fsManager::fsManager() : NRM(false), fsmClose(false), globalSync(true), useLocalPort(false)
+fsManager::fsManager() : NRM(false), fsmClose(false), globalSync(true), useLocalPort(false), syncMaster(-1)
 {
    core = NULL;
    server = NULL;
