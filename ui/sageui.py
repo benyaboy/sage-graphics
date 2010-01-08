@@ -135,11 +135,11 @@ class DisplayNotebook(wx.Notebook):
 
         # open the file for recording totals for all sites
         try:
-            if not os.path.isdir("./data/"):  #make the directory if it doesnt exist
-                os.mkdir("./data/")
+            if not os.path.isdir( os.path.expanduser("~/.sage/") + "data/"):  #make the directory if it doesnt exist
+                os.mkdir( os.path.expanduser("~/.sage/") + "data/")
             stDateTime = time.strftime("%Y%m%d-%H%M%S", time.localtime())
             stFilename = "ALL_SITES_TOTALS-" + stDateTime
-            stPath = "./data/" + stFilename + ".txt"
+            stPath = os.path.expanduser("~/.sage/") + "data/" + stFilename + ".txt"
             self._totalsFile = open(stPath, "w")
             self._totalsFile.write( time.asctime() + "\n" )
             self._totalsFile.write( '-' * 40 + "\n" )
@@ -992,9 +992,9 @@ class SAGEuiFrame(wx.Frame):
         # files are not made causing an error, allow the new app's file to be created but do
         # not write to it.  Later, delete the 0-size file.
         try:   #in case the file and directory permissions are not right
-            if not os.path.isdir( ConvertPath("data") ):  #make the directory if it doesnt exist
-                os.mkdir( ConvertPath("data") )
-            os.chdir( ConvertPath('data') )
+            if not os.path.isdir( os.path.expanduser("~/.sage/") + ConvertPath("data") ):  #make the directory if it doesnt exist
+                os.mkdir( os.path.expanduser("~/.sage/") + ConvertPath("data") )
+            os.chdir( os.path.expanduser("~/.sage/") + ConvertPath('data') )
             listFilenames = os.listdir( '.' )
 
             # remove files that were never written or minimally written (i.e. <= 1K)
