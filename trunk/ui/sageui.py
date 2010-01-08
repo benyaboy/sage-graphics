@@ -1235,6 +1235,7 @@ def get_commandline_options():
 
 
 def main(argv):
+    os.chdir(sys.path[0])  #change to the folder where the script is running
     verbose = False
     usersServerIP = "206.220.241.46"
     usersServerPort = 15558
