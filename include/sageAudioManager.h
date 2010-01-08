@@ -80,7 +80,10 @@ private:
    int syncPort, streamPort;
    int totalRcvNum;
    int memSize;
+
    bool rcvEnd;
+	bool rcvRefreshEnd;
+	bool initialized;
 
    /**
     * handles below events <BR>

@@ -81,6 +81,7 @@ public:
    sageReceiver() : endFlag(false) {}
 
    int getInstID() { return instID; }
+	bool isEnd() { return endFlag; }
    virtual int addStream(int senderID) = 0; /**< pure virtual member function */
 };
 

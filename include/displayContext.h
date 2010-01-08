@@ -83,6 +83,7 @@ protected:
    
 public:
    displayContext() : winCreatFlag(false) {}
+   virtual ~displayContext() {};
    virtual int init(struct sageDisplayConfig &cfg) = 0;   
    virtual void clearScreen() {}
    virtual void setupViewport(int i, sageRect &tileRect) {}

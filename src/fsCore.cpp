@@ -362,19 +362,23 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          // store client ID of receivers
          fsm->vdtList[0]->regAudioRcv(clientID, nodeID);
                   
-         char info[TOKEN_LEN];
-         // get the tile config info of display node
-         fsm->vdtList[0]->getAudioRcvInfo(nodeID, info);
-         char msgStr[TOKEN_LEN]; 
-         sprintf(msgStr, "%d %d %d %d %d %d %d %d %s", fsm->nwInfo->rcvBufSize, 
-            fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize,   fsm->rInfo.audioSyncPort, 
-            fsm->rInfo.audioPort, fsm->rInfo.agSyncPort, fsm->rInfo.bufSize, fsm->vdtList[0]->getNodeNum(), info);
+			if(fsm->syncMaster != -1) 
+			{
+         	char info[TOKEN_LEN];
+         	// get the tile config info of display node
+         	fsm->vdtList[0]->getAudioRcvInfo(nodeID, info);
+         	char msgStr[TOKEN_LEN]; 
+         	sprintf(msgStr, "%d %d %d %d %d %d %d %d %s", fsm->nwInfo->rcvBufSize, 
+            	fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize,   fsm->rInfo.audioSyncPort, 
+            	fsm->rInfo.audioPort, fsm->rInfo.agSyncPort, fsm->rInfo.bufSize, fsm->vdtList[0]->getNodeNum(), info);
    
-         //cout << " ----> fsCore : " << msgStr << endl;         
-         fsm->sendMessage(clientID, ARCV_AUDIO_INIT, msgStr);
-			memset(info, 0, TOKEN_LEN);
-			fsm->vdtList[0]->getTileInfo(info);
-			fsm->sendMessage(clientID, ARCV_WINDOW_INIT, info);
+         	//cout << " ----> fsCore : " << msgStr << endl;         
+         	fsm->sendMessage(clientID, ARCV_AUDIO_INIT, msgStr);
+				memset(info, 0, TOKEN_LEN);
+				fsm->vdtList[0]->getTileInfo(info);
+				fsm->sendMessage(clientID, ARCV_WINDOW_INIT, info);
+			}
+
 			fsm->audioList.push_back(clientID);
 
          break;
@@ -382,10 +386,33 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
       case REG_SYNC_MASTER : {
 			// register Sync
          std::cout << "[fsCore::parseMessage] ----> register sync master" << std::endl;         
+			// initialize audio : audio manager need to connect to sync. 
+			// audio init message needs to send after creating master sync.
+         char info[TOKEN_LEN];
+        	char msgStr[TOKEN_LEN]; 
+			for(int i=0; i < fsm->audioList.size(); i++)
+			{
+         	memset(info, 0, TOKEN_LEN);
+         	// get the tile config info of display node
+         	fsm->vdtList[0]->getAudioRcvInfo(i, info);
+
+         	memset(msgStr, 0, TOKEN_LEN);
+         	sprintf(msgStr, "%d %d %d %d %d %d %d %d %s", fsm->nwInfo->rcvBufSize, 
+            	fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize,   fsm->rInfo.audioSyncPort, 
+            	fsm->rInfo.audioPort, fsm->rInfo.agSyncPort, fsm->rInfo.bufSize, fsm->vdtList[0]->getNodeNum(), info);
+   
+         	//cout << " ----> fsCore : " << msgStr << endl;         
+         	fsm->sendMessage(fsm->audioList[i], ARCV_AUDIO_INIT, msgStr);
+				memset(info, 0, TOKEN_LEN);
+				fsm->vdtList[0]->getTileInfo(info);
+				fsm->sendMessage(fsm->audioList[i], ARCV_WINDOW_INIT, info);
+			}
+
+			// register Sync
 			fsm->syncMaster = clientID; 
-         char msgStr[TOKEN_LEN]; 
+        	memset(msgStr, 0, TOKEN_LEN);
 			sprintf(msgStr, "syncmaster init");
-         fsm->sendMessage(clientID, SYNC_MASTER_INIT, msgStr);
+         fsm->sendMessage(fsm->syncMaster, SYNC_MASTER_INIT, msgStr);
 			break;
 		}
       

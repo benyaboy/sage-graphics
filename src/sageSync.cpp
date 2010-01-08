@@ -436,12 +436,15 @@ void* sageSyncBBServer::msgCheckThread(void *args)
 {
 	sageSyncBBServer *This = (sageSyncBBServer*) args;
 	sageMessage *msg;
+	int recvSize =0;
 	while(!This->syncEnd) {
 		msg = new sageMessage;
-		if (This->rcvMessageBlk(*msg) > 0 && !This->syncEnd) 
+		recvSize = This->rcvMessageBlk(*msg);
+		if (recvSize > 0 && !This->syncEnd) 
 		{
 			std::cout << "[sageSyncBBServer::msgCheckThread] ----> got message from fsManger" << std::endl;
-		}
+		} else if (recvSize < 0)
+			break;
 	}
 	sage::printLog("sageSyncBBServer::msgCheckThread : exit");
 	pthread_exit(NULL);
@@ -470,6 +473,7 @@ void* sageSyncBBServer :: syncServerThread(void *args)
 
       if ((tempSockFd = accept(This->serverSockFd, (struct sockaddr *)&clientAddr,(socklen_t*)&addrLen)) == -1) {
          sage::printLog("sageSyncBBServer::syncServerThread()::Quitting sync server thread.");
+			This->syncEnd = true;
          pthread_exit(NULL);
          continue;
       }
@@ -539,6 +543,7 @@ void* sageSyncBBServer::syncBarrierServerThread(void *args)
 
       if ((tempBarrierSockFd = accept(This->barrierServerSockFd, (struct sockaddr *)&clientAddr,(socklen_t*)&addrLen)) == -1) {
          sage::printLog("sageSyncBBServer::syncBarrierServerThread()::Quitting sync server thread.");
+			This->syncEnd = true;
          pthread_exit(NULL);
       }
 

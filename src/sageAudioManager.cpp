@@ -84,6 +84,9 @@ sageAudioManager::~sageAudioManager()
 
 sageAudioManager::sageAudioManager(int argc, char **argv)
 {
+	initialized = false;
+	rcvRefreshEnd = false;
+
    if (argc < 5) {
       sage::printLog("SAGE Audio receiver : More arguments are needed");
       exit(0);
@@ -204,10 +207,18 @@ int sageAudioManager::init(char *data)
    syncClientObj = new sageSyncClient;
 
 	//std::cout << "nodeID = " << nodeID << std::endl;
-   if (syncClientObj->connectToServer(masterIp, syncPort, nodeID) < 0) {
-      sage::printLog("SAGE Audio Manager : Fail to connect to sync master");
+	int i;
+	for(i=0; i <100; i++)
+	{
+   	if (syncClientObj->connectToServer(masterIp, syncPort, nodeID) >= 0)
+			break;
+   } 
+	if(i == 100)
+	{
+		sage::printLog("[sageAudioManager::init] Fail to connect to sync master");
       return -1;
-   }
+	} else 
+		sage::printLog("[sageAudioManager::init] connected to sync master");
 
    sendMessage(SYNC_INIT_ARCV, nodeID);
 
@@ -222,6 +233,7 @@ int sageAudioManager::init(char *data)
    if (pthread_create(&thId, 0, refreshThread, (void*)this) != 0) {
       sage::printLog("sageAudioManager: can't create UI event check thread");
    }
+	initialized = true;
 
    return 0;
 }
@@ -231,13 +243,20 @@ void* sageAudioManager::msgCheckThread(void *args)
    sageAudioManager *This = (sageAudioManager *)args;
 
    sageMessage *msg;
+	int rcvSize = 0;
 
    while (!This->rcvEnd) {
       msg = new sageMessage;
-      if (This->rcvMessageBlk(*msg) > 0 && !This->rcvEnd) {
+		rcvSize = This->rcvMessageBlk(*msg);
+      if (rcvSize > 0 && !This->rcvEnd) {
          //std::cout << "----> message arrive" << std::endl;
          This->eventQueue->sendEvent(EVENT_NEW_MESSAGE, 0, (void *)msg);
-      }
+      } else if(rcvSize < 0)
+		{
+			This->shutdownApp(-1);
+			This->rcvEnd = true;
+			break;
+		}
    }
 
    sage::printLog("sageAudioManager::msgCheckThread : exit");
@@ -283,7 +302,7 @@ void* sageAudioManager::refreshThread(void *args)
 {
    sageAudioManager *This = (sageAudioManager *)args;
 
-   while (!This->rcvEnd) {
+   while (!This->rcvRefreshEnd) {
       This->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
       sage::usleep(16666);  // 1/60fps = 0.016666sec/frame
    }
@@ -472,6 +491,7 @@ int sageAudioManager::parseMessage(sageMessage *msg)
 	//std::cout << msg->getCode() << " parse mesage : " << (char *)msg->getData() << std::endl;
    switch (msg->getCode()) {
       case ARCV_AUDIO_INIT : {
+			if(initialized == true) break;
          if (init((char *)msg->getData()) < 0)
             rcvEnd = true;
          break;
@@ -526,7 +546,6 @@ int sageAudioManager::parseMessage(sageMessage *msg)
 		}
       case SHUTDOWN_RECEIVERS : {
          shutdownApp(-1);
-
          if(audioModule) {
             delete audioModule;
             audioModule = NULL;
@@ -535,7 +554,6 @@ int sageAudioManager::parseMessage(sageMessage *msg)
             delete syncClientObj;
             syncClientObj = NULL;
          }
-
          rcvEnd = true;
          break;
       }
@@ -588,14 +606,26 @@ int sageAudioManager::processSync(char *msg)
 
 void sageAudioManager::mainLoop()
 {
+   sageAudioReceiver *recv;
+
    while(!rcvEnd) {
       //std::cout << "---->wait a event" << std::endl;
       sageEvent *newEvent = eventQueue->getEvent();
       //std::cout << "----->get the event " << newEvent->eventType << std::endl;
       parseEvent(newEvent);
 
+   	for (int i=0; i< receiverList.size(); i++) {
+      	recv = receiverList[i];
+      	if (!recv) continue;
+      	if (recv->isEnd() == true)
+				shutdownApp(recv->getInstID());
+		}
+
    }
-	std::cout << "---->end" << std::endl;
+	rcvRefreshEnd = true;
+	sage::usleep(16666);  // 1/60fps = 0.016666sec/frame = refresh rate...
+
+	std::cout << "[sageAudioManager:mainLoop] Terminated" << std::endl;
 }
 
 int sageAudioManager::perfReport()

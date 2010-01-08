@@ -77,7 +77,7 @@ public:
    void setupViewport(int i, sageRect &tileRect);
    void refreshScreen();
    void changeBackground(int red, int green, int blue);
-   ~sdlSingleContext();
+   virtual ~sdlSingleContext();
    void checkEvent();
 };
 

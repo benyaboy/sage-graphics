@@ -354,8 +354,11 @@ void* sageAudioModule::mergeThread(void *args)
 				}
 			}
 			This->removeList.clear();
-			if(This->bufferList.size() == 0);
+			if(This->bufferList.size() == 0)
+			{
+				std::cout << "[sageAudioModule::mergeThread] buffer is reset" << std::endl;
 				output->reset();
+			}
    	}
 		This->removeLock = false;
 

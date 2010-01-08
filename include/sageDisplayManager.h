@@ -98,6 +98,7 @@ private:
    int streamPort;
    int totalRcvNum; /**< total number of node in the system */
    bool rcvEnd;
+	bool rcvRefreshEnd;
    int displayID; /**< looks like ]always zero */
 
    /**

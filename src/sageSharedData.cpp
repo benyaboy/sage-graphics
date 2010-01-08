@@ -58,9 +58,12 @@ rcvSharedData::~rcvSharedData()
 
 dispSharedData::~dispSharedData()
 {
+	if(context)
+		delete context;
+
    //std::cout << "delete displayObject" << std::endl;   
    //if (displayObj)
-   //   delete displayObj;
+	// delete displayObj;
 
    //std::cout << "delete syncClientObject" << std::endl;               
    //if (syncClientObj)
