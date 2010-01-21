@@ -64,9 +64,10 @@ public:
    long gframeIndex;
    int reformatted;
    void* buff;
-   double timestamp;
-
-   audioBlock(): frameIndex(-1), gframeIndex(-1), reformatted(0), buff(NULL), timestamp(0) {};
+	long int timestamp_s;
+	long int timestamp_u;
+	
+   audioBlock(): frameIndex(-1), gframeIndex(-1), reformatted(0), buff(NULL) {};
    ~audioBlock() {};
 };
 

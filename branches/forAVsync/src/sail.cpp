@@ -68,7 +68,7 @@ extern "C" {
 #endif
 
 
-sail::sail() : winID(0), bufID(0), sailOn(false), audioOn(false), sGroup(NULL), syncServerObj(NULL)
+sail::sail() : winID(0), bufID(0), sailOn(false), audioOn(false), sGroup(NULL), syncServerObj(NULL), _update(NONE_UPDATE)
 {
    envIntf = NULL;
    pixelStreamer = NULL;
@@ -422,6 +422,16 @@ int sail::swapBuffer(int mode)
    }
 
    //std::cout << "pt2" << std::endl;
+	// update time stamp
+	sagePixelData* data = doubleBuf->getFrontBuffer();
+	if((config.audioOn == false) || (_update == NONE_UPDATE))
+	{
+		gettimeofday(&_timeStamp, NULL);
+	}
+	//std::cout << "video time stamp : " << _timeStamp.tv_sec << " " << _timeStamp.tv_usec << std::endl;
+	data->setTimeStamp(_timeStamp.tv_sec, _timeStamp.tv_usec);
+	_update = VIDEO_UPDATE;
+   
    doubleBuf->swapBuffer();
 
 #ifdef SAGE_AUDIO
@@ -942,9 +952,13 @@ int sail::generateSageBlocks()
 #ifdef SAGE_AUDIO
 int sail::pushAudioData(int size, void *buf)
 {
-   if(audioAppDataHander != NULL)
-               audioAppDataHander->swapBuffer(size, buf);
-   else
+   if(audioAppDataHander != NULL) {
+		if((_update == VIDEO_UPDATE) || (_update == NONE_UPDATE))
+			gettimeofday(&_timeStamp, NULL);
+		//std::cout << "audio time stamp : " << _timeStamp.tv_sec << " " << _timeStamp.tv_usec << std::endl;
+		_update = AUDIO_UPDATE;
+		audioAppDataHander->swapBuffer(size, buf, &_timeStamp);
+   } else
                return -1;
 
    return 0;

@@ -52,7 +52,7 @@ public:
 
 public:   
    //int pushAudioData(int size, void *buf);
-   int swapBuffer(int size, void *buf);
+   int swapBuffer(int size, void *buf, struct timeval* timestamp);
    int start(void);
    
 protected:

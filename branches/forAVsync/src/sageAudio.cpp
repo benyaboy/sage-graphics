@@ -785,7 +785,7 @@ int sageAudio::recordCallback( const void *inputBuffer, void *outputBuffer,
    block->frameIndex = This->buffer->getWriteIndex();
    block->gframeIndex = sageAudioModule::_instance->getgFrameNum();
    block->reformatted = 1;
-   block->timestamp = Pa_GetStreamTime(This->audioStream);   
+   //block->timestamp = Pa_GetStreamTime(This->audioStream);   
 
    // update writeIndex
    This->buffer->updateWriteIndex();

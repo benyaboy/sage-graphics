@@ -288,7 +288,7 @@ int sageBlockGroup::sendData(int sockFd)
    }
 
    int sendSize = 0;
-   sprintf(header, "%d %d %d", blockNum, frameID, configID);
+   sprintf(header, "%d %d %d %ld %ld", blockNum, frameID, configID, timestamp_s, timestamp_u);
 
    //std::cout << "send " << header << std::endl;
    //for (int i=1; i<=blockNum; i++)
@@ -356,7 +356,9 @@ int sageBlockGroup::readData(int sockFd)
    int headerSize = 0, recvSize = 0;
    headerSize = sage::recv(sockFd, (void *)header, GROUP_HEADER_SIZE, MSG_PEEK);
    if (headerSize > 0)
-      sscanf(header, "%d %d %d", &blockNum, &frameID, &configID);
+	{
+      sscanf(header, "%d %d %d %ld %ld", &blockNum, &frameID, &configID, &timestamp_s, &timestamp_u);
+	}
    else
       return -1;
 
@@ -428,7 +430,8 @@ int sageBlockGroup::sendDatagram(int sockFd)
    }
 
    int sendSize = 0;
-   sprintf(header, "%d %d %d", blockNum, frameID, configID);
+   sprintf(header, "%d %d %d %ld %ld", blockNum, frameID, configID, timestamp_s, timestamp_u);
+	//std::cout << "header in group : " << header << std::endl;
 
    int iovNum = blockNum+1;
 
@@ -459,7 +462,10 @@ int sageBlockGroup::readDatagram(int sockFd)
    int headerSize = 0, recvSize = 0;
    headerSize = sage::recv(sockFd, (void *)header, GROUP_HEADER_SIZE, MSG_PEEK);
       if (headerSize > 0)
-         sscanf(header, "%d %d %d", &blockNum, &frameID, &configID);
+		{
+         sscanf(header, "%d %d %d %ld %ld", &blockNum, &frameID, &configID, &timestamp_s, &timestamp_u);
+		 //std::cout << "got : header in group : " << header << std::endl;
+		}
       else
          return -1;
 

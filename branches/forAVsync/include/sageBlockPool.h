@@ -88,7 +88,9 @@ protected:
    int refCnt;
    int deRefCnt;
    char header[GROUP_HEADER_SIZE];
-
+	long int timestamp_s;
+	long int timestamp_u;
+	
    int blockNum;
 
 #ifdef WIN32
@@ -139,6 +141,7 @@ public:
    bool updateConfig(int num, int frame, int config);
    bool genIOV();
    bool setRefCnt();
+   inline void setTimeStamp(long int sec, long int usec) { timestamp_s = sec; timestamp_u =usec; }
 
    //bool dereferenceAll();
    int sendData(int sockFd);

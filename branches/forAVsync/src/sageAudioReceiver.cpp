@@ -174,13 +174,15 @@ int sageAudioReceiver::readData()
          return -1;
       }
 
-      int rcvSize = nwObj->recv(streamList[0].senderID, &audioNBlock, SAGE_BLOCKING);
-      if (rcvSize <= 0) {
+     int rcvSize = nwObj->recv(streamList[0].senderID, &audioNBlock, SAGE_BLOCKING);
+      if (rcvSize < 0) {
          activeRecv = false;
          sage::printLog("[sageAudioReceiver::readSampleData] exit loop");
          endFlag = true;
-      }
-      else {
+			break;
+      } else if (rcvSize == 0) {
+			continue;
+      } else {
 
          bandWidth += rcvSize;
          //std::cout << "enqueued a block : " << (char *)freeBlock->getBuffer() << std::endl;

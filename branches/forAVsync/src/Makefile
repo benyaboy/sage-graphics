@@ -8,7 +8,8 @@ QUANTA_DIR=../QUANTA
 QUANTA_CFLAGS=-I${QUANTA_DIR}/include
 QUANTA_LDFLAGS=-L../lib -lquanta
 
-MYFLAGS=-g ${SAGE_CFLAGS} -O3 -I../include $(SDL_CFLAGS) $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS) $(SUN_INCLUDE) -DDEBUG_SYNC
+MYFLAGS=-g ${SAGE_CFLAGS} -O3 -I../include $(SDL_CFLAGS) $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS) $(SUN_INCLUDE) 
+#MYFLAGS=-g ${SAGE_CFLAGS} -O3 -I../include $(SDL_CFLAGS) $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS) $(SUN_INCLUDE) -DDEBUG_SYNC
 #-DBRIDGE_DEBUG_
 
 LIBS=$(SDL_LIBS) $(XLIBS) -lpthread -lm -ldl $(QUANTA_LDFLAGS) $(GLEW_LIB) $(SUN_LIBS) $(SAGE_LDFLAGS)
@@ -37,7 +38,7 @@ endif
 BRIDGE_OBJ=sageBridge.o sageAudioBridge.o messageInterface.o sageSync.o \
 	streamProtocol.o sageTcpModule.o sageUdpModule.o sageSharedData.o \
 	appInstance.o sageStreamer.o bridgeStreamer.o sageBlockQueue.o \
-	sageEvent.o sageConfig.o sageReceiver.o sageDoubleBuf.o
+	sageEvent.o sageConfig.o sageReceiver.o sageDoubleBuf.o fsClient.o
 
 ifdef AUDIO
 SAIL_OBJ= sail.o envInterface.o fsClient.o sageSync.o \

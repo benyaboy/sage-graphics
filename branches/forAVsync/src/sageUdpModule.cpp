@@ -1118,6 +1118,9 @@ bool sageUdpModule::setSockOpts(int fd, bool noDelay)
    }
 
    optVal= config.sendBufSize, optLen = sizeof(optVal);
+	std::cout << "info: send buff size = " << config.sendBufSize  << std::endl;
+	std::cout << "info: receive buff size = " << config.rcvBufSize  << std::endl;
+
    if(setsockopt(fd, SOL_SOCKET, SO_SNDBUF, (const char*)&optVal, optLen) !=0)
    {
       std::cerr << "sageUdpModule::setSockOpts(): Error setting SO_SNDBUF to " << optVal << " bytes";

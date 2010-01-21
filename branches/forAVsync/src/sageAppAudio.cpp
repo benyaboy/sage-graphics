@@ -180,7 +180,7 @@ int sageAppAudio::processData()
 	return 0;
 }
 
-int sageAppAudio::swapBuffer(int size, void *buf)
+int sageAppAudio::swapBuffer(int size, void *buf, struct timeval* timestamp)
 {
 	//if(initialized == false) return 0;
 	if(buf == NULL) return 0;
@@ -197,6 +197,9 @@ int sageAppAudio::swapBuffer(int size, void *buf)
 		memcpy(block->buff, buf, byteBlock);
 		block->frameIndex = buffer->getWriteIndex();
 		block->gframeIndex = sageAudioModule::_instance->getgFrameNum();
+		block->timestamp_s = timestamp->tv_sec;
+		block->timestamp_u =  timestamp->tv_usec;
+
 		block->reformatted = 1;
 		//sage::printLog("sageAppAudio::swapBuffer : %d %d %d\n", size, byteBlock, block->frameIndex);
 		buffer->updateWriteIndex();
