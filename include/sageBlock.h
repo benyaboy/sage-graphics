@@ -73,6 +73,7 @@ protected:
 	long int timestamp_s;
 	long int timestamp_u;
 
+
 public:
    sageBlock() : flag(SAGE_PIXEL_BLOCK), buffer(NULL), bufSize(0), rcnt(0) {}
 
@@ -86,8 +87,10 @@ public:
    inline int dereference(int cnt = 1) { rcnt -= cnt; return rcnt; }
    inline void setID(int id) { blockID = id; }
    inline int getID() { return blockID; }
-   inline void setTimeStamp(long int sec, long int usec) { timestamp_s = sec; timestamp_u =usec; }
 
+	inline void setTimeStamp(long int sec, long int usec) { timestamp_s = sec; timestamp_u =usec; }
+	inline void getTimeStamp(long int &sec, long int &usec) { sec = timestamp_s; usec = timestamp_u; } 
+	
    virtual int updateBufferHeader() = 0;
    virtual bool updateBlockConfig() = 0;
    virtual int getFrameID() = 0;

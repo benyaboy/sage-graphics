@@ -115,9 +115,7 @@ int sageAudioStreamer::sendControlBlock(int flag, int cond)
          ctrlBlock.setFlag(flag);
          ctrlBlock.setFrameID(frameID);
 
-			struct timeval timestamp;
-			gettimeofday(&timestamp, NULL);
-			ctrlBlock.setTimeStamp(timestamp.tv_sec, timestamp.tv_usec);
+			//ctrlBlock.setTimeStamp(timestamp.tv_sec, timestamp.tv_usec);
 
          ctrlBlock.updateBufferHeader();
 
@@ -204,6 +202,9 @@ int sageAudioStreamer::streamAudioData()
    if(bufferBlock->reformatted != 1) return 0;
    char* tempbuff = aBlock.getAudioBuffer(); 
    memcpy(tempbuff,  bufferBlock->buff, buffer->getBytesBlock());
+
+	aBlock.setTimeStamp(bufferBlock->timestamp_s, bufferBlock->timestamp_u);
+	//std::cout << "audio time stamp : " << bufferBlock->timestamp_s << " " << bufferBlock->timestamp_u << std::endl;
 
    aBlock.setgFrameID(bufferBlock->gframeIndex);
 

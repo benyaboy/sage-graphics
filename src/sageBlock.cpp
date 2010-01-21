@@ -112,8 +112,8 @@ int sagePixelBlock::updateBufferHeader()
    }
    
    memset(buffer, 0, BLOCK_HEADER_SIZE);
-   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d %ld %ld",
-         bufSize, flag, x, y, width, height, frameID, blockID, timestamp_s, timestamp_u);
+   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d",
+         bufSize, flag, x, y, width, height, frameID, blockID);
          
    //std::cout << "buf : " << buffer << std::endl;
    if (headerLen >= BLOCK_HEADER_SIZE) {
@@ -132,8 +132,8 @@ int sagePixelBlock::updateHeader(int pid, int configID)
    }
    
    memset(buffer, 0, BLOCK_HEADER_SIZE);
-   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d %d %d &ld %ld",
-         bufSize, flag, x, y, width, height, frameID, blockID, pid, configID, timestamp_s, timestamp_u);
+   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d %d %d",
+         bufSize, flag, x, y, width, height, frameID, blockID, pid, configID);
          
    //std::cout << "buf : " << buffer << std::endl;
    if (headerLen >= BLOCK_HEADER_SIZE) {
@@ -151,8 +151,8 @@ bool sagePixelBlock::updateBlockConfig()
       return false;
    }
    
-   sscanf(buffer, "%d %d %d %d %d %d %d %d %ld %ld", &bufSize, &flag, &x, &y, &width, &height, 
-               &frameID, &blockID, &timestamp_s, &timestamp_u);
+   sscanf(buffer, "%d %d %d %d %d %d %d %d", &bufSize, &flag, &x, &y, &width, &height, 
+               &frameID, &blockID);
 
    //std::cout << "buf : " << buffer << std::endl;
 	//std::cout << "timestamp : get = " << timestamp_s << " " << timestamp_u << std::endl;

@@ -153,12 +153,6 @@ int sageBlockStreamer::sendPixelBlock(sagePixelBlock *block)
    block->setRefCnt(map->count);
 	block->setFrameID(frameID);
 
-	// TEST : HYEJUNG
-	struct timeval timestamp;
-	gettimeofday(&timestamp, NULL);
-	block->setTimeStamp(timestamp.tv_sec, timestamp.tv_usec);
-	///////////////////
-
 	block->updateBufferHeader();
    
    while(map) {
@@ -221,6 +215,12 @@ int sageBlockStreamer::streamPixelData(sageBlockFrame *buf)
    bool flag = true;
    buf->resetBlockIndex();
 
+	long int sec, usec;
+	buf->getTimeStamp(sec, usec);
+	nbg->setTimeStamp(sec, usec);
+	//std::cout << "block streamer time stamp : " << sec << " " << usec << std::endl;
+	///////////////////
+	
    //std::cout << config.rank << " stream frame " << frameID << std::endl;
 
    int cnt = 0;

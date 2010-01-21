@@ -86,6 +86,12 @@ class sageAppAudio;
  */
 class sail {
 private:   
+	enum {
+		AUDIO_UPDATE =1,
+		VIDEO_UPDATE =2,
+		NONE_UPDATE = 3
+	};
+	
    envInterface    *envIntf;
    sageStreamer    *pixelStreamer; /**< pixel streamer */
    sageStreamer    *audioStreamer; /**< audio streamer */
@@ -102,6 +108,7 @@ private:
    
    int bufID;
    sageDoubleBuf *doubleBuf;
+   int _update;
 
 #ifdef SAGE_AUDIO
    sageAudioCircBuf* audioBuffer;
@@ -116,6 +123,8 @@ private:
    int reconfigStep;
    
    //double reportTime;
+	struct timeval _timeStamp;
+
    sageTimer perfTimer;
    double frameRate;
    double bandWidth;

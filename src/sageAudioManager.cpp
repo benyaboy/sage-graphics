@@ -2,7 +2,7 @@
  * SAGE - Scalable Adaptive Graphics Environment
  *
  * Module: sageAudioManager.cpp
- * Author : Byungil Jeong, Rajvikram Singh
+ * Author : Hyejung Hur, Byungil Jeong 
  *
  * Copyright (C) 2004 Electronic Visualization Laboratory,
  * University of Illinois at Chicago
@@ -143,6 +143,9 @@ int sageAudioManager::init(char *data)
 
    getToken(data, token);
    nwCfg.sendBufSize = atoi(token);
+
+	// For audio, we don't need big buffer for receiving. 
+   nwCfg.rcvBufSize = nwCfg.sendBufSize;
 
    getToken(data, token);
    nwCfg.mtuSize = atoi(token);
@@ -618,7 +621,10 @@ void sageAudioManager::mainLoop()
       	recv = receiverList[i];
       	if (!recv) continue;
       	if (recv->isEnd() == true)
+			{
+      		std::cout << "shutdown app requested" << std::endl;
 				shutdownApp(recv->getInstID());
+			}
 		}
 
    }
