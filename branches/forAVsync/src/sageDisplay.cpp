@@ -317,8 +317,8 @@ int sageMontage::renewTexture()
       GLprintError(__FILE__, __LINE__);  // Check for OpenGL errors
    }
    else {
-      texture = (GLubyte *) malloc(texWidth * texHeight * pInfo.bytesPerPixel);
-      memset(texture, 0, texWidth * texHeight * pInfo.bytesPerPixel);
+      //texture = (GLubyte *) malloc(texWidth * texHeight * pInfo.bytesPerPixel);
+      //memset(texture, 0, texWidth * texHeight * pInfo.bytesPerPixel);
 
       if (pixelType == PIXFMT_YUV) {
 #if defined(GLSL_YUV)
