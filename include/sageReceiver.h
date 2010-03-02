@@ -80,6 +80,8 @@ public:
 
    int getInstID() { return instID; }
    virtual int addStream(int senderID) = 0; /**< pure virtual member function */
+
+   int getSenderNum() {return senderNum;}
 };
 
 class sageBlockGroup;

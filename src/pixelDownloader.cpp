@@ -520,11 +520,19 @@ int pixelDownloader::fetchSageBlocks()
     		  }
     	  } // end of foreach block
 
-    	  if ( partition && frameBlockNum >= partition->tableEntryNum() ) { // whole frame received
-    		  useLastBlock = true; // setting flag for swapMontages to be executed, since END_FRAME
-    		  proceedSwap = true;
+    	  if ( recv->getSenderNum() == 1 ) {
+    		  if ( partition && frameBlockNum >= partition->tableEntryNum() ) { // whole frame received
+    			  useLastBlock = true; // setting flag for swapMontages to be executed, since END_FRAME
+    			  proceedSwap = true;
+    		  }
+    		  else {
+    			  useLastBlock = false;
+    		  }
     	  }
     	  else {
+			  //fprintf(stderr,"[%d,%d] PDL::fetch() : parallel sender %d \n", shared->nodeID, instID, recv->getSenderNum());
+    		  // if it's parallel app (multiple sender), we have to use END_FRAME. Because senders(for this PDL) can send duplicate blocks. This can cause one frame behind issue.
+    		  // If we use counting number of blocks method, we will see black spots on the screen
     		  useLastBlock = false;
     	  }
       }
@@ -535,7 +543,7 @@ int pixelDownloader::fetchSageBlocks()
 		// IMPORTANT
 		// When in UDP, sync performance could be very bad.
 		// Because some node can use END_FRAME while others don't
-		// In that case, the node that used END_FRAME will become the slowest one, and others will wait for this node
+		// In that case, the node that used END_FRAME will become the slowest one, and others will have to wait for this node.
 		//
 		else if (sbg->getFlag() == sageBlockGroup::END_FRAME) { // END_FRAME flag is set at the sagePixelReceiver::readData()
 			//fprintf(stderr, "[%d,%d] PDL::fetch() : END_FRAME; updF %d, curF %d, syncF %d\n", shared->nodeID, instID, updatedFrame, curFrame, syncFrame);
@@ -577,15 +585,16 @@ int pixelDownloader::fetchSageBlocks()
 			proceedSwap = false;
 
 			// now the most recent frame I got(curFrame) becomes updateFrame.
-			// this means that because of swapMontages() curFrames will become front montage which means it can be displayed
-			// therefore, it's updatedFrame
+			// this means that because of swapMontages(), curFrames will become front montage which means it can be displayed.
+			// therefore, it's updatedFrame.
 			updatedFrame = curFrame;
 #ifdef DEBUG_PDL
-			if (useLastBlock)
+			if (useLastBlock) {
 				//fprintf(stderr,"[%d,%d] PDL::fetch() : !!! ProceedSwap !!! using LastBlock fBN %d of %d; updF %d, syncF %d, cfID %d\n", shared->nodeID, instID, frameBlockNum, partition->tableEntryNum(), updatedFrame, syncFrame, configID);
-      else
-				fprintf(stderr,"[%d,%d] PDL::fetch() : !!! ProceedSwap !!! using END_FRAME fBN %d of %d; updF %d, syncF %d, cfID %d\n", shared->nodeID, instID, frameBlockNum, partition->tableEntryNum(), updatedFrame, syncFrame, configID);
-			fflush(stderr);
+			}
+			else {
+				//fprintf(stderr,"[%d,%d] PDL::fetch() : !!! ProceedSwap !!! using END_FRAME fBN %d of %d; updF %d, syncF %d, cfID %d\n", shared->nodeID, instID, frameBlockNum, partition->tableEntryNum(), updatedFrame, syncFrame, configID);
+			}
 #endif
 			frameCounter++;
 
@@ -602,7 +611,7 @@ int pixelDownloader::fetchSageBlocks()
 					//shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, shared->latency);
 #else
 					if ( syncLevel == -1 ) {
-						shared->syncClientObj->sendSlaveUpdate(updatedFrame, instID, activeRcvs, updateType);
+						shared->syncClientObj->sendSlaveUpdate(updatedFrame, instID, activeRcvs, updateType); // old sage sync
 					}
 					else {
 						shared->syncClientObj->sendSlaveUpdateToBBS(updatedFrame, instID, activeRcvs, shared->nodeID, 0);
@@ -618,8 +627,7 @@ int pixelDownloader::fetchSageBlocks()
 				}
 				else if ( updatedFrame == syncFrame ) {
 #ifdef DEBUG_PDL
-					fprintf(stderr, "\nPDL::fetch() : [%d,%d] updatedFrame == synchFrame %d, don't we need swapMontages() ? \n", syncFrame);
-					fflush(stderr);
+					//fprintf(stderr, "\nPDL::fetch() : [%d,%d] updatedFrame == synchFrame %d, don't we need swapMontages() ? \n", syncFrame);
 #endif
 					//swapMontages();
 				}
@@ -629,13 +637,10 @@ int pixelDownloader::fetchSageBlocks()
 				}
 			}
 			else {
-#ifdef DEBUG_PDL
-				//fprintf(stderr, "[%d,%d] PDL::fetch() : NO_SYNC; swapMont() frame %d, config %d\n\n", shared->nodeID, instID, updatedFrame, configID);
-				//fflush(stderr);
-#endif
+				// PDL::processSync() will never be called. So let's do swapMontages here.
 				swapMontages();
 			}
-		} // end of if(isLastBlock)
+		} // end of if(proceedSwap)
 
 
 		blockBuf->next();
