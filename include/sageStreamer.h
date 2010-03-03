@@ -175,12 +175,18 @@ protected:
 	 */
    virtual int streamLoop();
    void setupBlockPool();
+
+   /**
+    * creates double buffer and allocates memory through sageBlockFrame constructor
+    */
    int createDoubleBuffer();
-   int sendPixelBlock(sagePixelBlock *block);
+   int sendPixelBlock(sagePixelBlock *blocks); /**< sends a block to corresponding receivers */
    int sendControlBlock(int flag, int cond);
 
    /**
-    * keeps calling sendPixelBlock() with sagePixelBlock extracted from nbg->front()
+    * receives a frame and
+    * keeps calling sendPixelBlock() with a block.
+    * sends control block using sendControlBlock() after sending a frame
     */
    int streamPixelData(sageBlockFrame *buf);
    

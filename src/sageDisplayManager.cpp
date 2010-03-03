@@ -91,7 +91,7 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
 {
 	rcvRefreshEnd = false;
    if (argc < 7) {
-      sage::printLog("SAGE receiver : More arguments are needed");
+      sage::printLog("SDM::SDM() : More arguments are needed");
       exit(0);
    }
 
@@ -142,22 +142,22 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
     */
    if (syncMaster && syncLevel > 0) {
 	   syncServerObj = NULL;
-	   sage::printLog("\nSDM::SDM() : SDM %d creating the syncBBServer.", shared->nodeID);
+	   sage::printLog("\nSDM%d::SDM() : Master SDM is creating the syncBBServer", shared->nodeID);
 
 	   syncBBServerObj = new sageSyncBBServer(fsIP, fsPort, syncLevel);
 
 	   // init opens socket and starts syncServerThread
 	   if (syncBBServerObj->init(syncPort) < 0) {
-		   sage::printLog("SAGE receiver : Error init'ing the sync server object");
+		   sage::printLog("SDM%d::SDM() : Error init'ing the sync server object", shared->nodeID);
 		   delete syncBBServerObj;
 		   exit(0);
 	   }
 
 	   // two phase
 	   if ( syncLevel == 2 ) {
-		   sage::printLog("\nSDM::SDM() : SDM %d initializing syncBarrierServer", shared->nodeID);
+		   sage::printLog("\nSDM%d::SDM() : initializing syncBarrierServer", shared->nodeID);
 		   if ( syncBBServerObj->initBarrier(syncBarrierPort) < 0 ) {
-			   sage::printLog("sageDisplayManager::sageDisplayManager() : Error in sageSyncServer::initBarrier(%d)", syncBarrierPort);
+			   sage::printLog("SDM%d::SDM() : Error in sageSyncServer::initBarrier(%d)", shared->nodeID, syncBarrierPort);
 			   delete syncBBServerObj;
 			   exit(0);
 		   }
@@ -165,11 +165,11 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
    }
    else if (syncMaster && syncLevel == -1) { // OLD one
 	   syncBBServerObj = NULL;
-	   sage::printLog("\nSDM SyncMaster : start OLD Sync Server");
+	   sage::printLog("\nSDM%d::SDM() : starting OLD Sync Server", shared->nodeID);
 	   syncServerObj = new sageSyncServer;
 
 	   if (syncServerObj->init(syncPort) < 0) {
-		   sage::printLog("SAGE receiver : Error init'ing the sync server object");
+		   sage::printLog("SDM%d::SDM() : Error init'ing the sync server object", shared->nodeID);
 		   delete syncServerObj;
 		   exit(0);
 	   }
@@ -192,11 +192,11 @@ sageDisplayManager::sageDisplayManager(int argc, char **argv)
    pthread_t thId;
 
    if (pthread_create(&thId, 0, msgCheckThread, (void*)this) != 0) {
-      sage::printLog("sageDisplayManager: can't create message checking thread");
+      sage::printLog("SDM%d::SDM() : can't create message checking thread", shared->nodeID);
    }
 
    if (pthread_create(&thId, 0, perfReportThread, (void*)this) != 0) {
-      sage::printLog("sageDisplayManager: can't create performance report thread");
+      sage::printLog("SDM%d::SDM() : can't create performance report thread", shared->nodeID);
    }
 }
 
@@ -231,7 +231,7 @@ int sageDisplayManager::init(char *data)
    totalRcvNum = atoi(token);
 
    if (tokenNum < 1) {
-      sage::printLog("sageDisplayManager::init() : insufficient parameters in RCV_INIT message");
+      sage::printLog("SDM%d::init() : insufficient parameters in RCV_INIT message", shared->nodeID);
       return -1;
    }
 
@@ -251,7 +251,7 @@ int sageDisplayManager::init(char *data)
    dispCfg.winY = atoi(token);
 
    if (tokenNum < 1) {
-      sage::printLog("[%d] SDM::init() : insufficient parameters in RCV_INIT message !", shared->nodeID);
+      sage::printLog("SDM%d::init() : insufficient parameters in RCV_INIT message !", shared->nodeID);
       return -1;
    }
 
@@ -299,7 +299,7 @@ int sageDisplayManager::init(char *data)
 
    shared->context = (displayContext *) new sdlSingleContext;
    if (shared->context->init(dispCfg) < 0) {
-      sage::printLog("[%d] SDM::init() : Error creating display object ", shared->nodeID);
+      sage::printLog("SDM%d::init() : Error creating display object ", shared->nodeID);
       return -1;
    }
 
@@ -321,7 +321,7 @@ int sageDisplayManager::init(char *data)
    // connect to syncMaster
 	   // The parameter shared->nodeID will trigger send() which is for new sync
 	   if (shared->syncClientObj->connectToServer(masterIp, syncPort, shared->nodeID) < 0) {
-		   sage::printLog("SDM::init() : SDM %d, Fail to connect to syncServer !", shared->nodeID);
+		   sage::printLog("SDM%d::init() : Failed to connect to the syncServer!", shared->nodeID);
 		   return -1;
 	   }
 	   else {
@@ -331,7 +331,7 @@ int sageDisplayManager::init(char *data)
 	   sage::sleep(1);
 	   if ( syncLevel == 2 ) {
 		   if (shared->syncClientObj->connectToBarrierServer(masterIp, syncBarrierPort, shared->nodeID) < 0) {
-			   sage::printLog("[%d] SDM::init() : Failed to connect to syncBarrierServer !", shared->nodeID);
+			   sage::printLog("SDM%d::init() : Failed to connect to the syncBarrierServer !", shared->nodeID);
 			   return -1;
 		   }
 		   else {
@@ -359,7 +359,7 @@ int sageDisplayManager::init(char *data)
 	   shared->syncClientObj = new sageSyncClient(syncLevel);
 		// connect to syncMaster
 		if (shared->syncClientObj->connectToServer(masterIp, syncPort) < 0) {
-			sage::printLog("SDM::init() : SDM %d, Fail to connect to syncServer !", shared->nodeID);
+			sage::printLog("SDM%d::init() : Failed to connect to syncServer !", shared->nodeID);
 			return -1;
 		}
 		//sage::printLog("Connected to sync master %s:%d", masterIp, syncPort);
@@ -369,7 +369,7 @@ int sageDisplayManager::init(char *data)
 		// start syncCheckThread
 		// this thread will continuously call shared->syncClinetObj->waitForSync()
 		if (pthread_create(&thId, 0, syncCheckThread, (void*)this) != 0) {
-			sage::printLog("[%d] SDM::init() : Failed to create syncCheckThread !", shared->nodeID);
+			sage::printLog("SDM%d::init() : Failed to create syncCheckThread !", shared->nodeID);
 			return -1;
 		}
 	   //sage::printLog("SDM::init() : old synch client is created. ");
@@ -388,14 +388,14 @@ int sageDisplayManager::init(char *data)
 
 void* sageDisplayManager::refreshThread(void *args) {
    sageDisplayManager *This = (sageDisplayManager *)args;
-	std::cout << "[SDM] Refresh thread is created" << std::endl;
+	fprintf(stderr,"SDM%d::refreshThread() : starting refresh thread. refresh interval %d usec\n", This->shared->nodeID, DISPLAY_REFRESH_INTERVAL);
 
    while (!This->rcvRefreshEnd) {
       This->shared->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
       sage::usleep(DISPLAY_REFRESH_INTERVAL);
    }
 
-   sage::printLog("sageDisplayManager::refreshThread : exit");
+   sage::printLog("SDM%d::refreshThread() : exiting", This->shared->nodeID);
    pthread_exit(NULL);
    return NULL;
 }
@@ -421,7 +421,7 @@ void* sageDisplayManager::msgCheckThread(void *args)
       }
    }
 
-   sage::printLog("sageDisplayManager::msgCheckThread : exit");
+   sage::printLog("SDM%d::msgCheckThread() : exiting", This->shared->nodeID);
    pthread_exit(NULL);
    return NULL;
 }
@@ -429,7 +429,7 @@ void* sageDisplayManager::msgCheckThread(void *args)
 void* sageDisplayManager::syncCheckThread(void *args)
 {
 	sageDisplayManager *This = (sageDisplayManager *)args;
-	sage::printLog("sageDisplayManager::syncCheckThread() has started at SDM %d", This->shared->nodeID);
+	sage::printLog("SDM%d::syncCheckThread() has started", This->shared->nodeID);
 
 	int syncMsgLen = -1;
 	while (!This->rcvEnd) {
@@ -444,7 +444,7 @@ void* sageDisplayManager::syncCheckThread(void *args)
 			// use MSG_PEEK to find out message length
 			syncMsgLen = This->shared->syncClientObj->waitForSyncPeek();
 			if ( syncMsgLen <= 0 ) {
-				fprintf(stderr, "[%d] SDM::syncCheckThread() : syncMsgLen %d\n", This->shared->nodeID, syncMsgLen);
+				fprintf(stderr, "SDM%d::syncCheckThread() : syncMsgLen %d\n", This->shared->nodeID, syncMsgLen);
 				//continue;
 				break;
 			}
@@ -463,7 +463,7 @@ void* sageDisplayManager::syncCheckThread(void *args)
 		}
 	}
 
-	sage::printLog("sageDisplayManager::syncCheckThread : exit");
+	sage::printLog("SDM%d::syncCheckThread() : exiting", This->shared->nodeID);
 	pthread_exit(NULL);
 	return NULL;
 }
@@ -478,14 +478,14 @@ void* sageDisplayManager::perfReportThread(void *args)
       sage::usleep(100000);
    }
 
-   sage::printLog("sageDisplayManager::perfReportThread : exit");
+   sage::printLog("SDM::perfReportThread : exit");
    pthread_exit(NULL);
    return NULL;
 }
 
 int sageDisplayManager::initNetworks()
 {
-   sage::printLog("SDM::initNetworks() : SDM %d is now initializing network objects.", displayID);
+   sage::printLog("SDM%d::initNetworks() : initializing network objects.", displayID);
 
    tcpObj = new sageTcpModule;
    if (tcpObj->init(SAGE_RCV, streamPort, nwCfg) == 1) {
@@ -493,12 +493,12 @@ int sageDisplayManager::initNetworks()
       return -1;
    }
 
-   sage::printLog("SDM::initNetworks() : SDM %d is waiting TCP connections on port %d", displayID, streamPort);
+   sage::printLog("SDM%d::initNetworks() : waiting TCP connections on port %d", displayID, streamPort);
 
    udpObj = new sageUdpModule;
    udpObj->init(SAGE_RCV, streamPort+(int)SAGE_UDP, nwCfg);
 
-   sage::printLog("SAGE Display Manager : waiting UDP connections at port %d", streamPort+(int)SAGE_UDP);
+   sage::printLog("SDM%d::initNetworks() : waiting UDP connections at port %d", displayID, streamPort+(int)SAGE_UDP);
 
    pthread_t thId;
    nwCheckThreadParam *param = new nwCheckThreadParam;

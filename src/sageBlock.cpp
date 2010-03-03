@@ -106,22 +106,22 @@ sagePixelBlock::sagePixelBlock(sagePixelBlock &block)
 
 int sagePixelBlock::updateBufferHeader()
 {   
-   if (!buffer) {
-      sage::printLog("sagePixelBlock::updateBufferHeader : buffer is null");   
-      return -1;
-   }
-   
-   memset(buffer, 0, BLOCK_HEADER_SIZE);
-   headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d",
-         bufSize, flag, x, y, width, height, frameID, blockID);
-         
-   //std::cout << "buf : " << buffer << std::endl;
-   if (headerLen >= BLOCK_HEADER_SIZE) {
-      sage::printLog("sagePixelBlock::updateBufferHeader : block header exceeds the maximum length");
-      return -1;
-   }
-   
-   return 0;
+	if (!buffer) {
+		sage::printLog("sagePixelBlock::updateBufferHeader : buffer is null");
+		return -1;
+	}
+
+	memset(buffer, 0, BLOCK_HEADER_SIZE);
+	//headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d", bufSize, flag, x, y, width, height, frameID, blockID);
+	headerLen = sprintf(buffer, "%d %d %d %d %d %d %d %d %ld %ld", bufSize, flag, x, y, width, height, frameID, blockID, timestamp_s, timestamp_u); // for AV sync
+
+	//std::cout << "buf : " << buffer << std::endl;
+	if (headerLen >= BLOCK_HEADER_SIZE) {
+		sage::printLog("sagePixelBlock::updateBufferHeader : block header exceeds the maximum length");
+		return -1;
+	}
+
+	return 0;
 }
 
 int sagePixelBlock::updateHeader(int pid, int configID)
@@ -137,7 +137,7 @@ int sagePixelBlock::updateHeader(int pid, int configID)
          
    //std::cout << "buf : " << buffer << std::endl;
    if (headerLen >= BLOCK_HEADER_SIZE) {
-      sage::printLog("sagePixelBlock::updateBufferHeader : block header exceeds the maximum length");
+      sage::printLog("sagePixelBlock::updateHeader : block header exceeds the maximum length");
       return -1;
    }
    

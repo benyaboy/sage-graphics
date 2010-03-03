@@ -442,7 +442,7 @@ void* sageSyncBBServer::msgCheckThread(void *args)
 		recvSize = This->rcvMessageBlk(*msg);
 		if (recvSize > 0 && !This->syncEnd) 
 		{
-			std::cout << "[sageSyncBBServer::msgCheckThread] ----> got message from fsManger" << std::endl;
+			std::cout << "sageSyncBBServer::msgCheckThread() : got message from fsManager" << std::endl;
 		} else if (recvSize < 0)
 			break;
 	}
@@ -808,6 +808,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 							// receive message from a node
 							sscanf(msg, "%d %d %d %d %d", &pdl, &updatedFrame, &slaveNum, &sdm, &nodeLatency);
 
+
 #ifdef DELAY_COMPENSATION
 							maxNodeLatency = MAX(maxNodeLatency, nodeLatency);
 #endif
@@ -836,6 +837,15 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 							//syncFrameArray[pdl] = updatedFrame;
 							if ( updatedFrame >= 0 ) syncFrameMap[pdl] = updatedFrame;
 							else syncAudioFrameMap[pdl] = updatedFrame;
+							// AUDIO
+							// updatedFrame : -gFrameidx
+							// sdm : -100
+							// pdl : instID
+#ifdef DEBUG_AVSYNC
+							if ( sdm == -100 ) {
+								fprintf(stderr, "syncMaster received audio msg : instID %d, frame %d\n", pdl, updatedFrame);
+							}
+#endif
 
 							//frameNumOfEachSDM[pdl][sdm] = updatedFrame;
 
@@ -905,20 +915,35 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 				if ( (*it).second ) {
 					isReadyToSwapMonMap[ appID ] = false; // reset
 
-					int av_diff = 0;
 					if ( syncAudioFrameMap.find(appID) != syncAudioFrameMap.end()  &&  syncAudioFrameMap[appID] != 0 ) {
 						// there's audio for this app
-						av_diff = syncFrameMap[appID] + syncAudioFrameMap[appID];
+						int av_diff = syncFrameMap[appID] + syncAudioFrameMap[appID];
 						syncAudioFrameMap[appID] = 0; //reset
+
+						if ( av_diff == 0 ) {
+						}
+						else if ( av_diff < 0 ) {
+							// audio leading
+							// sendMessage to fsCore. appID, frameDifference
+#ifdef DEBUG_AVSYNC
+							fprintf(stderr, "syncMaster : audio is leading by %d frame\n", av_diff);
+#endif
+							char msg[32];
+							sprintf(msg, "%d %d", appID, av_diff);
+							This->sendMessage(MSG_FROM_SYNC_MASTER, msg);
+						}
+						else {
+							// video leading
+							// Delay sending syncMessage.
+#ifdef DEBUG_AVSYNC
+							fprintf(stderr, "syncMaster : video is leading by %d frame\n", av_diff);
+#endif
+							isReadyToSwapMonMap[ appID ] = true; // set again for next round
+							swapMontageReady = true;
+							continue;
+						}
 					}
-					if ( av_diff == 0 ) {
-					}
-					else if ( av_diff < 0 ) {
-						// audio leading
-					}
-					else {
-						// video leading
-					}
+
 					if ( intMsgIndex >= numUpdatedApps ) {
 						fprintf(stderr, "syncMaster : numUpdatedApps exdeeds sync message array index !\n ");
 						break;

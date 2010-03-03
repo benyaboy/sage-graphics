@@ -317,20 +317,19 @@ void* sageAudioManager::refreshThread(void *args)
 
 int sageAudioManager::initNetworks()
 {
-   sage::printLog("Audio Manager is initializing network objects....");
+   sage::printLog("sageAudioManager::initNetworks() : initializing network objects....");
 
    tcpObj = new sageTcpModule;
    if (tcpObj->init(SAGE_ARCV, streamPort, nwCfg) == 1) {
-      sage::printLog("sageAudioManager is already running");
+      sage::printLog("sageAudioManager::initNetworks() : sageAudioManager is already running");
       return -1;
    }
-
-   sage::printLog("SAGE sageAudioManager Manager : tcp network object was initialized successfully");
+   sage::printLog("sageAudioManager::initNetworks() : TCP has initialized successfully");
 
    udpObj = new sageUdpModule;
    udpObj->init(SAGE_ARCV, streamPort+(int)SAGE_UDP, nwCfg);
+   sage::printLog("sageAudioManager::initNetworks() : UDP has initialized successfully");
 
-   sage::printLog("SAGE sageAudioManager Manager : udp network object was initialized successfully");
 
    pthread_t thId;
    nwCheckThreadParam *param = new nwCheckThreadParam;

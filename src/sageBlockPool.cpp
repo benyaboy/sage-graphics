@@ -358,6 +358,9 @@ int sageBlockGroup::readData(int sockFd)
    if (headerSize > 0)
 	{
       sscanf(header, "%d %d %d %ld %ld", &blockNum, &frameID, &configID, &timestamp_s, &timestamp_u);
+#ifdef DEBUG_RECEIVER
+	  fprintf(stderr, "SBG::readData() : A group header received from network. FrameID %d, configID %d, blockNum %d\n", frameID, configID, blockNum);
+#endif
 	}
    else
       return -1;

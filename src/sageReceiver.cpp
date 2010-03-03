@@ -89,7 +89,7 @@ sagePixelReceiver::sagePixelReceiver(char *msg, rcvSharedData *sh,
 int sagePixelReceiver::addStream(int senderID)
 {
    if (streamIdx >= senderNum) {
-      sage::printLog("sagePixelReceiver::addStream : stream number exceeded correct number");
+      sage::printLog("[%d,%d] sagePixelReceiver::addStream() : stream number exceeded correct number", shared->nodeID, instID);
       return -1;
    }
 
@@ -157,6 +157,10 @@ int sagePixelReceiver::readData()
 
 	sageBlockGroup *sbg = NULL;
 
+#ifdef DEBUG_RECEIVER
+	fprintf(stderr, "[%d,%d] sagePixelReceiver::readData() : START! (%d senders, grpSize %d, blkSize %d\n", shared->nodeID, instID, senderNum, groupSize, blockSize);
+#endif
+
 	while(!endFlag) {
 		if (checkStreams() < 0)
 			return -1;
@@ -188,11 +192,11 @@ int sagePixelReceiver::readData()
 				if (rcvSize > 0) {
 					if (sbg->getFrameID() == curFrame) {
 #ifdef DEBUG_RECEIVER
-						fprintf(stderr, "[%d] sagePixelReceiver::readData() : continuous data for curFrame %d\n", shared->nodeID, curFrame);
+						fprintf(stderr, "[%d,%d] sagePixelReceiver::readData() : continuous data for curFrame %d\n", shared->nodeID,instID, curFrame);
 #endif
 						if (sbg->getFlag() == sageBlockGroup::PIXEL_DATA) {
 #ifdef DEBUG_RECEIVER
-							fprintf(stderr, "\t[%d] : and it's pixel\n", shared->nodeID);
+							//fprintf(stderr, "\t[%d,%d] : and it's pixel\n", shared->nodeID,instID);
 #endif
 							blockBuf->pushBack(sbg);
 							//std::cout << "push back " << rcvSize << " " << sbg->getFrameID() << std::endl;
@@ -208,12 +212,12 @@ int sagePixelReceiver::readData()
 						}
 						else {
 #ifdef DEBUG_RECEIVER
-							fprintf(stderr, "\n\t[%d] : and it's NOT pixel\n", shared->nodeID);
+							fprintf(stderr, "\n\t[%d,%d] : and it's NOT a pixel group\n", shared->nodeID,instID);
 #endif
 							reuseBlockGroup = true;
 							if (sbg->getConfigID() > configID) {
 #ifdef DEBUG_RECEIVER
-								fprintf(stderr, "\t\t[%d] : it's new config %d\n", shared->nodeID, sbg->getConfigID());
+								fprintf(stderr, "\t\t[%d,%d] : it's new config %d\n", shared->nodeID, instID, sbg->getConfigID());
 #endif
 								configID = sbg->getConfigID();
 								sageBlockGroup *cbg = blockBuf->getCtrlGroup(sageBlockGroup::CONFIG_UPDATE);
@@ -224,7 +228,7 @@ int sagePixelReceiver::readData()
 							else {
 								streamList[i].bGroup = NULL;
 #ifdef DEBUG_RECEIVER
-								fprintf(stderr, "\t\t[%d] : it's what? streamList[%d].bGroup is now NULL\n", shared->nodeID, i);
+								fprintf(stderr, "\t\t[%d,%d] : it's not new config. sbg's configID %d. streamList[%d].bGroup is now NULL\n", shared->nodeID, instID, sbg->getConfigID(), i);
 #endif
 							}
 
@@ -234,7 +238,7 @@ int sagePixelReceiver::readData()
 							 */
 							streamList[i].curFrame = sbg->getFrameID()+1;
 #ifdef DEBUG_RECEIVER
-							fprintf(stderr, "\t[%d] : streamList[%d].curFrame has incremented to %d\n", shared->nodeID, i, streamList[i].curFrame);
+							fprintf(stderr, "\t[%d,%d] : Received control data. streamList[%d].curFrame has incremented to %d\n", shared->nodeID, instID, i, streamList[i].curFrame);
 #endif
 							FD_CLR(streamList[i].dataSockFd, &streamFds);
 						}
@@ -245,7 +249,7 @@ int sagePixelReceiver::readData()
 					//
 					else if (sbg->getFrameID() > curFrame) {
 #ifdef DEBUG_RECEIVER
-						fprintf(stderr, "[%d] sagePixelReceiver::readData() : The next data of frame %d\n", shared->nodeID, sbg->getFrameID());
+						fprintf(stderr, "[%d,%d] sagePixelReceiver::readData() : The next data of frame %d\n", shared->nodeID, instID, sbg->getFrameID());
 #endif
 						if (sbg->getFlag() == sageBlockGroup::PIXEL_DATA) {
 							//std::cout << "new block (pixel data) " << rcvSize << " " << sbg->getFrameID() <<  std::endl;
@@ -253,19 +257,19 @@ int sagePixelReceiver::readData()
 							streamList[i].bGroup = sbg;
 							configID = MAX(configID, sbg->getConfigID());
 #ifdef DEBUG_RECEIVER
-							fprintf(stderr, "\t[%d] : and it's pixel. my configID is now %d\n", shared->nodeID, configID);
+							fprintf(stderr, "\t[%d,%d] : and it's pixel. my configID is now %d\n", shared->nodeID, instID, configID);
 #endif
 						}
 						else {
 							//std::cout << "new block " << rcvSize << " " << sbg->getFrameID() <<  std::endl;
 #ifdef DEBUG_RECEIVER
-							fprintf(stderr, "\t[%d] : and it's NOT pixel.\n", shared->nodeID);
+							fprintf(stderr, "\t[%d,%d] : and it's NOT pixel.\n", shared->nodeID, instID);
 #endif
 
 							reuseBlockGroup = true;
 							if (sbg->getConfigID() > configID) {
 #ifdef DEBUG_RECEIVER
-								fprintf(stderr, "\t\t[%d] : it's new config %d\n", shared->nodeID, sbg->getConfigID());
+								fprintf(stderr, "\t\t[%d,%d] : it's new config %d\n", shared->nodeID, instID, sbg->getConfigID());
 #endif
 								configID = sbg->getConfigID();
 								streamList[i].bGroup = blockBuf->getCtrlGroup(sageBlockGroup::CONFIG_UPDATE);
@@ -275,13 +279,13 @@ int sagePixelReceiver::readData()
 							else {
 								streamList[i].bGroup = NULL;
 #ifdef DEBUG_RECEIVER
-								fprintf(stderr, "\t\t[%d] : it's what? streamList[%d].bGroup is now NULL\n", shared->nodeID, i);
+								fprintf(stderr, "\t\t[%d,%d] : it's what? streamList[%d].bGroup is now NULL\n", shared->nodeID, instID, i);
 #endif
 							}
 						}
 						streamList[i].curFrame = sbg->getFrameID();
 #ifdef DEBUG_RECEIVER
-						fprintf(stderr, "\t[%d] : streamList[%d].curFrame updated to %d\n", shared->nodeID, i, streamList[i].curFrame);
+						fprintf(stderr, "\t[%d,%d] : streamList[%d].curFrame updated to %d\n", shared->nodeID, instID, i, streamList[i].curFrame);
 #endif
 						FD_CLR(streamList[i].dataSockFd, &streamFds);
 						//std::cout << ">>>>> " << hostname << " cleaer stream " << i << std::endl;
@@ -293,7 +297,7 @@ int sagePixelReceiver::readData()
 				} // end if (rcvSize>0)
 
 				else {
-					sage::printLog("sagePixelReceiver::readData() : rcvSize %d, exit loop", rcvSize);
+					sage::printLog("[%d,%d] sagePixelReceiver::readData() : rcvSize %d, exit loop", shared->nodeID, instID, rcvSize);
 					endFlag = true;
 					break;
 				}
@@ -301,7 +305,7 @@ int sagePixelReceiver::readData()
 
 			// update nextFrame. nextFrame is reset to INT_MAX at the beginning of this while loop
 #ifdef DEBUG_RECEIVER
-			fprintf(stderr, "[%d] sagePixelReceiver::readData() : nextFrame = MIN(%d, %d)\n", shared->nodeID, nextFrame, streamList[i].curFrame);
+			fprintf(stderr, "[%d,%d] sagePixelReceiver::readData() : Updating nextFrame = MIN(%d, %d)\n", shared->nodeID, instID,nextFrame, streamList[i].curFrame);
 #endif
 			nextFrame = MIN(nextFrame, streamList[i].curFrame);
 
@@ -309,13 +313,13 @@ int sagePixelReceiver::readData()
 
 		if (nextFrame < SAGE_INT_MAX && nextFrame > curFrame) {
 #ifdef DEBUG_RECEIVER
-			fprintf(stderr, "[%d] sagePixelReceiver::readData() : nextFrame %d > curFrame %d. curFrame is updated.\n", shared->nodeID, nextFrame, curFrame);
+			fprintf(stderr, "[%d,%d] sagePixelReceiver::readData() : nextFrame %d > curFrame %d. curFrame is updated.\n", shared->nodeID, instID, nextFrame, curFrame);
 #endif
 			curFrame = nextFrame;
 			int pushNum = 0;
 			if (updated) {
 #ifdef DEBUG_RECEIVER
-				fprintf(stderr, "\t[%d] sagePixelReceiver::readData() : marking END_FRAME\n", shared->nodeID);
+				fprintf(stderr, "\t[%d,%d] sagePixelReceiver::readData() : marking END_FRAME\n", shared->nodeID, instID);
 #endif
 				blockBuf->finishFrame();
 				pushNum++;
@@ -365,5 +369,5 @@ sagePixelReceiver::~sagePixelReceiver()
    pthread_join(thId, NULL);
 
    delete [] streamList;
-   sage::printLog("<sagePixelReceiver shutdown>");
+   sage::printLog("[%d,%d] sagePixelReceiver shutdown", shared->nodeID, instID);
 }

@@ -228,6 +228,9 @@ void pixelDownloader::processSync(int frame, int cmd)
 
    // when the sync slave keeps the pace
    if (updatedFrame == syncFrame) {
+#ifdef DEBUG_PDL
+	   fprintf(stderr,"PDL%d,%d::processSync() : syncFrame %d\n", shared->nodeID, instID, syncFrame);
+#endif
       swapMontages(); // swap textures (one for display, one for pixel downloading)
    }
 
@@ -416,6 +419,9 @@ int pixelDownloader::fetchSageBlocks()
 		  */
 	   if ( syncOn && (sbg->getFrameID() > syncFrame + 1) ) {
 			 status = PDL_WAIT_SYNC; // wait for others to catch up
+#ifdef DEBUG_PDL
+			 fprintf(stderr,"PDL%d,%d::fetch() : poped a group with frame %d, but current syncFrame is %d. I'm too fast. PDL_WAIT_SYNC and return\n", shared->nodeID, instID, sbg->getFrameID(), syncFrame);
+#endif
 		   return status;
 	   }
 
@@ -472,11 +478,17 @@ int pixelDownloader::fetchSageBlocks()
 		// pixelReceiver received new CONFIG
 		//
       if (sbg->getFlag() == sageBlockGroup::CONFIG_UPDATE) {
+#ifdef DEBUG_PDL
+		  fprintf(stderr, "PDL%d,%d::fetch() : received sbg with CONFIG_UPDATE %d. cfgID %d, curF %d, updF %d, synF %d\n", shared->nodeID, instID, sbg->getConfigID(), configID,  curFrame, updatedFrame, syncFrame);
+#endif
          if (configID < sbg->getConfigID()) {
             if (reconfigDisplay(sbg->getConfigID()))
                configID = sbg->getConfigID();
             else {
                status = PDL_WAIT_CONFIG;
+#ifdef DEBUG_PDL
+			   fprintf(stderr,"\tPDL%d,%d::fetch() : returning. PDL is now PDL_WAIT_CONFIG\n", shared->nodeID, instID);
+#endif
                return status;
             }
          }
@@ -486,6 +498,9 @@ int pixelDownloader::fetchSageBlocks()
 		// continuous next frame received (it means this node was displaying this app already)
 		//
       else if (sbg->getFlag() == sageBlockGroup::PIXEL_DATA && sbg->getFrameID() > updatedFrame) {
+#ifdef DEBUG_PDL
+		  fprintf(stderr, "PDL%d,%d::fetch() : received sbg with new frame %d. curF %d, updF %d, synF %d\n", shared->nodeID, instID, sbg->getFrameID(), curFrame, updatedFrame, syncFrame);
+#endif
     	  if (configID < sbg->getConfigID()) {
     		  if (reconfigDisplay(sbg->getConfigID()))
     			  configID = sbg->getConfigID();
@@ -498,6 +513,9 @@ int pixelDownloader::fetchSageBlocks()
     	  bandWidth += sbg->getDataSize() + GROUP_HEADER_SIZE;
     	  curFrame = sbg->getFrameID();
     	  frameBlockNum += sbg->getBlockNum();
+#ifdef DEBUG_PDL
+		  fprintf(stderr,"\tPDL%d,%d::fetch() : cufF is now %d, grp has %d blocks.\n", shared->nodeID, instID, curFrame, sbg->getBlockNum());
+#endif
 
     	  for (int i=0; i<sbg->getBlockNum(); i++) {
     		  sagePixelBlock *block = (*sbg)[i];
@@ -519,10 +537,16 @@ int pixelDownloader::fetchSageBlocks()
     			  map = (blockMontageMap *)map->next;
     		  }
     	  } // end of foreach block
+#ifdef DEBUG_PDL
+		  fprintf(stderr,"\tPDL%d,%d::fetch() : %d blocks for cufF %d has downloaded\n", shared->nodeID, instID, frameBlockNum, curFrame);
+#endif
 
     	  if ( partition && frameBlockNum >= partition->tableEntryNum() ) { // whole frame received
     		  useLastBlock = true; // setting flag for swapMontages to be executed, since END_FRAME
     		  proceedSwap = true;
+#ifdef DEBUG_PDL
+			  fprintf(stderr,"\tPDL%d,%d::fetch() : curF %d is ready to be displayed\n", shared->nodeID, instID, curFrame);
+#endif
     	  }
     	  else {
     		  useLastBlock = false;
@@ -581,11 +605,12 @@ int pixelDownloader::fetchSageBlocks()
 			// therefore, it's updatedFrame
 			updatedFrame = curFrame;
 #ifdef DEBUG_PDL
-			if (useLastBlock)
+			if (useLastBlock) {
 				//fprintf(stderr,"[%d,%d] PDL::fetch() : !!! ProceedSwap !!! using LastBlock fBN %d of %d; updF %d, syncF %d, cfID %d\n", shared->nodeID, instID, frameBlockNum, partition->tableEntryNum(), updatedFrame, syncFrame, configID);
-      else
+			}
+      		else {
 				fprintf(stderr,"[%d,%d] PDL::fetch() : !!! ProceedSwap !!! using END_FRAME fBN %d of %d; updF %d, syncF %d, cfID %d\n", shared->nodeID, instID, frameBlockNum, partition->tableEntryNum(), updatedFrame, syncFrame, configID);
-			fflush(stderr);
+			}
 #endif
 			frameCounter++;
 

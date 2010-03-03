@@ -431,7 +431,7 @@ int sail::swapBuffer(int mode)
 	//std::cout << "video time stamp : " << _timeStamp.tv_sec << " " << _timeStamp.tv_usec << std::endl;
 	data->setTimeStamp(_timeStamp.tv_sec, _timeStamp.tv_usec);
 	_update = VIDEO_UPDATE;
-   
+
    doubleBuf->swapBuffer();
 
 #ifdef SAGE_AUDIO
@@ -442,6 +442,9 @@ int sail::swapBuffer(int mode)
 #endif
 
    //std::cout << "pt3" << std::endl;
+#ifdef DEBUG_SAIL
+   fprintf(stderr, "\nsail::swapBuffer() : returning.\n");
+#endif
 
    return 0;
 }
@@ -581,285 +584,299 @@ int sail::readMessage()
 
 int sail::parseMessage(sageMessage &msg)
 {
-   char *msgData = (char *)msg.getData();
+	char *msgData = (char *)msg.getData();
 
-   switch (msg.getCode()) {
-      case SAIL_INIT_MSG : {
-         if (msgData) {
-            sageNwConfig nwCfg;
-				int audio_available =0;
-            sscanf(msgData, "%d %d %d %d %d", &winID, &nwCfg.rcvBufSize, &nwCfg.sendBufSize,
-                  &nwCfg.mtuSize, &audio_available);
-
-            if (config.rendering) {
-               pixelStreamer->setWinID(winID);
-               pixelStreamer->setNwConfig(nwCfg);
-            }
-				if(audio_available == 0)
-				{
-					std::cout << " got init mesage  & audio is not available ... " << std::endl;
-					config.audioOn = false;
-					if (audioStreamer) {
-						delete audioStreamer;
-						audioStreamer = NULL;
-					}
-#ifdef SAGE_AUDIO
-					if(audioAppDataHander) {
-						delete audioAppDataHander;
-						audioAppDataHander = NULL;
-					}
-					if(audioModule) {
-				   	audioModule->stop();
-						delete audioModule;
-						audioModule = NULL;
-					}
+	switch (msg.getCode()) {
+	case SAIL_EMPTY_SWAPBUFFER : {
+		// for AV sync. if a video is slower then execute empty swapbuffer.
+		if ( msgData ) {
+			int frameDif = 0;
+			sscanf(msgData, "%d", &frameDif);
+#ifdef DEBUG_AVSYNC
+			fprintf(stderr, "sail::parseMessage() : received SAIL_EMPTY_SWAPBUFFER msg. frameDif %d\n", frameDif);
 #endif
-				} else {
-            	if (config.audioOn) {
-               	if(audioStreamer)
-               	{
-                  	audioStreamer->setWinID(winID);
-                  	audioStreamer->setNwConfig(nwCfg);
-               	}
-            	}
+		}
+
+		// Do something to trigger empty swapbuffer
+
+		break;
+	}
+	case SAIL_INIT_MSG : {
+		if (msgData) {
+			sageNwConfig nwCfg;
+			int audio_available =0;
+			sscanf(msgData, "%d %d %d %d %d", &winID, &nwCfg.rcvBufSize, &nwCfg.sendBufSize,
+					&nwCfg.mtuSize, &audio_available);
+
+			if (config.rendering) {
+				pixelStreamer->setWinID(winID);
+				pixelStreamer->setNwConfig(nwCfg);
+			}
+			if(audio_available == 0)
+			{
+				std::cout << " got init mesage  & audio is not available ... " << std::endl;
+				config.audioOn = false;
+				if (audioStreamer) {
+					delete audioStreamer;
+					audioStreamer = NULL;
 				}
-         }
-         else {
-            sage::printLog("sail::parseMessage : SAGE_INIT_MSG is NULL\n");
-            return -1;
-         }
-
-         break;
-      }
-
-      case SAIL_SLAVE_REG : {
-         waitNodes--;
-
-         if (msgData && (config.totalWidth == 0 || config.totalHeight == 0))
-            sscanf(msgData, "%d %d", &config.totalWidth, &config.totalHeight);
-
-         if (waitNodes < 1) {
-            if (config.nodeNum > 1) {
-               sGroup = new syncGroup;
-               //std::cout << "frame rate = " << config.frameRate << std::endl;
-               sGroup->init(0, SAGE_ASAP_SYNC_HARD, 0, config.frameRate, config.nodeNum);
-               sGroup->blockSync();
-               syncServerObj->addSyncGroup(sGroup);
-            }
-
-            sage::printLog("send SAIL register message to fsManager\n");
-            char msgStr[TOKEN_LEN];
-
-            if (config.bridgeOn) {
-               int rowNum = (int)ceil((float)config.totalHeight/config.blockY);
-               int colNum = (int)ceil((float)config.totalWidth/config.blockX);
-               int blockNum = rowNum*colNum; // total block number of this app
-               sprintf(msgStr, "%s %d %d %d %d %d %s %d %d %d %d %d",
-                  config.appName, config.winX, config.winY, config.winWidth, config.winHeight,
-                  config.protocol, config.fsIP, config.fsPort, config.totalWidth,
-                  config.totalHeight, blockNum, (int)config.audioOn);
-
-               sendMessage(BRIDGE_APP_REG, msgStr);
-            }
-            else {
-               // calculate total app image resolution
-               // for NRM
-               double resX = config.resX/(config.imageMap.right-config.imageMap.left);
-               double resY = config.resY/(config.imageMap.top-config.imageMap.bottom);
-               double totalBandWidth = config.frameRate*resX*resY*pInfo.bytesPerPixel*8;
-               int bandWidthReq = (int)floor(totalBandWidth/1000000.0+0.5);
-               sprintf(msgStr, "%s %d %d %d %d %d %s %d %d %d %d %d %d %s %d",
-                  config.appName, config.winX, config.winY, config.winWidth, config.winHeight,
-                  bandWidthReq, config.streamIP, config.totalWidth, config.totalHeight,
-                  (int)config.audioOn, config.protocol, config.frameRate, config.appID,
-		  config.launcherID, config.portForwarding );
-
-               sendMessage(REG_APP, msgStr);
-            }
-         }
-         break;
-      }
-
-      case SAIL_CONNECT_TO_RCV : {
-         if (config.rendering) {
-            if (!pixelStreamer)
-               sage::printLog("sail::parseMessage : No pixelStreamer object\n");
-
-            sage::printLog("SAIL is initializing network connections for streaming\n");
-            if (pixelStreamer->initNetworks(msgData) < 0)
-               return -1;
-
-            if (config.master)
-               connectedNode++;
-         }
-
-         if (config.master) {
-            if (connectedNode == config.nodeNum) {
-               connectionDone = true;
-               sage::printLog("SAIL: Network connection Done\n");
-            }
-         }
-         else {
-            sendMessage(SAIL_CONNECTED_TO_RCV);
-         }
-
-         break;
-      }
-
-      case SAIL_CONNECT_TO_RCV_PORT : {
-         if (config.rendering) {
-            if (!pixelStreamer)
-               sage::printLog("sail::parseMessage : No pixelStreamer object\n");
-
-            sage::printLog("SAIL is initializing network connections for streaming\n");
-            if (pixelStreamer->initNetworks(msgData, true) < 0)
-               return -1;
-
-            if (config.master)
-               connectedNode++;
-         }
-
-         if (config.master) {
-            if (connectedNode == config.nodeNum) {
-               connectionDone = true;
-               sage::printLog("SAIL: Network connection Done\n");
-            }
-         }
-         else {
-            sendMessage(SAIL_CONNECTED_TO_RCV);
-         }
-
-         break;
-      }
-
-      case SAIL_CONNECT_TO_ARCV : {
 #ifdef SAGE_AUDIO
-         if (config.audioOn) {
-            if (!audioStreamer)
-               sage::printLog("sail::parseMessage : No audioStreamer object\n");
-				else {
-					sage::printLog("SAIL is initializing network connections for audio streaming\n");
-					audioStreamer->initNetworks(msgData);
-
-					audioStreamer->enqueMsg(msgData);
-					if(config.audioMode == SAGE_AUDIO_CAPTURE || config.audioMode == SAGE_AUDIO_PLAY) {
-				   	audioModule->play();
-					} else if(config.audioMode ==  SAGE_AUDIO_APP && audioAppDataHander){
-						audioAppDataHander->start();
+				if(audioAppDataHander) {
+					delete audioAppDataHander;
+					audioAppDataHander = NULL;
+				}
+				if(audioModule) {
+					audioModule->stop();
+					delete audioModule;
+					audioModule = NULL;
+				}
+#endif
+			} else {
+				if (config.audioOn) {
+					if(audioStreamer)
+					{
+						audioStreamer->setWinID(winID);
+						audioStreamer->setNwConfig(nwCfg);
 					}
 				}
-         }
+			}
+		}
+		else {
+			sage::printLog("sail::parseMessage : SAGE_INIT_MSG is NULL\n");
+			return -1;
+		}
+
+		break;
+	}
+
+	case SAIL_SLAVE_REG : {
+		waitNodes--;
+
+		if (msgData && (config.totalWidth == 0 || config.totalHeight == 0))
+			sscanf(msgData, "%d %d", &config.totalWidth, &config.totalHeight);
+
+		if (waitNodes < 1) {
+			if (config.nodeNum > 1) {
+				sGroup = new syncGroup;
+				//std::cout << "frame rate = " << config.frameRate << std::endl;
+				sGroup->init(0, SAGE_ASAP_SYNC_HARD, 0, config.frameRate, config.nodeNum);
+				sGroup->blockSync();
+				syncServerObj->addSyncGroup(sGroup);
+			}
+
+			sage::printLog("send SAIL register message to fsManager\n");
+			char msgStr[TOKEN_LEN];
+
+			if (config.bridgeOn) {
+				int rowNum = (int)ceil((float)config.totalHeight/config.blockY);
+				int colNum = (int)ceil((float)config.totalWidth/config.blockX);
+				int blockNum = rowNum*colNum; // total block number of this app
+				sprintf(msgStr, "%s %d %d %d %d %d %s %d %d %d %d %d",
+						config.appName, config.winX, config.winY, config.winWidth, config.winHeight,
+						config.protocol, config.fsIP, config.fsPort, config.totalWidth,
+						config.totalHeight, blockNum, (int)config.audioOn);
+
+				sendMessage(BRIDGE_APP_REG, msgStr);
+			}
+			else {
+				// calculate total app image resolution
+				// for NRM
+				double resX = config.resX/(config.imageMap.right-config.imageMap.left);
+				double resY = config.resY/(config.imageMap.top-config.imageMap.bottom);
+				double totalBandWidth = config.frameRate*resX*resY*pInfo.bytesPerPixel*8;
+				int bandWidthReq = (int)floor(totalBandWidth/1000000.0+0.5);
+				sprintf(msgStr, "%s %d %d %d %d %d %s %d %d %d %d %d %d %s %d",
+						config.appName, config.winX, config.winY, config.winWidth, config.winHeight,
+						bandWidthReq, config.streamIP, config.totalWidth, config.totalHeight,
+						(int)config.audioOn, config.protocol, config.frameRate, config.appID,
+						config.launcherID, config.portForwarding );
+
+				sendMessage(REG_APP, msgStr);
+			}
+		}
+		break;
+	}
+
+	case SAIL_CONNECT_TO_RCV : {
+		if (config.rendering) {
+			if (!pixelStreamer)
+				sage::printLog("sail::parseMessage : No pixelStreamer object\n");
+
+			sage::printLog("SAIL is initializing network connections for streaming\n");
+			if (pixelStreamer->initNetworks(msgData) < 0)
+				return -1;
+
+			if (config.master)
+				connectedNode++;
+		}
+
+		if (config.master) {
+			if (connectedNode == config.nodeNum) {
+				connectionDone = true;
+				sage::printLog("SAIL: Network connection Done\n");
+			}
+		}
+		else {
+			sendMessage(SAIL_CONNECTED_TO_RCV);
+		}
+
+		break;
+	}
+
+	case SAIL_CONNECT_TO_RCV_PORT : {
+		if (config.rendering) {
+			if (!pixelStreamer)
+				sage::printLog("sail::parseMessage : No pixelStreamer object\n");
+
+			sage::printLog("SAIL is initializing network connections for streaming\n");
+			if (pixelStreamer->initNetworks(msgData, true) < 0)
+				return -1;
+
+			if (config.master)
+				connectedNode++;
+		}
+
+		if (config.master) {
+			if (connectedNode == config.nodeNum) {
+				connectionDone = true;
+				sage::printLog("SAIL: Network connection Done\n");
+			}
+		}
+		else {
+			sendMessage(SAIL_CONNECTED_TO_RCV);
+		}
+
+		break;
+	}
+
+	case SAIL_CONNECT_TO_ARCV : {
+#ifdef SAGE_AUDIO
+		if (config.audioOn) {
+			if (!audioStreamer)
+				sage::printLog("sail::parseMessage : No audioStreamer object\n");
+			else {
+				sage::printLog("SAIL is initializing network connections for audio streaming\n");
+				audioStreamer->initNetworks(msgData);
+
+				audioStreamer->enqueMsg(msgData);
+				if(config.audioMode == SAGE_AUDIO_CAPTURE || config.audioMode == SAGE_AUDIO_PLAY) {
+					audioModule->play();
+				} else if(config.audioMode ==  SAGE_AUDIO_APP && audioAppDataHander){
+					audioAppDataHander->start();
+				}
+			}
+		}
 #endif
-         break;
-      }
-      case SAIL_CONNECTED_TO_RCV : {
-         connectedNode++;
-         if (connectedNode == config.nodeNum) {
-            connectionDone = true;
-            sage::printLog("SAIL: Network connection Done\n");
-         }
-         break;
-      }
+		break;
+	}
+	case SAIL_CONNECTED_TO_RCV : {
+		connectedNode++;
+		if (connectedNode == config.nodeNum) {
+			connectionDone = true;
+			sage::printLog("SAIL: Network connection Done\n");
+		}
+		break;
+	}
 
-      case SAIL_FLIP_WINDOW : {
-         if (config.rendering) {
-            if (config.rowOrd == BOTTOM_TO_TOP)
-               config.rowOrd = TOP_TO_BOTTOM;
-            else
-               config.rowOrd = BOTTOM_TO_TOP;
+	case SAIL_FLIP_WINDOW : {
+		if (config.rendering) {
+			if (config.rowOrd == BOTTOM_TO_TOP)
+				config.rowOrd = TOP_TO_BOTTOM;
+			else
+				config.rowOrd = BOTTOM_TO_TOP;
 
-            pixelStreamer->regeneratePixelBlocks();
+			pixelStreamer->regeneratePixelBlocks();
 
-            if (doubleBuf->isFirstFrameReady() && config.asyncUpdate)
-               doubleBuf->resendBuffer(1);
-         }
+			if (doubleBuf->isFirstFrameReady() && config.asyncUpdate)
+				doubleBuf->resendBuffer(1);
+		}
 
-         break;
-      }
+		break;
+	}
 
-      case SAIL_INIT_STREAM : {
-         //sage::printLog("SAIL : initialize SAGE streams");
+	case SAIL_INIT_STREAM : {
+		//sage::printLog("SAIL : initialize SAGE streams");
 
-         if (config.nodeNum > 1) {
-            sGroup->enqueSyncMsg(msgData);
-            sGroup->unblockSync();
-            if (config.asyncUpdate)
-               envIntf->distributeMessage(SAIL_RESEND_FRAME);
-         }
-         else if (config.rendering) {
-            pixelStreamer->enqueMsg(msgData);
-            if (doubleBuf->isFirstFrameReady() && config.asyncUpdate)
-               doubleBuf->resendBuffer(1);
-         }
+		if (config.nodeNum > 1) {
+			sGroup->enqueSyncMsg(msgData);
+			sGroup->unblockSync();
+			if (config.asyncUpdate)
+				envIntf->distributeMessage(SAIL_RESEND_FRAME);
+		}
+		else if (config.rendering) {
+			pixelStreamer->enqueMsg(msgData);
+			if (doubleBuf->isFirstFrameReady() && config.asyncUpdate)
+				doubleBuf->resendBuffer(1);
+		}
 
-         break;
-      }
+		break;
+	}
 
-      case SAIL_RESEND_FRAME : {
-         if (config.rendering && doubleBuf->isFirstFrameReady() && config.asyncUpdate)
-            doubleBuf->resendBuffer(1);
-         break;
-      }
+	case SAIL_RESEND_FRAME : {
+		if (config.rendering && doubleBuf->isFirstFrameReady() && config.asyncUpdate)
+			doubleBuf->resendBuffer(1);
+		break;
+	}
 
-      case SAIL_SHUTDOWN : {
-         shutdown();
-         break;
-      }
+	case SAIL_SHUTDOWN : {
+		shutdown();
+		break;
+	}
 
-      case SAIL_FRAME_RATE : {
-/*
+	case SAIL_FRAME_RATE : {
+		/*
          float frate = atof(msgData);
          if (config.master && config.nodeNum > 1)
             sGroup->setFrameRate(frate);
          else if (config.rendering)
             pixelStreamer->setFrameRate(frate);
          break;
-*/
-      }
+		 */
+	}
 
-      case SAIL_PERF_INFO : {
-         double bandData = atof(msgData);
-         totalBand += bandData;
-         perfWait--;
+	case SAIL_PERF_INFO : {
+		double bandData = atof(msgData);
+		totalBand += bandData;
+		perfWait--;
 
-         if (perfWait < 1) {
-            char msgStr[TOKEN_LEN];
-            sprintf(msgStr, "%7.2f %5.2f %d", totalBand, frameRate, config.nodeNum);
-            sendMessage(DISP_SAIL_PERF_RPT, msgStr);
-            perfWait = config.nodeNum;
-            totalBand = 0.0;
-         }
-         break;
-      }
+		if (perfWait < 1) {
+			char msgStr[TOKEN_LEN];
+			sprintf(msgStr, "%7.2f %5.2f %d", totalBand, frameRate, config.nodeNum);
+			sendMessage(DISP_SAIL_PERF_RPT, msgStr);
+			perfWait = config.nodeNum;
+			totalBand = 0.0;
+		}
+		break;
+	}
 
-      case SAIL_PERF_INFO_REQ : {
-         perfTimer.reset();
-         reportRate = atoi(msgData);
-         break;
-      }
+	case SAIL_PERF_INFO_REQ : {
+		perfTimer.reset();
+		reportRate = atoi(msgData);
+		break;
+	}
 
-      case SAIL_PERF_INFO_STOP : {
-         reportRate = 0;
-         break;
-      }
+	case SAIL_PERF_INFO_STOP : {
+		reportRate = 0;
+		break;
+	}
 
-      case SAIL_SEND_TIME_BLOCK : {
-         if (config.rendering) {
-            //gStreamer->timeBlockFlag = true;
-         }
-         else {
-            if (config.master)
-               envIntf->msgToClient(0, SAIL_SEND_TIME_BLOCK);
-            else
-               sage::printLog("sail::parseMessage : invalid sail slave configuration\n");
-         }
-         break;
-      }
-      default :
-         sage::printLog("sail::parseMessage() : sail received an invalid message \n");
-   }
+	case SAIL_SEND_TIME_BLOCK : {
+		if (config.rendering) {
+			//gStreamer->timeBlockFlag = true;
+		}
+		else {
+			if (config.master)
+				envIntf->msgToClient(0, SAIL_SEND_TIME_BLOCK);
+			else
+				sage::printLog("sail::parseMessage : invalid sail slave configuration\n");
+		}
+		break;
+	}
+	default :
+		sage::printLog("sail::parseMessage() : sail received an invalid message \n");
+	}
 
-   return 0;
+	return 0;
 }
 
 int sail::sendMessage(sageMessage &msg)
