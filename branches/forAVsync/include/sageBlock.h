@@ -65,36 +65,39 @@
  */
 class sageBlock {
 protected:
-   char *buffer;
-   int bufSize;
-   int flag;      //   specify the function of block
-   int rcnt;
-   int blockID;
-	long int timestamp_s;
-	long int timestamp_u;
+	char *buffer; /**< starting address of a block. This includes header. At the sender, this is a frame */
+	int bufSize;
+	int flag; /**<  specify the function of block. SAGE_PIXEL_BLOCK, SAGE_AUDIO_BLOCK and so on */
+	int rcnt;
+	int blockID;
+	long int timestamp_s; /**< TS for AV sync. second */
+	long int timestamp_u; /**< TS for AV sync. usec */
 
 
 public:
-   sageBlock() : flag(SAGE_PIXEL_BLOCK), buffer(NULL), bufSize(0), rcnt(0) {}
+	sageBlock() : flag(SAGE_PIXEL_BLOCK), buffer(NULL), bufSize(0), rcnt(0) {}
 
-   inline int getFlag() { return flag; }
-   inline void setFlag(int f) { flag = f; }
-   inline char *getBuffer() { return buffer; }
-   inline int getBufSize() { return bufSize; }
-   inline void setRefCnt(int cnt = 0) { rcnt = cnt; }
-   inline int getRefCnt() { return rcnt; }
-   inline int reference(int cnt = 1) { rcnt += cnt; return rcnt; }
-   inline int dereference(int cnt = 1) { rcnt -= cnt; return rcnt; }
-   inline void setID(int id) { blockID = id; }
-   inline int getID() { return blockID; }
+	inline int getFlag() { return flag; }
+	inline void setFlag(int f) { flag = f; }
+	inline char *getBuffer() { return buffer; }
+	inline int getBufSize() { return bufSize; }
+	inline void setRefCnt(int cnt = 0) { rcnt = cnt; }
+	inline int getRefCnt() { return rcnt; }
+	inline int reference(int cnt = 1) { rcnt += cnt; return rcnt; }
+	inline int dereference(int cnt = 1) { rcnt -= cnt; return rcnt; }
+	inline void setID(int id) { blockID = id; }
+	inline int getID() { return blockID; }
 
+	/**
+	 * for AV sync
+	 */
 	inline void setTimeStamp(long int sec, long int usec) { timestamp_s = sec; timestamp_u =usec; }
-	inline void getTimeStamp(long int &sec, long int &usec) { sec = timestamp_s; usec = timestamp_u; } 
-	
-   virtual int updateBufferHeader() = 0;
-   virtual bool updateBlockConfig() = 0;
-   virtual int getFrameID() = 0;
-   virtual ~sageBlock() {}
+	inline void getTimeStamp(long int &sec, long int &usec) { sec = timestamp_s; usec = timestamp_u; }
+
+	virtual int updateBufferHeader() = 0;
+	virtual bool updateBlockConfig() = 0;
+	virtual int getFrameID() = 0;
+	virtual ~sageBlock() {}
 };
 
 /**
@@ -102,15 +105,15 @@ public:
  */
 class sagePixelData : public sageRect, public sageBlock {
 protected:
-   char *pixelData; // starting address of image buffer
-   int frameID;  // frame to which this block belongs
-   sagePixFmt pixelType;   // pixel format of block
+   char *pixelData; /**< starting address of image buffer */
+   int frameID;  /**< frame to which this block belongs */
+   sagePixFmt pixelType;   /**< pixel format of block */
    int bytesPerPixel;
    float compressX, compressY;
 
-   int initBuffer();
+   int initBuffer(); /**< calls releaseBuffer() follwed by allocateBuffer() */
    int releaseBuffer();
-   int allocateBuffer(int size);
+   int allocateBuffer(int size); /**< MEMORY is ALLOCATED using malloc here */
 
 public:
    sagePixelData() : pixelData(NULL), frameID(0), pixelType(PIXFMT_888),
@@ -156,7 +159,7 @@ public:
    inline bool isDirty() { return dirty; }
    inline void setDirty() { dirty = true; }
    void clearPixelBlock();
-   int updateBufferHeader();
+   int updateBufferHeader(); /**< implementing pure virtual func of parent class */
    int updateHeader(int pid, int configID);
    bool updateBlockConfig();
 

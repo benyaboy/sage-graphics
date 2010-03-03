@@ -200,6 +200,7 @@ public:
 
 /**
  * class sageSyncBBServer
+ * inherits fsClient so that it can send message to SAIL
  */
 class sageSyncBBServer : public fsClient {
 protected:
