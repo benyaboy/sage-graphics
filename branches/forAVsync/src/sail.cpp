@@ -597,7 +597,14 @@ int sail::parseMessage(sageMessage &msg)
 #endif
 		}
 
-		// Do something to trigger empty swapbuffer
+		/**
+		 * pixelStreamer::streamLoop() will check this variable before streaming.
+		 *
+		 * pixelStreamer::streamLoop() is a thread
+		 * sail::parseMessage() is a thread
+		 * read from / write to this variable is thread safe ???
+		 */
+		config.avDiff = frameDif; // negative value means video is lagging
 
 		break;
 	}

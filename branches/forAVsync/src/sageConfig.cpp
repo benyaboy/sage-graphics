@@ -49,7 +49,7 @@ streamerConfig::streamerConfig() : rank(0), resX(0), resY(0), rowOrd(TOP_TO_BOTT
       sampleFmt(SAGE_SAMPLE_FLOAT32), samplingRate(44100), channels(2), framePerBuffer(2048),
       syncType(SAGE_SYNC_NONE), totalFrames(0), syncPolicy(SAGE_ASAP_SYNC_HARD),
       autoBlockSize(false), maxBandwidth(1000), maxCheckInterval(1000), flowWindow(2),
-      bridgeOn(false), frameDrop(true)
+      bridgeOn(false), frameDrop(true), avDiff(0)
 {
    switch(sampleFmt) {
       case SAGE_SAMPLE_FLOAT32 :

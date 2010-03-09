@@ -369,6 +369,18 @@ int sageBlockStreamer::streamLoop()
 #endif
 		//sage::printLog("\n========= got a frame ==========\n");
 
+		/** AV sync */
+		if ( config.avDiff < 0 ) {
+			// skip video streaming
+			// what about frame numbering.???
+
+#ifdef DEBUG_AVSYNC
+			fprintf(stderr, "SBS::streamLoop() : avDiff %d\n", config.avDiff);
+#endif
+			(config.avDiff)++;
+			continue;
+		}
+
 		char *msgStr = NULL;
 		if (config.nodeNum > 1) {
 			config.syncClientObj->sendSlaveUpdate(frameID);
