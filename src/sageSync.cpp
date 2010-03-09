@@ -824,28 +824,32 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 
 							// bitset will be initialized with zeros
 							// counts only SDM not ADM
-							if ( sdm >= 0 ) (SDMlistBitsetMap[pdl]).set(sdm, 1);
+							if ( sdm >= 0 ) {
+								(SDMlistBitsetMap[pdl]).set(sdm, 1);
 
-							// update frame number of each PDL of each SDM
-							//frameNumOfEachSDM[pdl][sdm] = updatedFrame;
-
-							// find number of SDM involved in this application
-							// update number of active node for this application(pdl id)
-							//slaveNumArray[pdl] = slaveNum;
-
-							// this should be same for all nodes of this application
-							//syncFrameArray[pdl] = updatedFrame;
-							if ( updatedFrame >= 0 ) syncFrameMap[pdl] = updatedFrame;
-							else syncAudioFrameMap[pdl] = updatedFrame;
-							// AUDIO
-							// updatedFrame : -gFrameidx
-							// sdm : -100
-							// pdl : instID
-#ifdef DEBUG_AVSYNC
-							if ( sdm == -100 ) {
-								fprintf(stderr, "syncMaster received audio msg : instID %d, frame %d\n", pdl, updatedFrame);
+								// this should be same for all nodes of this application
+								if ( updatedFrame >= 0 ) syncFrameMap[pdl] = updatedFrame;
+								else {
+									//should never happen
+								}
 							}
+							else if ( sdm == -100 ) {
+								// AUDIO
+								// updatedFrame : -gFrameidx
+								// sdm : -100
+								// pdl : instID
+#ifdef DEBUG_AVSYNC
+								fprintf(stderr, "syncMaster received audio msg : instID %d, frame %d\n", pdl, updatedFrame);
 #endif
+								// audio manager
+								if ( updatedFrame < 0 ) syncAudioFrameMap[pdl] = updatedFrame;
+								else {
+									// should never happen
+								}
+							}
+							else {
+								// nothing. should never happen
+							}
 
 							//frameNumOfEachSDM[pdl][sdm] = updatedFrame;
 
@@ -918,7 +922,6 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 					if ( syncAudioFrameMap.find(appID) != syncAudioFrameMap.end()  &&  syncAudioFrameMap[appID] != 0 ) {
 						// there's audio for this app
 						int av_diff = syncFrameMap[appID] + syncAudioFrameMap[appID];
-						syncAudioFrameMap[appID] = 0; //reset
 
 						if ( av_diff == 0 ) {
 						}
@@ -942,6 +945,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 							swapMontageReady = true;
 							continue;
 						}
+						syncAudioFrameMap[appID] = 0; //reset
 					}
 
 					if ( intMsgIndex >= numUpdatedApps ) {
