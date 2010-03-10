@@ -1,14 +1,18 @@
-
 ###################################################################
 # Makefile for VNC
 ###################################################################
 
 include ../../config.mk
 
-CFLAGS=-fPIC -O3 -I../../include $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS)
-#LIBS=-lpthread -lm -ldl $(QUANTA_LIB) $(GLEW_LIB) -L../../lib -lsail -lz -ljpeg
-LIBS+= -L../../lib -lsail -lz -ljpeg -lquanta
 CC=$(COMPILER)
+
+CFLAGS=$(SAGE_CFLAGS) -I../../include $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS)
+LIBS+=$(SAGE_LDFLAGS) -L../../lib -lsail -lz -ljpeg $(QUANTA_LDFLAGS) $(PAUDIO_LIB)
+
+ifeq ($(MACHINE), Darwin)
+        CFLAGS+= -I/opt/local/include
+        LIBS+= -L/opt/local/lib
+endif
 
 
 PROGRAM = VNCViewer
