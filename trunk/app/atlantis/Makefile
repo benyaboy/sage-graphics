@@ -8,8 +8,8 @@ CFLAGS=-fPIC -O3 -I../../include $(QUANTA_CFLAGS)
 CC=$(COMPILER)
 
 ifeq ($(MACHINE), Darwin)
-   CFLAGS  += -FGLUT -FOpenGL
-   LIBS=-lpthread -L../../lib -lsail -framework GLUT -framework OpenGL -lobjc -lm 
+   CFLAGS+= $(SAGE_CFLAGS) -FGLUT -FOpenGL
+   LIBS= $(SAGE_LDFLAGS) -lpthread -L../../lib -lsail -framework GLUT -framework OpenGL -lobjc -lm 
 else
 ifeq ($(MACHINE), SunOS)
    CFLAGS=$(SAGE_CFLAGS) -O3 -I../../include $(QUANTA_CFLAGS) $(GLUT_CFLAGS) 

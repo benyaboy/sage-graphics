@@ -1,13 +1,20 @@
+include ../../../config.mk
 DXT=1   # comment out for no DXT support
 
 SAGE_DIR = ../../..
 
-CFLAGS=`Wand-config --cflags --cppflags`  -I$(SAGE_DIR)/include -fno-stack-protector
-LIBS= `Wand-config --ldflags --libs` -L/usr/local/lib -lpthread -lstdc++ -lltdl -L$(SAGE_DIR)/lib -lsail  -lquanta
+CFLAGS=$(SAGE_CFLAGS) -I$(SAGE_DIR)/include $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS)
+LIBS+=$(SAGE_LDFLAGS) -L$(SAGE_DIR)/lib -lsail -lz -ljpeg $(QUANTA_LDFLAGS) $(PAUDIO_LIB)
 
-FILES=imageviewer.o 
+CFLAGS += `Wand-config --cflags --cppflags` -fno-stack-protector
+LIBS += `Wand-config --ldflags --libs` -lpthread
+
+ifeq ($(MACHINE), Darwin)
+        LIBS+= -L/opt/local/lib -lstdc++ -lltdl
+endif
+
+FILES=imageviewer.o
 TARGET=imageviewer
-
 
 #----------------  BEGIN FastDXT stuff  ----------------#
 ifdef DXT
@@ -30,10 +37,10 @@ ifeq ($(ARCHITECTURE), i386)
 
 ifeq ($(OPTIM), 1)
 # MacPro
-# CXXFLAGS+=-march=nocona -msse3 -DDXT_INTR
+CXXFLAGS+=-march=nocona -msse3 -DDXT_INTR
 
 # MacbookPro
-CFLAGS+=-march=i686 -msse2 -DDXT_INTR
+#CFLAGS+=-march=i686 -msse2 -DDXT_INTR
 endif
 
 endif
