@@ -133,6 +133,12 @@ int sageVirtualDesktop::launchReceivers(char *fsIP, int port, int syncPort, bool
       std::cout << "ATTENTION: SAGE on Windows works only locally, no remote execution" << std::endl;
       std::cout << "\t" << command << std::endl;
       system( command );
+#elif defined(__APPLE__)
+      sprintf(command, "%s/bin//sageDisplayManager.app/Contents/MacOS/sageDisplayManager %s %d %d %d %d %d %d %d %d %d",
+		sageDir, fsIP, port, i,
+		syncPort, displayID, (int)globalSync, syncBarrierPort, refreshInterval, syncMasterPollingInterval, syncLevel);
+      if (execRemBin(displayCluster[i]->ip, command, displayCluster[i]->Xdisp) < 0)
+         return -1;
 #else
       if (dispBinPath) {
          sprintf(command, "%s/sageDisplayManager %s %d %d %d %d %d %d %d %d %d", dispBinPath,

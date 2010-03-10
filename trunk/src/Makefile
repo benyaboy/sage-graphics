@@ -27,8 +27,12 @@ FSM_OBJ=fsManager.o fsServer.o fsCore.o sageVirtualDesktop.o \
 RCV_OBJ=sageDisplayManager.o fsClient.o sageSync.o sageDisplay.o pixelDownloader.o \
 	streamProtocol.o sageTcpModule.o sageUdpModule.o sageReceiver.o \
 	sageDraw.o sageDrawObject.o overlayPointer.o overlayApp.o sageBlockQueue.o \
-	sageSharedData.o sageEvent.o sdlSingleContext.o \
-	appleMultiContext.o
+	sageSharedData.o sageEvent.o sdlSingleContext.o appleMultiContext.o
+
+ifeq ($(MACHINE), Darwin)
+RCV_OBJ += SDLMain.o
+endif
+
 
 ifdef AUDIO
 ARCV_OBJ=sageAudioManager.o fsClient.o sageSync.o sageEvent.o \
@@ -74,12 +78,19 @@ build: $(PROJ_EXE) $(SAIL_LIB)
 install: build
 	cp $(SAIL_LIB) ../lib
 	for i in $(PROJ_EXE); do cp -f $$i ../bin/; done
+ifeq ($(MACHINE), Darwin)
+	/bin/rm -fr ../bin/sageDisplayManager.app
+	/bin/cp -fr sageDisplayManager.app ../bin
+endif
+
 
 clean:
 	rm -f $(DIRT)
 	cd ../bin; rm -f $(PROJ_EXE)
 	cd ../lib; rm -f $(SAIL_LIB); cd ../src
 
+SDLMain.o: SDLMain.m
+	$(COMPILER) $(SAGE_LDFLAGS) -m32 -c SDLMain.m
 
 fsManager: $(COMMON_OBJ) $(FSM_OBJ)
 	$(COMPILER) ${MYFLAGS} $(COMMON_OBJ) $(FSM_OBJ) $(LIBS) -o fsManager
@@ -87,6 +98,16 @@ fsManager: $(COMMON_OBJ) $(FSM_OBJ)
 
 sageDisplayManager: $(COMMON_OBJ) $(RCV_OBJ)
 	$(COMPILER) $(MYFLAGS) $(COMMON_OBJ) $(RCV_OBJ) $(LIBS) -o sageDisplayManager
+ifeq ($(MACHINE), Darwin)
+	/bin/rm -fr sageDisplayManager.app
+	mkdir -p sageDisplayManager.app/Contents/MacOS
+	mkdir -p sageDisplayManager.app/Contents/Resources
+	echo "APPL????" > sageDisplayManager.app/Contents/PkgInfo
+	install sageDisplayManager sageDisplayManager.app/Contents/MacOS/
+	install Info.plist sageDisplayManager.app/Contents/
+	touch sageDisplayManager.app/Contents/Resources/empty.lproj
+endif
+
 
 ifdef AUDIO
 sageAudioManager: $(COMMON_OBJ) $(ARCV_OBJ)
@@ -113,3 +134,4 @@ $(SAIL_LIB): $(COMMON_OBJ) $(SAIL_OBJ)
 
 fsConsole.o: fsConsole.cpp
 	$(COMPILER) $(MYFLAGS) $(READLINE_CFLAGS) -c fsConsole.cpp
+

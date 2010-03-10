@@ -38,8 +38,12 @@
  *
  *****************************************************************************/
 
+#if defined(__APPLE__)
 #include "appleMultiContext.h"
+#else
 #include "sdlSingleContext.h"
+#endif
+
 #include "sageDisplayManager.h"
 #include "sageSharedData.h"
 #include "sageEvent.h"
@@ -296,7 +300,8 @@ int sageDisplayManager::init(char *data)
    dispCfg.blue = 0;
    dispCfg.displayID = displayID;
 
-   shared->context = (displayContext *) new sdlSingleContext;
+   //shared->context = (displayContext *) new sdlSingleContext;
+   shared->context = (displayContext *) new appleMultiContext;
    if (shared->context->init(dispCfg) < 0) {
       sage::printLog("[%d] SDM::init() : Error creating display object ", shared->nodeID);
       return -1;
