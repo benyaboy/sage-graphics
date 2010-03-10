@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+       <key>CFBundleExecutable</key>
+       <string>sageDisplayManager</string>
+       <key>CFBundleGetInfoString</key>
+       <string>Created by EVL/UIC</string>
+       <key>CFBundleIdentifier</key>
+       <string>sage.sageDisplayManager</string>
+       <key>CFBundlePackageType</key>
+       <string>APPL</string>
+       <key>CFBundleSignature</key>
+       <string>????</string>
+       <key>LSUIPresentationMode</key>
+       <integer>4</integer>
+</dict>
+</plist>
