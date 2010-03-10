@@ -77,18 +77,28 @@ ifdef AUDIO
   PAUDIO_LIB= -L${PORTAUDIO_DIR}/lib -lportaudio
 endif
 
+  SDL_CFLAGS=-I/Library/Frameworks/SDL.framework/Headers -FSDL -FSDL_ttf -FOpenGL
+  SDL_LIBS=-framework SDL -framework Cocoa
+  FONT_LIB=-framework SDL_ttf
+
+  SAGE_CFLAGS=-fPIC -m32
+  SAGE_LDFLAGS=-m32
+
+  MAGICK_CFLAGS=-I/opt/local/include
+  MAGICK_LIBS=-L/opt/local/lib -lfreetype -lz -lMagick -ltiff -ljpeg -lpthread -lm -lWand
+
   # QUANTA library name
   QUANTA_LIB=libquanta.dylib
 
   # READLINE settings
-  READLINE_CFLAGS=-I/opt/local/include 
+  READLINE_CFLAGS=-I/opt/local/include
   READLINE_LIB=-L/opt/local/lib -lreadline
 
   # Lower-level graphics library
-  XLIBS= -framework OpenGL -lobjc -framework aGL -framework Quicktime -framework Carbon -framework QuartzCore
+  XLIBS= -framework OpenGL -lobjc -framework aGL -framework Carbon -framework QuartzCore
 
   # how to build a shared library
-  SHLD_FLAGS=-dynamiclib -flat_namespace -undefined suppress
+  SHLD_FLAGS=-m32 -dynamiclib -flat_namespace -undefined suppress
 
 else
 

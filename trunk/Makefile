@@ -9,9 +9,11 @@ default:
 	@cd src; $(MAKE) install; cd -
 	@for i in `echo $(subprojects)`; do cd $$i; $(MAKE); cd - ; done
 
-install: default
-	@for i in `echo $(preprojects)`; do cd $$i; $(MAKE) $@; cd - ; done
-	@for i in `echo $(subprojects)`; do cd $$i; $(MAKE) $@; cd - ; done
+build: default
+	@for i in `echo $(preprojects)`; do cd $$i; $(MAKE) install; cd - ; done
+	@for i in `echo $(subprojects)`; do cd $$i; $(MAKE) install; cd - ; done
+
+install: build
 # make directories
 	mkdir -p ${PREFIX}/usr/local/sage/bin
 	mkdir -p ${PREFIX}/usr/local/sage/bin/log
