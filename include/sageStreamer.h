@@ -154,6 +154,7 @@ public:
     */
    virtual void setNwConfig(sageNwConfig &nc) { nwCfg = nc; }
    inline void shutdown() { streamerOn = false; }
+   inline bool isStreamerOn() { return streamerOn; }
 };
 
 /**

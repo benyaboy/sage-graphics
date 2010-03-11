@@ -421,6 +421,23 @@ int sail::swapBuffer(int mode)
       return 1;
    }
 
+   /**
+      * if the streaming thread is finished. sail::swapBuffer() will block permanently.
+      * (because of semaphore operation on the double buffer b/w sail::swapBuffer() and SBS::streamLoop() )
+      * If it blocks permanently, app could never get sageMessage which causes the killing app instance issue.
+      * So, if the streaming thread is finished, then swapBuffer() should return with error.
+      */
+     if ( ! pixelStreamer->isStreamerOn() ) {
+  	   fprintf(stderr,"sail::%s() : streamerOn is false\n", __FUNCTION__);
+  	   sageMessage msg;
+  	   msg.init(0, APP_QUIT, 0, 0, NULL);
+  	   pthread_mutex_lock(msgMutex);
+  	   appMsgQueue.push_front(msg);
+  	   pthread_mutex_unlock(msgMutex);
+  	   return -1;
+     }
+
+
    //std::cout << "pt2" << std::endl;
    doubleBuf->swapBuffer();
 
@@ -561,6 +578,9 @@ int sail::readMessage()
          msg.destroy();
       }
       else if (msg.getCode() >= APP_MESSAGE) {
+#ifdef DEBUG_KILL
+    	  fprintf(stderr,"sail::readMsg() push_back msg code %d, %s\n", msg.getCode(), (char *)msg.getData());
+#endif
          appMsgQueue.push_back(msg);
          pthread_mutex_unlock(msgMutex);
       }
@@ -772,6 +792,9 @@ int sail::parseMessage(sageMessage &msg)
       }
 
       case SAIL_SHUTDOWN : {
+#ifdef DEBUG_KILL
+    	  fprintf(stderr,"sail::parseMessage() : SAIL_SHUTDOWN. will set streamerOn = false\n");
+#endif
          shutdown();
          break;
       }
