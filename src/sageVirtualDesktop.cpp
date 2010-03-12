@@ -300,7 +300,7 @@ int sageVirtualDesktop::getAudioNodeIPs(int nodeId, char *ipStr)
    return 1;
 }
 
-int sageVirtualDesktop::launchAudioReceivers(char *fsIP, int port, int syncPort)
+int sageVirtualDesktop::launchAudioReceivers(char *fsIP, int port, int syncPort, int syncLevel /* = 1 */)
 {
    char *sageDir;
    if (audioServer)
@@ -327,7 +327,7 @@ int sageVirtualDesktop::launchAudioReceivers(char *fsIP, int port, int syncPort)
       std::cout << "\t" << command << std::endl;
       system( command );
 #else
-      sprintf(command, "%s/bin/sageAudioManager %s %d %d %d", sageDir, fsIP, port, total_sdm - i, syncPort /*, audioSyncPort*/);
+      sprintf(command, "%s/bin/sageAudioManager %s %d %d %d", sageDir, fsIP, port, total_sdm - i, syncPort /*, audioSyncPort*/, syncLevel);
       std::cout << "audio " << command << std::endl;
       if (execRemBin(audioCluster[i]->ip, command) < 0)
          return -1;

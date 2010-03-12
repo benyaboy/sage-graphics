@@ -87,6 +87,9 @@ sageAudioManager::sageAudioManager(int argc, char **argv)
 	initialized = false;
 	rcvRefreshEnd = false;
 
+	//131.193.78.140 20002 -100 12000
+	// fsIP, fsPort, nodeID, receiverSyncPort, syncLevel
+
    if (argc < 5) {
       sage::printLog("SAGE Audio receiver : More arguments are needed");
       exit(0);
@@ -94,6 +97,8 @@ sageAudioManager::sageAudioManager(int argc, char **argv)
 
    nodeID = atoi(argv[3]);
    syncPort = atoi(argv[4]);
+   syncLevel = 0;
+   syncLevel = atoi(argv[5]);
 
    char fsIP[SAGE_IP_LEN];
    strcpy(fsIP, argv[1]);
@@ -129,161 +134,157 @@ sageAudioManager::sageAudioManager(int argc, char **argv)
 
 int sageAudioManager::init(char *data)
 {
-///////////////////
-//   sprintf(msgStr, "%d %d %d %d %d %d %d %s", fsm->nwInfo->rcvBufSize,
-//         fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize,   fsm->rInfo.audioSyncPort,
-//         fsm->rInfo.audioPort, fsm->rInfo.bufSize, fsm->vdt->getNodeNum(), info);
-//////////////////
-   //std::cout << "---> message : " << data << std::endl;
+	///////////////////
+	//   sprintf(msgStr, "%d %d %d %d %d %d %d %s", fsm->nwInfo->rcvBufSize,
+	//         fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize,   fsm->rInfo.audioSyncPort,
+	//         fsm->rInfo.audioPort, fsm->rInfo.bufSize, fsm->vdt->getNodeNum(), info);
+	//////////////////
+	//std::cout << "---> message : " << data << std::endl;
 
-   char token[TOKEN_LEN];
+	char token[TOKEN_LEN];
 
-   getToken(data, token);
-   nwCfg.rcvBufSize = atoi(token);
+	getToken(data, token);
+	nwCfg.rcvBufSize = atoi(token);
 
-   getToken(data, token);
-   nwCfg.sendBufSize = atoi(token);
+	getToken(data, token);
+	nwCfg.sendBufSize = atoi(token);
 
 	// For audio, we don't need big buffer for receiving. 
-   nwCfg.rcvBufSize = nwCfg.sendBufSize;
+	nwCfg.rcvBufSize = nwCfg.sendBufSize;
 
-   getToken(data, token);
-   nwCfg.mtuSize = atoi(token);
+	getToken(data, token);
+	nwCfg.mtuSize = atoi(token);
 
-   getToken(data, token);
-   //syncPort = atoi(token);
+	getToken(data, token);
+	//syncPort = atoi(token);
 
-   getToken(data, token);
-   streamPort = atoi(token);
+	getToken(data, token);
+	streamPort = atoi(token);
 
-   getToken(data, token);
-   int agSyncPort = atoi(token);
+	getToken(data, token);
+	int agSyncPort = atoi(token);
 
-   getToken(data, token);
-   //bufSize = atoi(token);
+	getToken(data, token);
+	//bufSize = atoi(token);
 
-   int tokenNum = getToken(data, token);
-   totalRcvNum = atoi(token);
+	int tokenNum = getToken(data, token);
+	totalRcvNum = atoi(token);
 
-   if (tokenNum < 1) {
-      std::cout << "aStreamRcv::init : insufficient parameters in RCV_INIT message" << std::endl;
-      return -1;
-   }
+	if (tokenNum < 1) {
+		std::cout << "aStreamRcv::init : insufficient parameters in RCV_INIT message" << std::endl;
+		return -1;
+	}
 
-   //audioOn = true;
+	//audioOn = true;
 
-///////////////////
-//   sprintf(info, "%s %d %d %ld %d %d", ipStr, audio->deviceId, (int)audio->sampleFmt, audio->samplingRate,
-//          audio->channels, audio->framePerBuffer);
-///////////////////
-   char masterIp[SAGE_IP_LEN];
-   getToken(data, masterIp);
+	///////////////////
+	//   sprintf(info, "%s %d %d %ld %d %d", ipStr, audio->deviceId, (int)audio->sampleFmt, audio->samplingRate,
+	//          audio->channels, audio->framePerBuffer);
+	///////////////////
+	char masterIp[SAGE_IP_LEN];
+	getToken(data, masterIp);
 
-   getToken(data, token);
-   audioCfg.deviceNum = atoi(token);
-   //std::cout << "---------> devce " << audioCfg.deviceNum << std::endl;
+	getToken(data, token);
+	audioCfg.deviceNum = atoi(token);
+	//std::cout << "---------> devce " << audioCfg.deviceNum << std::endl;
 
-   getToken(data, token);
-   audioCfg.sampleFmt = (sageSampleFmt) atoi(token);
+	getToken(data, token);
+	audioCfg.sampleFmt = (sageSampleFmt) atoi(token);
 
-   getToken(data, token);
-   audioCfg.samplingRate = atoi(token);
+	getToken(data, token);
+	audioCfg.samplingRate = atoi(token);
 
-   getToken(data, token);
-   audioCfg.channels = atoi(token);
+	getToken(data, token);
+	audioCfg.channels = atoi(token);
 
-   getToken(data, token);
-   audioCfg.framePerBuffer = atoi(token);
+	getToken(data, token);
+	audioCfg.framePerBuffer = atoi(token);
 
-   audioCfg.audioMode = SAGE_AUDIO_PLAY;
+	audioCfg.audioMode = SAGE_AUDIO_PLAY;
 
-   //std::cout << "SAGE Receiver : initialization message was successfully parsed" << std::endl;
+	//std::cout << "SAGE Receiver : initialization message was successfully parsed" << std::endl;
 
-   sageAudioModule::instance();
-   audioModule = sageAudioModule::_instance;
+	sageAudioModule::instance();
+	audioModule = sageAudioModule::_instance;
 	audioModule->setNodeID(nodeID);
-   audioModule->init(audioCfg);
+	audioModule->init(audioCfg);
 
-   if (initNetworks() < 0)
-      return -1;
+	if (initNetworks() < 0) {
+		fprintf(stderr, "sageAudioManager::%s() : initNetworks failed. returning.\n", __FUNCTION__);
+		return -1;
+	}
 
-   syncClientObj = new sageSyncClient;
+	if ( syncLevel != 0 ) {
+		syncClientObj = new sageSyncClient;
 
-	//std::cout << "nodeID = " << nodeID << std::endl;
-	int i;
-	for(i=0; i <100; i++)
-	{
-   	if (syncClientObj->connectToServer(masterIp, syncPort, nodeID) >= 0)
-			break;
-   } 
-	if(i == 100)
-	{
-		sage::printLog("[sageAudioManager::init] Fail to connect to sync master");
-      return -1;
-	} else 
-		sage::printLog("[sageAudioManager::init] connected to sync master");
+		if (syncClientObj->connectToServer(masterIp, syncPort, nodeID) < 0) {
+			fprintf(stderr, "sageAudioManager::%s() : failed to connect to syncServer at %s:%d\n", __FUNCTION__, masterIp, syncPort);
+		}
+		//sendMessage(SYNC_INIT_ARCV, nodeID);
+	}
 
-   sendMessage(SYNC_INIT_ARCV, nodeID);
+	pthread_t thId;
 
-   pthread_t thId;
-
-   /*
+	/*
    if (pthread_create(&thId, 0, syncCheckThread, (void*)this) != 0) {
       sage::printLog("sageAudioManager::init : can't create sync checking thread");
    }
-   */
+	 */
 
-   if (pthread_create(&thId, 0, refreshThread, (void*)this) != 0) {
-      sage::printLog("sageAudioManager: can't create UI event check thread");
-   }
+	/*
+	if (pthread_create(&thId, 0, refreshThread, (void*)this) != 0) {
+		sage::printLog("sageAudioManager: can't create UI event check thread");
+	}
+	*/
+
 	initialized = true;
 
-   return 0;
+	return 0;
 }
 
 void* sageAudioManager::msgCheckThread(void *args)
 {
-   sageAudioManager *This = (sageAudioManager *)args;
+	sageAudioManager *This = (sageAudioManager *)args;
 
-   sageMessage *msg;
+	sageMessage *msg = NULL;
 	int rcvSize = 0;
 
-   while (!This->rcvEnd) {
-      msg = new sageMessage;
+	while (!This->rcvEnd) {
+		msg = new sageMessage;
 		rcvSize = This->rcvMessageBlk(*msg);
-      if (rcvSize > 0 && !This->rcvEnd) {
-         //std::cout << "----> message arrive" << std::endl;
-         This->eventQueue->sendEvent(EVENT_NEW_MESSAGE, 0, (void *)msg);
-      } else if(rcvSize < 0)
-		{
+		if (rcvSize > 0 && !This->rcvEnd) {
+			//std::cout << "----> message arrive" << std::endl;
+			This->eventQueue->sendEvent(EVENT_NEW_MESSAGE, 0, (void *)msg);
+		}
+		else if (rcvSize < 0) {
 			This->shutdownApp(-1);
 			This->rcvEnd = true;
 			break;
 		}
-   }
+	}
 
-   sage::printLog("sageAudioManager::msgCheckThread : exit");
-   pthread_exit(NULL);
-   return NULL;
+	//sage::printLog("sageAudioManager::msgCheckThread : exit");
+	pthread_exit(NULL);
+	return NULL;
 }
 
 void* sageAudioManager::syncCheckThread(void *args)
 {
-   sageAudioManager *This = (sageAudioManager *)args;
+	sageAudioManager *This = (sageAudioManager *)args;
 
-   while (!This->rcvEnd) {
-      sageEvent *syncEvent = new sageEvent;
-      syncEvent->eventType = EVENT_SYNC_MESSAGE;
-      char *syncMsg = syncEvent->eventMsg;
-      if (This->syncClientObj->waitForSync(syncMsg) == 0) {
-         //std::cout << "rcv sync " << syncEvent->eventMsg << std::endl;
-         This->eventQueue->sendEvent(syncEvent);
-      }
-   }
+	while (!This->rcvEnd) {
+		sageEvent *syncEvent = new sageEvent;
+		syncEvent->eventType = EVENT_SYNC_MESSAGE;
+		char *syncMsg = syncEvent->eventMsg;
+		if (This->syncClientObj->waitForSync(syncMsg) == 0) {
+			//std::cout << "rcv sync " << syncEvent->eventMsg << std::endl;
+			This->eventQueue->sendEvent(syncEvent);
+		}
+	}
 
-   sage::printLog("sageAudioManager::syncCheckThread : exit");
-   pthread_exit(NULL);
-   return NULL;
+	sage::printLog("sageAudioManager::syncCheckThread : exit");
+	pthread_exit(NULL);
+	return NULL;
 }
 
 void* sageAudioManager::perfReportThread(void *args)
@@ -317,39 +318,38 @@ void* sageAudioManager::refreshThread(void *args)
 
 int sageAudioManager::initNetworks()
 {
-   sage::printLog("sageAudioManager::initNetworks() : initializing network objects....");
+	//sage::printLog("sageAudioManager::initNetworks() : initializing network objects....");
 
-   tcpObj = new sageTcpModule;
-   if (tcpObj->init(SAGE_ARCV, streamPort, nwCfg) == 1) {
-      sage::printLog("sageAudioManager::initNetworks() : sageAudioManager is already running");
-      return -1;
-   }
-   sage::printLog("sageAudioManager::initNetworks() : TCP has initialized successfully");
+	tcpObj = new sageTcpModule;
+	if (tcpObj->init(SAGE_ARCV, streamPort, nwCfg) == 1) {
+		sage::printLog("sageAudioManager::initNetworks() : sageAudioManager is already running");
+		return -1;
+	}
+	sage::printLog("sageAudioManager::initNetworks() : TCP has initialized successfully");
 
-   udpObj = new sageUdpModule;
-   udpObj->init(SAGE_ARCV, streamPort+(int)SAGE_UDP, nwCfg);
-   sage::printLog("sageAudioManager::initNetworks() : UDP has initialized successfully");
+	udpObj = new sageUdpModule;
+	udpObj->init(SAGE_ARCV, streamPort+(int)SAGE_UDP, nwCfg);
+	sage::printLog("sageAudioManager::initNetworks() : UDP has initialized successfully");
 
+	pthread_t thId;
+	nwCheckThreadParam *param = new nwCheckThreadParam;
+	param->This = this;
+	param->nwObj = tcpObj;
 
-   pthread_t thId;
-   nwCheckThreadParam *param = new nwCheckThreadParam;
-   param->This = this;
-   param->nwObj = tcpObj;
+	if (pthread_create(&thId, 0, nwCheckThread, (void*)param) != 0) {
+		sage::printLog("sageAudioManager::initNetworks() : can't create TCP network checking thread");
+		return -1;
+	}
 
-   if (pthread_create(&thId, 0, nwCheckThread, (void*)param) != 0) {
-      sage::printLog("sageAudioManager::initNetwork : can't create network checking thread");
-         return -1;
-   }
+	param = new nwCheckThreadParam;
+	param->This = this;
+	param->nwObj = udpObj;
+	if (pthread_create(&thId, 0, nwCheckThread, (void*)param) != 0) {
+		sage::printLog("sageAudioManager::initNetworks() : can't create UDP network checking thread");
+		return -1;
+	}
 
-   param = new nwCheckThreadParam;
-   param->This = this;
-   param->nwObj = udpObj;
-   if (pthread_create(&thId, 0, nwCheckThread, (void*)param) != 0) {
-      sage::printLog("sageAudioManager::initNetwork : can't create network checking thread");
-         return -1;
-   }
-
-   return 0;
+	return 0;
 }
 
 void* sageAudioManager::nwCheckThread(void *args)
@@ -370,19 +370,19 @@ void* sageAudioManager::nwCheckThread(void *args)
       }
    }
 
-   sage::printLog("sageAudioManager::nwCheckThread : exit");
+   //sage::printLog("sageAudioManager::nwCheckThread : exit");
    pthread_exit(NULL);
    return NULL;
 }
 
 int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 {
-   int senderID, instID, sailNodeNum, streamType, blockSize, frameRate;
-   int syncType, keyframe;
-   sscanf(msg, "%d %d %d %d %d %d %d %d %d %d %d %d",
-					&senderID, &streamType, &instID, &sailNodeNum, &blockSize,
-					&syncType, (int*) &audioCfg.sampleFmt, &audioCfg.samplingRate,
-					&audioCfg.channels, &audioCfg.framePerBuffer, &frameRate, &keyframe);
+	int senderID, instID, sailNodeNum, streamType, blockSize, frameRate;
+	int syncType, keyframe;
+	sscanf(msg, "%d %d %d %d %d %d %d %d %d %d %d %d",
+			&senderID, &streamType, &instID, &sailNodeNum, &blockSize,
+			&syncType, (int*) &audioCfg.sampleFmt, &audioCfg.samplingRate,
+			&audioCfg.channels, &audioCfg.framePerBuffer, &frameRate, &keyframe);
 
 	std::cout << "[sageAudioManager::initStreams] got init stream" << std::endl;
 	bool instExist = false;
@@ -399,24 +399,23 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 
 	if (instExist == false) {
 
-      sageAudioCircBuf *buffer = audioModule->createObject(instID, &audioCfg);
+		sageAudioCircBuf *buffer = audioModule->createObject(instID, &audioCfg);
 
-      if(buffer != NULL) {
-         buffer->setInstID(instID);
-         if(streamType != SAGE_BLOCK_NO_SYNC)
-         {
-            buffer->connectSyncClient(syncClientObj);
-         }
+		if(buffer != NULL) {
+			buffer->setInstID(instID);
+			if(streamType != SAGE_BLOCK_NO_SYNC)
+			{
+				buffer->connectSyncClient(syncClientObj);
+			}
 
-         sageAudioReceiver *recv = new sageAudioReceiver(msg, eventQueue, nwObj, buffer, audioModule->getSampleFmt());
-         recv->addStream(senderID);
+			sageAudioReceiver *recv = new sageAudioReceiver(msg, eventQueue, nwObj, buffer, audioModule->getSampleFmt());
+			recv->addStream(senderID);
 			receiverList.push_back(recv);
-         std::cout << "[sageAudioManager::initStreams] inst init " << instID << std::endl;
-      }
+			std::cout << "[sageAudioManager::initStreams] inst init " << instID << std::endl;
+		}
+	}
 
-   }
-
-   return 0;
+	return 0;
 }
 
 sageAudioReceiver* sageAudioManager::findApp(int id, int& index)
@@ -485,103 +484,103 @@ int sageAudioManager::parseEvent(sageEvent *event)
 
 int sageAudioManager::parseMessage(sageMessage *msg)
 {
-   if (!msg) {
-      sage::printLog("sageAudioManager::parseMessage : message is NULL");
-      return -1;
-   }
+	if (!msg) {
+		sage::printLog("sageAudioManager::parseMessage : message is NULL");
+		return -1;
+	}
 
 	//std::cout << msg->getCode() << " parse mesage : " << (char *)msg->getData() << std::endl;
-   switch (msg->getCode()) {
-      case ARCV_AUDIO_INIT : {
-			if(initialized == true) break;
-         if (init((char *)msg->getData()) < 0)
-            rcvEnd = true;
-         break;
-      }
-      case ARCV_WINDOW_INIT : {
-			// width, heght, dim_x, dim_y
-   		char token[TOKEN_LEN];
-			char* data = (char *)msg->getData();
+	switch (msg->getCode()) {
+	case ARCV_AUDIO_INIT : {
+		if(initialized == true) break;
+		if (init((char *)msg->getData()) < 0)
+			rcvEnd = true;
+		break;
+	}
+	case ARCV_WINDOW_INIT : {
+		// width, heght, dim_x, dim_y
+		char token[TOKEN_LEN];
+		char* data = (char *)msg->getData();
 
-   		getToken(data, token);
-			int width = atoi(token);
-   		getToken(data, token);
-			int height = atoi(token);
-   		getToken(data, token);
-			int dim_x = atoi(token);
-   		getToken(data, token);
-			int dim_y = atoi(token);
-			audioModule->setTileInfo(width, height, dim_x, dim_y);
-			break;
+		getToken(data, token);
+		int width = atoi(token);
+		getToken(data, token);
+		int height = atoi(token);
+		getToken(data, token);
+		int dim_x = atoi(token);
+		getToken(data, token);
+		int dim_y = atoi(token);
+		audioModule->setTileInfo(width, height, dim_x, dim_y);
+		break;
+	}
+	case ARCV_WINDOW : {
+		//std::cout << "parse mesage : " << (char *)msg->getData() << std::endl;
+		// id, x, y, width, height
+		char token[TOKEN_LEN];
+		char* data = (char *)msg->getData();
+
+		getToken(data, token);
+		int id = atoi(token);
+		getToken(data, token);
+		int x = atoi(token);
+		getToken(data, token);
+		int y = atoi(token);
+		getToken(data, token);
+		int width = atoi(token);
+		getToken(data, token);
+		int height = atoi(token);
+		getToken(data, token);
+		int zvalue = atoi(token);
+
+		audioModule->changeWindow(id, x, y, width, height, zvalue);
+		//getToken(data, token);
+		break;
+	}
+	case ARCV_WINDOW_DEPTH : {
+		//std::cout << "depth mesage : " << (char *)msg->getData() << std::endl;
+
+		// number of apps, inst id, depth, ........
+		//char token[TOKEN_LEN];
+		//char* data = (char *)msg->getData();
+
+		break;
+	}
+	case SHUTDOWN_RECEIVERS : {
+		shutdownApp(-1);
+		if(audioModule) {
+			delete audioModule;
+			audioModule = NULL;
 		}
-      case ARCV_WINDOW : {
-			//std::cout << "parse mesage : " << (char *)msg->getData() << std::endl;
-			// id, x, y, width, height
-   		char token[TOKEN_LEN];
-			char* data = (char *)msg->getData();
-
-   		getToken(data, token);
-			int id = atoi(token);
-   		getToken(data, token);
-			int x = atoi(token);
-   		getToken(data, token);
-			int y = atoi(token);
-   		getToken(data, token);
-			int width = atoi(token);
-   		getToken(data, token);
-			int height = atoi(token);
-   		getToken(data, token);
-			int zvalue = atoi(token);
-
-			audioModule->changeWindow(id, x, y, width, height, zvalue);
-   		//getToken(data, token);
-			break;
+		if(syncClientObj) {
+			delete syncClientObj;
+			syncClientObj = NULL;
 		}
-		case ARCV_WINDOW_DEPTH : {
-			//std::cout << "depth mesage : " << (char *)msg->getData() << std::endl;
+		rcvEnd = true;
+		break;
+	}
+	case ARCV_SHUTDOWN_APP : {
+		//std::cout << "message: " <<  msg << std::endl;
+		shutdownApp(atoi((char *)msg->getData()));
 
-			// number of apps, inst id, depth, ........
-   		//char token[TOKEN_LEN];
-			//char* data = (char *)msg->getData();
+		break;
+	}
 
-			break;
-		}
-      case SHUTDOWN_RECEIVERS : {
-         shutdownApp(-1);
-         if(audioModule) {
-            delete audioModule;
-            audioModule = NULL;
-         }
-         if(syncClientObj) {
-            delete syncClientObj;
-            syncClientObj = NULL;
-         }
-         rcvEnd = true;
-         break;
-      }
-      case ARCV_SHUTDOWN_APP : {
-         //std::cout << "message: " <<  msg << std::endl;
-         shutdownApp(atoi((char *)msg->getData()));
+	case RCV_PERF_INFO_REQ : {
+		startPerformanceReport(msg);
+		break;
+	}
 
-         break;
-      }
+	case RCV_PERF_INFO_STOP : {
+		stopPerformanceReport(msg);
+		break;
+	}
 
-      case RCV_PERF_INFO_REQ : {
-         startPerformanceReport(msg);
-         break;
-      }
+	}
 
-      case RCV_PERF_INFO_STOP : {
-         stopPerformanceReport(msg);
-         break;
-      }
+	msg->destroy();
+	delete msg;
 
-   }
-
-   msg->destroy();
-   delete msg;
-
-   return 0;
+	return 0;
 }
 
 int sageAudioManager::processSync(char *msg)

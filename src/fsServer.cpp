@@ -89,7 +89,7 @@ int fsServer::checkClients()
    aClient = sysServer->checkForNewConnections();
 
    if (aClient) {
-      printf("sysClient %d connected\n", numSysClients);
+      printf("fsServer::%s() : sysClient %d connected\n", __FUNCTION__, numSysClients);
 		aClient->setTimeOut(1);
       sysClientList.push_back(aClient);
       numSysClients++;
@@ -98,7 +98,7 @@ int fsServer::checkClients()
    aClient = uiServer->checkForNewConnections();
 
    if (aClient) {
-      printf("uiClient %d connected\n", numUiClients);
+      printf("fsServer::%s() : uiClient %d connected\n", __FUNCTION__, numUiClients);
 		aClient->setTimeOut(1);
       uiClientList.push_back(aClient);
       numUiClients++;
@@ -159,7 +159,7 @@ int fsServer::checkClients()
             msg.destroy();
          }
          else if (status == QUANTAnet_tcpClient_c::CONNECTION_TERMINATED) {
-            std::cout << "fsCore::checkClients() : connection to client " << i+SYSTEM_CLIENT_BASE << " was terminated" << std::endl;
+            std::cout << "fsServer::checkClients() : connection to client " << i+SYSTEM_CLIENT_BASE << " had terminated" << std::endl;
             sysClientList[i] = NULL;
             sysClientList.erase(sysClientList.begin() +i);
 

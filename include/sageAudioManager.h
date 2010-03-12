@@ -66,6 +66,7 @@ typedef struct {
 class sageAudioManager : public fsClient {
 private:
    int nodeID;
+   int syncLevel;
    sageTcpModule *tcpObj; /**< TCP module */
    sageUdpModule *udpObj; /**< UDP module */
    sageNwConfig nwCfg;

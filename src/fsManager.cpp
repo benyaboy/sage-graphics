@@ -267,7 +267,7 @@ int fsManager::init(char *conf_file)
          return -1;
       }
       vdtList[0]->parseAudioConfigfile(audioFp);
-      vdtList[0]->launchAudioReceivers(fsIP, sysPort, rInfo.syncPort);
+      vdtList[0]->launchAudioReceivers(fsIP, sysPort, rInfo.syncPort, rInfo.syncLevel);
 
       fclose(audioFp);
    }
