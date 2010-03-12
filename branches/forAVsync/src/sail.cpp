@@ -589,8 +589,8 @@ int sail::parseMessage(sageMessage &msg)
 	switch (msg.getCode()) {
 	case SAIL_EMPTY_SWAPBUFFER : {
 		// for AV sync. if a video is slower then execute empty swapbuffer.
+		int frameDif = 0;
 		if ( msgData ) {
-			int frameDif = 0;
 			sscanf(msgData, "%d", &frameDif);
 #ifdef DEBUG_AVSYNC
 			fprintf(stderr, "sail::parseMessage() : received SAIL_EMPTY_SWAPBUFFER msg. frameDif %d\n", frameDif);

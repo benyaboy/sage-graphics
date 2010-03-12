@@ -66,12 +66,12 @@ public:
    /**
     * launches the binary sageDisplayManager
     */
-   int launchReceivers(char *fsIP, int port, int syncPort, bool globalSync = true, int syncBarrierPort=11001, int refreshInterval=60, int syncMasterPollingInterval=1000, int syncLevel=2 );
+   int launchReceivers(char *fsIP, int port, int syncPort, bool globalSync = true, int syncBarrierPort=11001, int refreshInterval=60, int syncMasterPollingInterval=1000, int syncLevel=1 );
 
    /**
     * launches the binary sageAudioManager
     */
-   int launchAudioReceivers(char *fsIP, int port, int syncPort);
+   int launchAudioReceivers(char *fsIP, int port, int syncPort, int syncLevel=1);
    
    int getRcvId(int nodeId);
    int getNodeNum() { return displayCluster.size(); }
