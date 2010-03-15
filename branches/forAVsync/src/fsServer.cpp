@@ -109,7 +109,7 @@ int fsServer::checkClients()
    int dataSize;
    int status;
 
-   for (int i = 0; i < numSysClients; i++) {
+   for (int i = 0; i < sysClientList.size(); i++) {
       if (sysClientList[i]) {
          char msgSize[MESSAGE_FIELD_SIZE];
          dataSize = MESSAGE_FIELD_SIZE;
