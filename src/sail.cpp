@@ -421,8 +421,8 @@ int sail::swapBuffer(int mode)
       return 1;
    }
 
-   //std::cout << "pt2" << std::endl;
 	// update time stamp
+   /*
 	sagePixelData* data = doubleBuf->getFrontBuffer();
 	if((config.audioOn == false) || (_update == NONE_UPDATE))
 	{
@@ -431,6 +431,7 @@ int sail::swapBuffer(int mode)
 	//std::cout << "video time stamp : " << _timeStamp.tv_sec << " " << _timeStamp.tv_usec << std::endl;
 	data->setTimeStamp(_timeStamp.tv_sec, _timeStamp.tv_usec);
 	_update = VIDEO_UPDATE;
+	*/
 
    doubleBuf->swapBuffer();
 
@@ -441,7 +442,6 @@ int sail::swapBuffer(int mode)
    }
 #endif
 
-   //std::cout << "pt3" << std::endl;
 #ifdef DEBUG_SAIL
    fprintf(stderr, "\nsail::swapBuffer() : returning.\n");
 #endif

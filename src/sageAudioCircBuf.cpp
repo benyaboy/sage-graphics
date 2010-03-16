@@ -430,53 +430,54 @@ audioBlock* sageAudioCircBuf::getNextWriteBlock()
 
 int sageAudioCircBuf::updateReadIndex()
 {
-   refMutex = 1;
-   int gframeIndex=0;
-   int size = readers.size();
-   if(refRead == size) {
-      gframeIndex = blockArray[readIndex].frameIndex;
-      clearBlock(readIndex);
-      readIndex = (readIndex+1) % blocksNum;
-      
-      full = false;
-      //pthread_mutex_unlock(queueLock);
-      pthread_cond_signal(notFull);
-            
-      if (readIndex == writeIndex) {
-         empty = true;
-      }
-      refRead = 0;
-      for(int i=0; i <size; i++)
-      {
-         readers[i] =0;
-      }
-   }
-   
-   if(syncClientObj)
-   {
+	refMutex = 1;
+	int gframeIndex=0;
+	int size = readers.size();
+	if(refRead == size) {
+		gframeIndex = blockArray[readIndex].frameIndex;
+		clearBlock(readIndex);
+		readIndex = (readIndex+1) % blocksNum;
+
+		full = false;
+		//pthread_mutex_unlock(queueLock);
+		pthread_cond_signal(notFull);
+
+		if (readIndex == writeIndex) {
+			empty = true;
+		}
+		refRead = 0;
+		for(int i=0; i <size; i++)
+		{
+			readers[i] =0;
+		}
+	}
+
+	if(syncClientObj)
+	{
 		if(syncKeyFrame > 1) 
 		{
 			int tempIndex = gframeIndex % syncKeyFrame;
 			int diff = lastgFrameIndex - tempIndex;
 
-     		if(diff > 0)
-      	{
-         	//std::cout << "[sageAudioCircBuf::updateReadIndex] ----> sync audio update " << -gframeIndex << " " << instID << " " << nodeID  << std::endl;
-         	syncClientObj->sendSlaveUpdateToBBS(-gframeIndex, instID, 0, nodeID);
-      	}
-			lastgFrameIndex = gframeIndex % syncKeyFrame;
-		} else 
-		{
-     		if(lastgFrameIndex != gframeIndex)
+			if(diff > 0)
 			{
-         	//std::cout << "[sageAudioCircBuf::updateReadIndex] ----> sync audio update " << -gframeIndex << " " << instID << " " << nodeID  << std::endl;
-         	syncClientObj->sendSlaveUpdateToBBS(-gframeIndex, instID, 0, nodeID);
+				//std::cout << "[sageAudioCircBuf::updateReadIndex] ----> sync audio update " << -gframeIndex << " " << instID << " " << nodeID  << std::endl;
+				syncClientObj->sendSlaveUpdateToBBS(-gframeIndex, instID, 0, nodeID);
+			}
+			lastgFrameIndex = gframeIndex % syncKeyFrame;
+		}
+		else
+		{
+			if(lastgFrameIndex != gframeIndex)
+			{
+				//std::cout << "[sageAudioCircBuf::updateReadIndex] ----> sync audio update " << -gframeIndex << " " << instID << " " << nodeID  << std::endl;
+				syncClientObj->sendSlaveUpdateToBBS(-gframeIndex, instID, 0, nodeID);
 				lastgFrameIndex = gframeIndex;
 			}
 		}
-   }            
-   refMutex =0;   
-   return readIndex;
+	}
+	refMutex =0;
+	return readIndex;
 }
 
 

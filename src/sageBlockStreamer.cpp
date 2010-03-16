@@ -275,13 +275,13 @@ int sageBlockStreamer::sendControlBlock(int flag, int cond)
 
 int sageBlockStreamer::streamPixelData(sageBlockFrame *buf)
 {
-   if (streamNum < 1) {
-      sage::printLog("SBS::streamPixelData : No Active Streams");
-      return -1;
-   }
+	if (streamNum < 1) {
+		sage::printLog("SBS::streamPixelData : No Active Streams");
+		return -1;
+	}
 
 	bool flag = true; // true : has more blocks to send
-   buf->resetBlockIndex();
+	buf->resetBlockIndex();
 
 
 
@@ -293,15 +293,15 @@ int sageBlockStreamer::streamPixelData(sageBlockFrame *buf)
 
 	//std::cerr << "sageBlockStreamer::streamPixelData() : config.rank " << config.rank << " starts streaming frame " << frameID << std::endl;
 
-   int cnt = 0;
+	int cnt = 0;
 
 #ifdef DEBUG_STREAMER
 	fprintf(stderr, "SBS%d::streamPixelData() : Entering streaming loop. frameID %d\n", config.rank, frameID);
 	fflush(stderr);
-/*
+	/*
 	int *temp = (int*)malloc(sizeof(int) * 28);
 	for ( int i=0; i<6; i++ ) temp[i] = 0;
-	*/
+	 */
 #endif
 
 	while (flag) {
@@ -309,15 +309,15 @@ int sageBlockStreamer::streamPixelData(sageBlockFrame *buf)
 		nbg->next(); // advance to next block in the group
 
 		if (!pBlock) {
-			sage::printLog("SBS%d::streamPixelData() : pixel block is NULL. (nbg->front() returned null). moving to next block", config.rank);
+			sage::printLog("[%d] SBS::streamPixelData() : pixel block is NULL. (nbg->front() returned null). moving to next block", config.rank);
 			continue;
 		}
-      flag = buf->extractPixelBlock(pBlock, config.rowOrd);
+		flag = buf->extractPixelBlock(pBlock, config.rowOrd);
 
-      if (sendPixelBlock(pBlock) < 0)
-         return -1;
-      cnt++;
-   }
+		if (sendPixelBlock(pBlock) < 0)
+			return -1;
+		cnt++;
+	}
 
 	// at this point a FRAME has sent.. -> can be many sbg
 
@@ -325,31 +325,31 @@ int sageBlockStreamer::streamPixelData(sageBlockFrame *buf)
 	std::cerr << "[" << config.rank << "] SBS::streamPixelData() : Stream loop finished. A frame " << frameID << " has sent. Total " << cnt << " blocks. " << std::endl;
 #endif
 
-   if (sendControlBlock(SAGE_UPDATE_BLOCK, ALL_CONNECTION) < 0)
-      return -1;
+	if (sendControlBlock(SAGE_UPDATE_BLOCK, ALL_CONNECTION) < 0)
+		return -1;
 
-   //std::cerr << hostname << " frame " << frameID << " transmitted" << std::endl;
+	//std::cerr << hostname << " frame " << frameID << " transmitted" << std::endl;
 
-   frameID++;
+	frameID++;
 
-   /**
+	/**
 	 * below statement will prevent PDL from updating properly
 	 * Because sync algorithm is based on consecutive frame number
 	 */
-   //frameID = frameID + 10;
+	//frameID = frameID + 10;
 
 	for (int j=0; j<rcvNodeNum; j++) {
 		int dataSize = nwObj->flush(params[j].rcvID, configID);
-      if (dataSize > 0) {
-         totalBandWidth += dataSize;
-      }
-      else if (dataSize < 0) {
+		if (dataSize > 0) {
+			totalBandWidth += dataSize;
+		}
+		else if (dataSize < 0) {
 			sage::printLog("[%d] SBS::streamPixelData() : nwObj->flush returned %d. fail to send pixel block", config.rank, dataSize);
-         return -1;
-      }
+			return -1;
+		}
 	}
 
-   return 0;
+	return 0;
 }
 
 int sageBlockStreamer::streamLoop()
@@ -375,9 +375,11 @@ int sageBlockStreamer::streamLoop()
 			// what about frame numbering.???
 
 #ifdef DEBUG_AVSYNC
-			fprintf(stderr, "SBS::streamLoop() : avDiff %d\n", config.avDiff);
+			fprintf(stderr, "[%d] SBS::streamLoop() : avDiff %d\n", config.rank, config.avDiff);
 #endif
 			(config.avDiff)++;
+			frameID++;
+			doubleBuf->releaseBackBuffer();
 			continue;
 		}
 

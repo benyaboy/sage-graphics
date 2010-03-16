@@ -214,6 +214,7 @@ int sageAudioManager::init(char *data)
 		return -1;
 	}
 
+	syncClientObj = NULL;
 	if ( syncLevel != 0 ) {
 		syncClientObj = new sageSyncClient;
 
@@ -379,6 +380,7 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 {
 	int senderID, instID, sailNodeNum, streamType, blockSize, frameRate;
 	int syncType, keyframe;
+	std::cout << "audio initStreams" << std::endl;
 	sscanf(msg, "%d %d %d %d %d %d %d %d %d %d %d %d",
 			&senderID, &streamType, &instID, &sailNodeNum, &blockSize,
 			&syncType, (int*) &audioCfg.sampleFmt, &audioCfg.samplingRate,
@@ -403,7 +405,7 @@ int sageAudioManager::initStreams(char *msg, streamProtocol *nwObj)
 
 		if(buffer != NULL) {
 			buffer->setInstID(instID);
-			if(streamType != SAGE_BLOCK_NO_SYNC)
+			if(syncClientObj && (streamType != SAGE_BLOCK_NO_SYNC))
 			{
 				buffer->connectSyncClient(syncClientObj);
 			}

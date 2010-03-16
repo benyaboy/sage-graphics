@@ -828,7 +828,9 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 								(SDMlistBitsetMap[pdl]).set(sdm, 1);
 
 								// this should be same for all nodes of this application
-								if ( updatedFrame >= 0 ) syncFrameMap[pdl] = updatedFrame;
+								if ( updatedFrame >= 0 ) {
+									syncFrameMap[pdl] = updatedFrame;
+								}
 								else {
 									//should never happen
 								}
@@ -838,11 +840,13 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 								// updatedFrame : -gFrameidx
 								// sdm : -100
 								// pdl : instID
-#ifdef DEBUG_AVSYNC
-								fprintf(stderr, "syncMaster received audio msg : instID %d, frame %d\n", pdl, updatedFrame);
-#endif
 								// audio manager
-								if ( updatedFrame < 0 ) syncAudioFrameMap[pdl] = updatedFrame;
+								if ( updatedFrame < 0 ) {
+									syncAudioFrameMap[pdl] = updatedFrame;
+#ifdef DEBUG_AVSYNC
+									fprintf(stderr, "syncMaster received audio msg : instID %d, frame %d\n", pdl, updatedFrame);
+#endif
+								}
 								else {
 									// should never happen
 								}
@@ -922,6 +926,9 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 					if ( syncAudioFrameMap.find(appID) != syncAudioFrameMap.end()  &&  syncAudioFrameMap[appID] != 0 ) {
 						// there's audio for this app
 						int av_diff = syncFrameMap[appID] + syncAudioFrameMap[appID];
+#ifdef DEBUG_AVSYNC
+						fprintf(stderr, "syncMaster : app %d has audio. av_diff %d\n", appID, av_diff);
+#endif
 
 						if ( av_diff == 0 ) {
 						}
@@ -941,9 +948,9 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 #ifdef DEBUG_AVSYNC
 							fprintf(stderr, "syncMaster : video is leading by %d frame\n", av_diff);
 #endif
-							isReadyToSwapMonMap[ appID ] = true; // set again for next round
-							swapMontageReady = true;
-							continue;
+							//isReadyToSwapMonMap[ appID ] = true; // set again for next round
+							//swapMontageReady = true;
+							//continue;
 						}
 						syncAudioFrameMap[appID] = 0; //reset
 					}
