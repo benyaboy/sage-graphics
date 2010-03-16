@@ -209,29 +209,29 @@ void sageAudioModule::init()
 		}
 		break;
 	case SAGE_AUDIO_PLAY :
-		{
-   		// create shared circular buffer for audio data
-			if(mainBuffer) {
-				delete mainBuffer;
-				mainBuffer = NULL;
-			}
-			mainBuffer= new sageAudioCircBuf(nodeID);
-   		mainBuffer->init(-1, 64, config.sampleFmt, config.framePerBuffer * config.channels);
-      	mainAudio = new sageAudio();
-      	int err = mainAudio->init(-1, &config, SAGE_AUDIO_PLAY, mainBuffer);
-      	if(err <0) {
-         	delete mainBuffer;
-         	delete mainAudio;
-         	mainBuffer = NULL;
-         	mainAudio = NULL;
-      	}
-
-   		pthread_t thId;
-   		if (pthread_create(&thId, 0, mergeThread, (void*)this) != 0) {
-      		sage::printLog("sageAudioModule: can't create merging thread");
-   		}
+	{
+		// create shared circular buffer for audio data
+		if(mainBuffer) {
+			delete mainBuffer;
+			mainBuffer = NULL;
 		}
-		break;
+		mainBuffer= new sageAudioCircBuf(nodeID);
+		mainBuffer->init(-1, 64, config.sampleFmt, config.framePerBuffer * config.channels);
+		mainAudio = new sageAudio();
+		int err = mainAudio->init(-1, &config, SAGE_AUDIO_PLAY, mainBuffer);
+		if(err <0) {
+			delete mainBuffer;
+			delete mainAudio;
+			mainBuffer = NULL;
+			mainAudio = NULL;
+		}
+
+		pthread_t thId;
+		if (pthread_create(&thId, 0, mergeThread, (void*)this) != 0) {
+			sage::printLog("sageAudioModule: can't create merging thread");
+		}
+	}
+	break;
 	}
    
    std::cout << "[sageAudioModule::init] initialized" << std::endl;
@@ -264,6 +264,7 @@ audioAppInfo* sageAudioModule::findApp(int id, int& index)
 
 void sageAudioModule::changeWindow(int id, int left, int bottom, int width, int height, int zvalue)
 {
+	std::cout << "audio module" << std::endl;
 	while(appLock == true) sage::usleep(1000);
 
 	appLock = true;

@@ -195,94 +195,94 @@ appInExec* fsCore::findApp(int id, int& index)
 
 int fsCore::parseMessage(sageMessage &msg, int clientID)
 {
-   appInExec *app;
-   displayInstance *disp;   
+	appInExec *app;
+	displayInstance *disp;
 
-   char token[TOKEN_LEN], dataStr[TOKEN_LEN];
-   int tokenNum;
-   
-   if (msg.getData())
-      strcpy(dataStr, (char *)msg.getData());
+	char token[TOKEN_LEN], dataStr[TOKEN_LEN];
+	int tokenNum;
 
-   switch(msg.getCode()) {
-      case REG_APP : {
-         app = new appInExec;
-			memset(app->launcherID, 0, SAGE_NAME_LEN);
-			sscanf((char *)msg.getData(), "%s %d %d %d %d %d %s %d %d %d %d %d %d %s %d", app->appName, &app->x, &app->y,
-            &app->width, &app->height, &app->bandWidth, app->renderNodeIP, &app->imageWidth,
-            &app->imageHeight, (int *)&app->audioOn, (int *)&app->protocol, &app->frameRate, 
+	if (msg.getData())
+		strcpy(dataStr, (char *)msg.getData());
+
+	switch(msg.getCode()) {
+	case REG_APP : {
+		app = new appInExec;
+		memset(app->launcherID, 0, SAGE_NAME_LEN);
+		sscanf((char *)msg.getData(), "%s %d %d %d %d %d %s %d %d %d %d %d %d %s %d", app->appName, &app->x, &app->y,
+				&app->width, &app->height, &app->bandWidth, app->renderNodeIP, &app->imageWidth,
+				&app->imageHeight, (int *)&app->audioOn, (int *)&app->protocol, &app->frameRate,
 				&app->instID, app->launcherID, &app->portForwarding );
-		   
-         // adjust app window size considering image resolution
-			float ar = (float)(app->imageWidth) / (float)(app->imageHeight);
-			if ((app->imageWidth > MAX_SAGE_WINDOW_SIZE && app->width < MAX_SAGE_WINDOW_SIZE) || 
-            (app->imageHeight > MAX_SAGE_WINDOW_SIZE && app->height < MAX_SAGE_WINDOW_SIZE)) {
-				if (ar > 1) {
-					app->width = MAX_SAGE_WINDOW_SIZE;
-					app->height = (int)(MAX_SAGE_WINDOW_SIZE/ar);
-				}
-				else {
-					app->height = MAX_SAGE_WINDOW_SIZE;
-					app->width = (int)(MAX_SAGE_WINDOW_SIZE*ar);
-				}
-			}   
 
-         app->sailClient = clientID;   
-
-         char sailInitMsg[TOKEN_LEN];
-         memset(sailInitMsg, 0, TOKEN_LEN);
-
-			// RE-GENERATING ID (2/2) 
-			//fsm->m_execIndex = getAvailableInstID();
-			//fsm->m_execIDList[fsm->m_execIndex] = 1;
-			app->fsInstID  = fsm->m_execIndex;
-			std::cout << "[fsCore::parseMessage] inst id : " << app->fsInstID << std::endl;
-
-			int audio_size = fsm->audioList.size();
-			if(audio_size == 0) 
-				app->audioOn = 0; 
-         sprintf(sailInitMsg, "%d %d %d %d %d", fsm->m_execIndex, fsm->nwInfo->rcvBufSize,
-               fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize, audio_size);
-         
-			if (fsm->sendMessage(clientID, SAIL_INIT_MSG, sailInitMsg) < 0) {
-				sage::printLog("fsCore : %s is stuck or shutdown", app->appName);
+		// adjust app window size considering image resolution
+		float ar = (float)(app->imageWidth) / (float)(app->imageHeight);
+		if ((app->imageWidth > MAX_SAGE_WINDOW_SIZE && app->width < MAX_SAGE_WINDOW_SIZE) ||
+				(app->imageHeight > MAX_SAGE_WINDOW_SIZE && app->height < MAX_SAGE_WINDOW_SIZE)) {
+			if (ar > 1) {
+				app->width = MAX_SAGE_WINDOW_SIZE;
+				app->height = (int)(MAX_SAGE_WINDOW_SIZE/ar);
 			}
-			else
-         	fsm->execList.push_back(app);   
-         
-         if (fsm->NRM) {
-            char rcvIP[SAGE_IP_LEN];
-            fsm->vdtList[0]->getNodeIPs(0, rcvIP);
-            char msgStr[TOKEN_LEN];
-            memset(msgStr, 0, TOKEN_LEN);
-            sprintf(msgStr, "%s %s %d %d", app->renderNodeIP, rcvIP, app->bandWidth,
-               fsm->m_execIndex);
+			else {
+				app->height = MAX_SAGE_WINDOW_SIZE;
+				app->width = (int)(MAX_SAGE_WINDOW_SIZE*ar);
+			}
+		}
 
-            int uiNum = fsm->uiList.size();
-            for (int j=0; j<uiNum; j++) {
-					if (fsm->uiList[j] < 0)
-						continue;
-						
-               if (fsm->sendMessage(fsm->uiList[j], REQUEST_BANDWIDTH, msgStr) < 0) {
-						sage::printLog("fsCore : uiClient(%d) is stuck or shutdown", j);
-						fsm->uiList[j] = -1;
-					}
-            }
-         }
-         else {
-            initDisp(app);
-            if (app->audioOn) {
-					std::cout << "[fsCore::parseMessage] app instance " << app->fsInstID << " has audio stream" << std::endl;
-               initAudio();
+		app->sailClient = clientID;
+
+		char sailInitMsg[TOKEN_LEN];
+		memset(sailInitMsg, 0, TOKEN_LEN);
+
+		// RE-GENERATING ID (2/2)
+		//fsm->m_execIndex = getAvailableInstID();
+		//fsm->m_execIDList[fsm->m_execIndex] = 1;
+		app->fsInstID  = fsm->m_execIndex;
+		//fprintf(stderr, "fsCore::%s() : REG_APP : inst id : %d\n", __FUNCTION__, app->fsInstID);
+
+		int audio_size = fsm->audioList.size();
+		if(audio_size == 0)
+			app->audioOn = 0;
+		sprintf(sailInitMsg, "%d %d %d %d %d", fsm->m_execIndex, fsm->nwInfo->rcvBufSize,
+				fsm->nwInfo->sendBufSize, fsm->nwInfo->mtuSize, audio_size);
+
+		if (fsm->sendMessage(clientID, SAIL_INIT_MSG, sailInitMsg) < 0) {
+			sage::printLog("fsCore::%s() : %s is stuck or shutdown", __FUNCTION__, app->appName);
+		}
+		else
+			fsm->execList.push_back(app);
+
+		if (fsm->NRM) {
+			char rcvIP[SAGE_IP_LEN];
+			fsm->vdtList[0]->getNodeIPs(0, rcvIP);
+			char msgStr[TOKEN_LEN];
+			memset(msgStr, 0, TOKEN_LEN);
+			sprintf(msgStr, "%s %s %d %d", app->renderNodeIP, rcvIP, app->bandWidth,
+					fsm->m_execIndex);
+
+			int uiNum = fsm->uiList.size();
+			for (int j=0; j<uiNum; j++) {
+				if (fsm->uiList[j] < 0)
+					continue;
+
+				if (fsm->sendMessage(fsm->uiList[j], REQUEST_BANDWIDTH, msgStr) < 0) {
+					sage::printLog("fsCore : uiClient(%d) is stuck or shutdown", j);
+					fsm->uiList[j] = -1;
 				}
-            //windowChanged(fsm->execList.size()-1);
-            //bringToFront(fsm->execList.size()-1);
-				fsm->m_execIndex++;
-         }   
-         
-         break;
-      }
-      
+			}
+		}
+		else {
+			initDisp(app);
+			if (app->audioOn) {
+				std::cout << "fsCore::parseMessage() : REG_APP : app fsInstID " << app->fsInstID << " has audio stream" << std::endl;
+				initAudio();
+			}
+			//windowChanged(fsm->execList.size()-1);
+			//bringToFront(fsm->execList.size()-1);
+			fsm->m_execIndex++;
+		}
+
+		break;
+	}
+
       case NOTIFY_APP_SHUTDOWN : {
          getToken((char *)msg.getData(), token);
          int appID = atoi(token);
@@ -435,7 +435,8 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
     	  break;
       }
 
-      /*case SYNC_INIT_ARCV : {
+      /*
+      case SYNC_INIT_ARCV : {
          // find gStreamRcvs connected to this aStreamRcv
          getToken((char *)msg.getData(), token);
          int nodeID = atoi(token);
@@ -453,7 +454,8 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
          }
             
          break;
-         }*/
+         }
+         */
          
       case SHUTDOWN_APP : {
          tokenNum = getToken((char *)msg.getData(), token);
@@ -1125,11 +1127,14 @@ int fsCore::windowChanged(int appId)
 		app = findApp(appId, index);
 		if(!app) return -1;
 	}
+	if(app->audioOn == true)
+	{
 	displayInstance *disp = fsm->dispList[index];
 	sprintf(msgStr, "%d %d %d %d %d %d", appId, app->x, app->y, app->width, app->height, disp->getZValue());
 	for(int audio_id=0; audio_id < audio_size; audio_id++)
 	{
 		fsm->sendMessage(fsm->audioList[audio_id], ARCV_WINDOW, msgStr);
+	}
 	}
 
    return 0;
