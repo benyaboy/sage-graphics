@@ -320,14 +320,14 @@ int sageVirtualDesktop::launchAudioReceivers(char *fsIP, int port, int syncPort,
       char command[TOKEN_LEN];
 
 #if defined(WIN32)
-      sprintf(command, "start /B /D%s %s\\bin\\sageAudioManager %s %d %d %d",
-         sageDir, sageDir, fsIP, port, total_sdm - i, syncPort/*,audioSyncPort*/);
+      sprintf(command, "start /B /D%s %s\\bin\\sageAudioManager %s %d %d %d %d",
+         sageDir, sageDir, fsIP, port, total_sdm - i, syncPort/*,audioSyncPort*/, syncLevel);
 
       std::cout << "ATTENTION: SAGE on Windows works only locally, no remote execution" << std::endl;
       std::cout << "\t" << command << std::endl;
       system( command );
 #else
-      sprintf(command, "%s/bin/sageAudioManager %s %d %d %d", sageDir, fsIP, port, total_sdm - i, syncPort /*, audioSyncPort*/, syncLevel);
+      sprintf(command, "%s/bin/sageAudioManager %s %d %d %d %d", sageDir, fsIP, port, total_sdm - i, syncPort /*, audioSyncPort*/, syncLevel);
       std::cout << "audio " << command << std::endl;
       if (execRemBin(audioCluster[i]->ip, command) < 0)
          return -1;
