@@ -27,7 +27,11 @@ FSM_OBJ=fsManager.o fsServer.o fsCore.o sageVirtualDesktop.o \
 RCV_OBJ=sageDisplayManager.o fsClient.o sageSync.o sageDisplay.o pixelDownloader.o \
 	streamProtocol.o sageTcpModule.o sageUdpModule.o sageReceiver.o \
 	sageDraw.o sageDrawObject.o overlayPointer.o overlayApp.o sageBlockQueue.o \
-	sageSharedData.o sageEvent.o sdlSingleContext.o appleMultiContext.o
+	sageSharedData.o sageEvent.o sdlSingleContext.o
+ifeq ($(MACHINE), Darwin)
+RCV_OBJ+=appleMultiContext.o
+endif
+
 
 ifeq ($(MACHINE), Darwin)
 RCV_OBJ += SDLMain.o
