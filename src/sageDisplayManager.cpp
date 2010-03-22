@@ -300,8 +300,11 @@ int sageDisplayManager::init(char *data)
    dispCfg.blue = 0;
    dispCfg.displayID = displayID;
 
-   //shared->context = (displayContext *) new sdlSingleContext;
+#if defined(__APPLE__)
    shared->context = (displayContext *) new appleMultiContext;
+#else
+   shared->context = (displayContext *) new sdlSingleContext;
+#endif
    if (shared->context->init(dispCfg) < 0) {
       sage::printLog("[%d] SDM::init() : Error creating display object ", shared->nodeID);
       return -1;
