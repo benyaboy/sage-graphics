@@ -39,6 +39,7 @@
  *
  *****************************************************************************/
 
+#include "sageVersion.h"
 #include "fsManager.h"
 #include "fsServer.h"
 #include "fsCore.h"
@@ -93,6 +94,7 @@ int fsManager::init(const char *conf_file)
                 return -1;
         }
         const char *fsConfigFile = found.c_str();
+        sage::printLog("fsManager: SAGE version [%s]", SAGE_VERSION);
         sage::printLog("fsManager: using [%s] configuration file", fsConfigFile);
 
 

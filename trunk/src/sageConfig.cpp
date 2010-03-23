@@ -38,6 +38,7 @@
  *
  *****************************************************************************/
 
+#include "sageVersion.h"
 #include "sageConfig.h"
 #include "sageSync.h"
 
@@ -124,6 +125,7 @@ int sailConfig::init(const char *fname)
                 return -1;
         }
         const char *configName = found.c_str();
+        sage::printLog("sailConfig: SAGE version [%s]", SAGE_VERSION);
         sage::printLog("sailConfig: using [%s] configuration file", configName);
 
 

@@ -45,4 +45,26 @@
 #define SAGEVERSION_H_
 
 
+// This is the main version number
+#define SAGE_BASE_VERSION 3.1
+
+// Utility macros to join and convert to string some values
+#define SAGE_STR(XX) #XX
+#define SAGE_XSTR(XX) SAGE_STR(XX)
+#define SAGE_JOIN(XX, YY) SAGE_JOIN_AGAIN(XX, YY)
+#define SAGE_JOIN_AGAIN(XX, YY) XX ## . ## YY
+
+#if defined(SAGE_REVISION)
+	// If there's a revision number from SVN,
+	// we add it to the base version number
+#define SAGE_VERSION SAGE_XSTR(SAGE_JOIN(SAGE_BASE_VERSION, SAGE_REVISION))
+
+#else
+	// Just make it a string
+#define SAGE_VERSION SAGE_XSTR( SAGE_BASE_VERSION )
+
 #endif
+
+
+#endif
+

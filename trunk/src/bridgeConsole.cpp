@@ -38,6 +38,7 @@
  *
  *****************************************************************************/
  
+#include "sageVersion.h"
 #include "messageInterface.h"
 #include "misc.h"
 #include <pthread.h>
@@ -86,6 +87,7 @@ int initInterface(messageInterface &inf, const char *configFile)
                 return -1;
         }
         const char *bridgeConfigFile = found.c_str();
+        sage::printLog("bridgeConsole: SAGE version [%s]", SAGE_VERSION);
         sage::printLog("bridgeConsole: using [%s] configuration file", bridgeConfigFile);
 
    FILE *fileBridgeConf = fopen(bridgeConfigFile, "r");

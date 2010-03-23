@@ -39,6 +39,7 @@
  *
  *****************************************************************************/
 
+#include "sageVersion.h"
 #include "sageBridge.h"
 #include "sageAudioBridge.h"
 #include "messageInterface.h"
@@ -142,6 +143,7 @@ int sageBridge::initMaster(const char *cFile)
                 return -1;
         }
 	const char *bridgeConfigFile = found.c_str();
+        sage::printLog("sageBridge: SAGE version [%s]", SAGE_VERSION);
 	sage::printLog("sageBridge: using [%s] configuration file", bridgeConfigFile);
 
    FILE *fileBridgeConf = fopen(bridgeConfigFile, "r");

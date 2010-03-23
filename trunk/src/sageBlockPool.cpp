@@ -949,7 +949,7 @@ void sageBlockBuf::getBufInfo(char *bufStatus)
    if (vacantPool)
       vacantStat = vacantPool->getStatus();
 
-   sprintf(bufStatus, "data buffer : %d% , data pool : %d% , ctrl pool : %d% , vacant pool : %d%",
+   sprintf(bufStatus, "data buffer : %d %% , data pool : %d %% , ctrl pool : %d %% , vacant pool : %d %%",
       buf->getStatus(), dataPool->getStatus(), ctrlStat, vacantStat);
 }
 
