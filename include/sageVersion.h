@@ -36,10 +36,10 @@
  * Direct questions, comments etc about SAGE to admin@sagecommons.org or 
  * http://www.sagecommons.org
  *
- * $Rev::               $:  Revision of last commit
- * $GlobalRev::         $:  Global revision number
- * $Author::            $:  Author of last commit
- * $Date::              $:  Date of last commit
+ * $Rev::                                   $:  Revision of last commit
+ * $GlobalRev::                             $:  Global revision number
+ * $Author::                                $:  Author of last commit
+ * $Date::                                  $:  Date of last commit
  *****************************************************************************/
 
 #ifndef SAGEVERSION_H_
