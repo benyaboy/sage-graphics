@@ -43,7 +43,6 @@
 
 #include "sageBase.h"
 
-#define SAGE_VERSION "3.0"
 #define SAGE_BLOCK_NO_SYNC  100
 #define SAGE_BLOCK_CONST_SYNC  101
 #define SAGE_BLOCK_SOFT_SYNC   102

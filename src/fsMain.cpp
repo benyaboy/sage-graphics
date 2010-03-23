@@ -38,6 +38,7 @@
  *
  *****************************************************************************/ 
 
+#include "sageVersion.h"
 #include "fsManager.h"
 
 int main(int argc, char *argv[])
@@ -45,6 +46,7 @@ int main(int argc, char *argv[])
    fsManager fsm;
 
    if (argc > 1) {
+      sage::printLog("fsManager: SAGE version [%s]", SAGE_VERSION);
       sage::printLog("fsManager: using configuration file [%s]\n", argv[1]);
       if (fsm.init(argv[1]) < 0)
          exit(-1);

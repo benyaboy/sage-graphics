@@ -38,6 +38,7 @@
  *
  *****************************************************************************/
 
+#include "sageVersion.h"
 #include "suil.h"
 
 int suil::init(const char *config)
@@ -64,6 +65,7 @@ int suil::init(const char *config)
 		return -1;
 	}
 	else {
+		sage::printLog("suil: SAGE version [%s]", SAGE_VERSION);
 		sage::printLog("suil: using file [%s]", found.c_str());
 		fsClient::init(found.c_str(), "uiPort");
 		return 0;

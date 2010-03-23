@@ -39,6 +39,7 @@
  *
  *****************************************************************************/
  
+#include "sageVersion.h"
 #include "envInterface.h"
 
 envInterface::~envInterface()
@@ -75,6 +76,7 @@ int envInterface::init(sailConfig &conf)
                 return -1;
         }
         const char *fsConfigFile = found.c_str();
+        sage::printLog("envInterface: SAGE version [%s]", SAGE_VERSION);
         sage::printLog("envInterface: using [%s] configuration file", fsConfigFile);
 
 
