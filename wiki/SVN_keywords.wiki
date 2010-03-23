@@ -1,5 +1,5 @@
+#summary Adding SVN keyword substitution to a file
 #labels Phase-Implementation
-Adding SVN keyword substitution to a file
 
 = Introduction =
 
