@@ -20,9 +20,11 @@ install: imageviewer
 	$(CP) $(SERVER_DIR)/*.py $(SERVER_DIR)/*.conf $(SERVER_DIR)/misc $(SAGE_DIR)/bin/file_server
 
 
-imageviewer: $(VIEWER_DIR)/imageviewer.cpp $(VIEWER_DIR)/imgToDxt.cpp
+imageviewer:
 	cd $(VIEWER_DIR); make; cd -
 
 clean:
 	/bin/rm -f *.o *~; cd $(VIEWER_DIR); make clean; cd - 
+
+.PHONY: imageviewer
 
