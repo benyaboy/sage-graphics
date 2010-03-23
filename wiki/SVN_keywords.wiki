@@ -10,7 +10,7 @@ For instance, in a header file:
  * $Rev::                                 $
  * $GlobalRev::                         $
  * $Author::                              $
- * $Date::                                  $
+ * $Date::                                $
 */
 }}}
 
