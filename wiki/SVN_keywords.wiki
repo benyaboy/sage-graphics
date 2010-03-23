@@ -7,7 +7,7 @@ For instance, in a header file:
 
 {{{
 /*
- * $Rev::                                     $
+ * $Rev::                                 $
  * $GlobalRev::                         $
  * $Author::                              $
  * $Date::                                  $
