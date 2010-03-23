@@ -1,0 +1,20 @@
+#labels Phase-Implementation
+Adding SVN keyword substitution to a file
+
+= Introduction =
+
+For instance, in a header file:
+
+/*
+ * $Rev::                                     $
+ * $GlobalRev::                         $
+ * $Author::                              $
+ * $Date::                                  $
+*/
+
+
+= Details =
+
+Then add the substitution property to the file:
+
+svn propset svn:keywords "Rev GlobalRev Author Date"   toto.h
