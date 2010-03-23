@@ -92,7 +92,7 @@ endif
 
   # READLINE settings
   READLINE_CFLAGS=-I/opt/local/include
-  READLINE_LIB=-L/opt/local/lib -lreadline
+  READLINE_LIB=-L/opt/local/lib -lreadline -lcurses
 
   # Lower-level graphics library
   XLIBS= -framework OpenGL -lobjc -framework aGL -framework Carbon -framework QuartzCore
