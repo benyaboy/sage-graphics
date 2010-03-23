@@ -38,6 +38,8 @@
  *
  *****************************************************************************/
 
+#include "sageVersion.h"
+
 #if defined(__APPLE__)
 #include "appleMultiContext.h"
 #else
@@ -1164,6 +1166,8 @@ int main(int argc, char **argv)
    sage::win32Init();
 #endif
    sage::initUtil();
+
+   sage::printLog("sageDisplayManager: SAGE version [%s]", SAGE_VERSION);
 
    sageDisplayManager manager(argc, argv);
    manager.mainLoop();
