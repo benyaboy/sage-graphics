@@ -61,60 +61,45 @@ void* readThread(void *args)
 
 int initInterface(messageInterface &inf, const char *configFile)
 {
-   msgInfConfig conf;
-   conf.master = false;
-   
-
-        char *sageDir = getenv("SAGE_DIRECTORY");
-        if (!sageDir) {
-                sage::printLog("sageBridgeUI: cannot find the environment variable SAGE_DIRECTORY");
-                return -1;
-        }
-
-        data_path path;
-        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
-        std::string sagedir = std::string( sageDir ) + "/bin";
-                // First search in current directory
-        path.path.push_back( "." );
-                // Then search in ~/.sage/ directory
-        path.path.push_back( homedir );
-                // Finally search in SAGE_DIRECTORY/bin directory
-        path.path.push_back( sagedir );
-
-        std::string found = path.get_file(configFile);
-        if (found.empty()) {
-                sage::printLog("bridgeConsole: cannot find the file [%s]", configFile);
-                return -1;
-        }
-        const char *bridgeConfigFile = found.c_str();
-        sage::printLog("bridgeConsole: SAGE version [%s]", SAGE_VERSION);
-        sage::printLog("bridgeConsole: using [%s] configuration file", bridgeConfigFile);
-
-   FILE *fileBridgeConf = fopen(bridgeConfigFile, "r");
-   
-   if (!fileBridgeConf) {
-      sage::printLog("bridgeConsole: fail to open SAGE Bridge config file [%s]\n", bridgeConfigFile);
-      return -1;
-   }
-
-   char token[TOKEN_LEN];
-   int tokenIdx = getToken(fileBridgeConf, token);
-   
-   while(tokenIdx != EOF) {
-      if (strcmp(token, "masterIP") == 0) {
-         getToken(fileBridgeConf, conf.serverIP);
-      }
-      else if (strcmp(token, "msgPort") == 0) {   
-         getToken(fileBridgeConf, token);
-         conf.serverPort = atoi(token);
-      }
-
-      tokenIdx = getToken(fileBridgeConf, token);
-   }
-
-   inf.init(conf);
-   
-   return 0;
+	msgInfConfig conf;
+	conf.master = false;
+	
+	
+	data_path path;
+	std::string found = path.get_file(configFile);
+	if (found.empty()) {
+		sage::printLog("bridgeConsole: cannot find the file [%s]", configFile);
+		return -1;
+	}
+	const char *bridgeConfigFile = found.c_str();
+	sage::printLog("bridgeConsole: SAGE version [%s]", SAGE_VERSION);
+	sage::printLog("bridgeConsole: using [%s] configuration file", bridgeConfigFile);
+	
+	FILE *fileBridgeConf = fopen(bridgeConfigFile, "r");
+	
+	if (!fileBridgeConf) {
+		sage::printLog("bridgeConsole: fail to open SAGE Bridge config file [%s]\n", bridgeConfigFile);
+		return -1;
+	}
+	
+	char token[TOKEN_LEN];
+	int tokenIdx = getToken(fileBridgeConf, token);
+	
+	while(tokenIdx != EOF) {
+		if (strcmp(token, "masterIP") == 0) {
+			getToken(fileBridgeConf, conf.serverIP);
+		}
+		else if (strcmp(token, "msgPort") == 0) {   
+			getToken(fileBridgeConf, token);
+			conf.serverPort = atoi(token);
+		}
+		
+		tokenIdx = getToken(fileBridgeConf, token);
+	}
+	
+	inf.init(conf);
+	
+	return 0;
 }
 
 int main(int argc, char *argv[])

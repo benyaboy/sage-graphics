@@ -712,6 +712,23 @@ sageIndexTable::~sageIndexTable()
 
 using namespace std;
 
+data_path::data_path(std::string subdir)
+{
+    char *sageDir = getenv("SAGE_DIRECTORY");
+	if (!sageDir) {
+		sage::printLog("data_path: cannot find the environment variable SAGE_DIRECTORY");
+	}
+    std::string homedir = std::string( getenv("HOME") ) + "/.sageConfig/" + subdir;
+    std::string sagedir = std::string( sageDir ) + "/sageConfig/" + subdir;
+    // First search in current directory
+    path.push_back( "." );
+    // Then search in ~/.sageConfig/ directory
+    path.push_back( homedir );
+    // Finally search in SAGE_DIRECTORY/sageConfig directory
+    path.push_back( sagedir );
+}
+
+
 string data_path::get_path(std::string filename)
 {
   FILE* fp;

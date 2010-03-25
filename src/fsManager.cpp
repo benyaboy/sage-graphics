@@ -72,235 +72,243 @@ fsManager::~fsManager()
 
 int fsManager::init(const char *conf_file)
 {
-        char *sageDir = getenv("SAGE_DIRECTORY");
-        if (!sageDir) {
-                sage::printLog("fsManager: cannot find the environment variable SAGE_DIRECTORY");
-                return -1;
-        }
-
-        data_path path;
-        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
-        std::string sagedir = std::string( sageDir ) + "/bin";
-                // First search in current directory
-        path.path.push_back( "." );
-                // Then search in ~/.sage/ directory
-        path.path.push_back( homedir );
-                // Finally search in SAGE_DIRECTORY/bin directory
-        path.path.push_back( sagedir );
-
-        std::string found = path.get_file(conf_file);
-        if (found.empty()) {
-                sage::printLog("fsManager: cannot find the file [%s]", conf_file);
-                return -1;
-        }
-        const char *fsConfigFile = found.c_str();
-        sage::printLog("fsManager: SAGE version [%s]", SAGE_VERSION);
-        sage::printLog("fsManager: using [%s] configuration file", fsConfigFile);
-
-
-   FILE *fileFsConf = fopen(fsConfigFile, "r");
-
-   if (!fileFsConf) {
-      sage::printLog("fsManager: fail to open fsManager config file [%s]\n", fsConfigFile);
-      return -1;
-   }
-
-   char token[TOKEN_LEN];
-   int tokenIdx = getToken(fileFsConf, token);
-   bool tokenAcquired;
-   bool conManEnabled = false;
-   char tileConfigFile[TOKEN_LEN];
-   nwInfo = new sageNwConfig;
-
-   char audioConfigFile[TOKEN_LEN];
-
-   while(tokenIdx != EOF) {
-      tokenAcquired = false;
-      if (strcmp(token, "fsManager") == 0) {
-         getToken(fileFsConf, token);
-         strcpy(fsName, token);
-         getToken(fileFsConf, token);
-         strcpy(fsIP, token);
-         tokenIdx = getToken(fileFsConf, token);
-         if (strcmp(token, "systemPort") != 0) {
-            strcpy(pubIP, token);
-         }
-         else {
-            tokenAcquired = true;
-            strcpy(pubIP, fsIP);
-         }
-      }
-      else if (strcmp(token, "systemPort") == 0) {
-         getToken(fileFsConf, token);
-         sysPort = atoi(token);
-      }
-      else if (strcmp(token, "uiPort") == 0) {
-         getToken(fileFsConf, token);
-         uiPort = atoi(token);
-      }
-      else if (strcmp(token, "trackPort") == 0) {
-         getToken(fileFsConf, token);
-         trackPort = atoi(token);
-      }
-      else if (strcmp(token, "conManager") == 0) {
-         getToken(fileFsConf, token);
-         strcpy(conManIP, token);
-         getToken(fileFsConf, token);
-         conManPort = atoi(token);
-         conManEnabled = true;
-      }
-      else if (strcmp(token, "tileConfiguration") == 0) {
-         getToken(fileFsConf, token);
-         sprintf(tileConfigFile, "%s/bin/%s", sageDir, token);
-      }
-      else if (strcmp(token, "globalSync") == 0) {
-         getToken(fileFsConf, token);
-         sage::toupper(token);
-         if (strcmp(token, "NO") == 0)
-            globalSync = false;
-         else
-            globalSync = true;
-      }
-      else if (strcmp(token, "receiverSyncPort") == 0) {
-         getToken(fileFsConf, token);
-         rInfo.syncPort = atoi(token);
-      }
-      else if (strcmp(token, "receiverStreamPort") == 0) {
-         getToken(fileFsConf, token);
-         rInfo.streamPort = atoi(token);
-      }
-      else if (strcmp(token, "receiverBufSize") == 0) {
-         getToken(fileFsConf, token);
-         rInfo.bufSize = atoi(token);
-      }
-      else if (strcmp(token, "fullScreen") == 0) {
-         getToken(fileFsConf, token);
-         rInfo.fullScreen = (bool)atoi(token);
-      }
-      else if (strcmp(token, "rcvNwBufSize") == 0) {
-         getToken(fileFsConf, token);
-         nwInfo->rcvBufSize = getnumber(token); // atoi(token);
-      }
-      else if (strcmp(token, "sendNwBufSize") == 0) {
-         getToken(fileFsConf, token);
-         nwInfo->sendBufSize = getnumber(token); // atoi(token);
-      }
-      else if (strcmp(token, "MTU") == 0) {
-         getToken(fileFsConf, token);
-         nwInfo->mtuSize = atoi(token);
-      }
-      else if (strcmp(token, "winTime") == 0) {
-         getToken(fileFsConf, token);
-         winTime = atoi(token);
-      }
-      else if (strcmp(token, "winStep") == 0) {
-         getToken(fileFsConf, token);
-         winStep = atoi(token);
-      }
-      else if (strcmp(token, "NRM") == 0) {
-         getToken(fileFsConf, token);
-         NRM = (bool)atoi(token);
-      }
-      else if (strcmp(token, "audioConfiguration") == 0) {
-         getToken(fileFsConf, token);
-         sprintf(audioConfigFile, "%s/bin/%s", sageDir, token);
-      }
-      else if (strcmp(token, "audio") == 0) {
-         getToken(fileFsConf, token);
-         rInfo.audioOn = (bool) (strcmp(token, "true") == 0);
-      }
-      else if (strcmp(token, "receiverAudioSyncPort") == 0) {
-         getToken(fileFsConf, token);
-         rInfo.audioSyncPort = atoi(token);
-      }
-      else if (strcmp(token, "receiverAudioPort") == 0) {
-         getToken(fileFsConf, token);
-         rInfo.audioPort = atoi(token);
-      }
-      else if (strcmp(token, "syncPort") == 0) {
-         getToken(fileFsConf, token);
-         rInfo.agSyncPort = atoi(token);
-      }
-      else if ( strcmp(token, "syncBarrierPort") == 0 ) {
-    	  getToken(fileFsConf, token);
-    	  rInfo.syncBarrierPort = atoi(token); // SUNGWON
-      }
-      else if ( strcmp(token, "refreshInterval") == 0 ) {
-    	  getToken(fileFsConf, token);
-    	  rInfo.refreshInterval = atoi(token); // SUNGWON
-      }
-      else if ( strcmp(token, "syncMasterPollingInterval") == 0 ) {
-    	  getToken(fileFsConf, token);
-    	  rInfo.syncMasterPollingInterval = atoi(token); // SUNGWON
-      }
-      else if ( strcmp(token, "syncLevel") == 0 ) {
-    	  getToken(fileFsConf, token);
-    	  rInfo.syncLevel = atoi(token); // SUNGWON
-      }
-
-      if (!tokenAcquired)
-         tokenIdx = getToken(fileFsConf, token);
-   }
-
+	char *sageDir = getenv("SAGE_DIRECTORY");
+	if (!sageDir) {
+		sage::printLog("fsManager: cannot find the environment variable SAGE_DIRECTORY");
+		return -1;
+	}
+	
+	// Path variable already filled by SAGE default paths (see misc.pp)
+	data_path path;
+	std::string found = path.get_file(conf_file);
+	if (found.empty()) {
+		sage::printLog("fsManager: cannot find the file [%s]", conf_file);
+		return -1;
+	}
+	const char *fsConfigFile = found.c_str();
+	sage::printLog("fsManager: SAGE version [%s]", SAGE_VERSION);
+	sage::printLog("fsManager: using [%s] configuration file", fsConfigFile);
+	
+	
+	FILE *fileFsConf = fopen(fsConfigFile, "r");
+	
+	if (!fileFsConf) {
+		sage::printLog("fsManager: fail to open fsManager config file [%s]\n", fsConfigFile);
+		return -1;
+	}
+	
+	char token[TOKEN_LEN];
+	int tokenIdx = getToken(fileFsConf, token);
+	bool tokenAcquired;
+	bool conManEnabled = false;
+	char tileConfigFile[TOKEN_LEN];
+	nwInfo = new sageNwConfig;
+	
+	char audioConfigFile[TOKEN_LEN];
+	
+	while(tokenIdx != EOF) {
+		tokenAcquired = false;
+		if (strcmp(token, "fsManager") == 0) {
+			getToken(fileFsConf, token);
+			strcpy(fsName, token);
+			getToken(fileFsConf, token);
+			strcpy(fsIP, token);
+			tokenIdx = getToken(fileFsConf, token);
+			if (strcmp(token, "systemPort") != 0) {
+				strcpy(pubIP, token);
+			}
+			else {
+				tokenAcquired = true;
+				strcpy(pubIP, fsIP);
+			}
+		}
+		else if (strcmp(token, "systemPort") == 0) {
+			getToken(fileFsConf, token);
+			sysPort = atoi(token);
+		}
+		else if (strcmp(token, "uiPort") == 0) {
+			getToken(fileFsConf, token);
+			uiPort = atoi(token);
+		}
+		else if (strcmp(token, "trackPort") == 0) {
+			getToken(fileFsConf, token);
+			trackPort = atoi(token);
+		}
+		else if (strcmp(token, "conManager") == 0) {
+			getToken(fileFsConf, token);
+			strcpy(conManIP, token);
+			getToken(fileFsConf, token);
+			conManPort = atoi(token);
+			conManEnabled = true;
+		}
+		else if (strcmp(token, "tileConfiguration") == 0) {
+			getToken(fileFsConf, token);
+			data_path path;
+			std::string found = path.get_file(token);
+			if (found.empty()) {
+				sage::printLog("fsManager: cannot find the tileConfiguration file [%s]", token);
+				return -1;
+			}			
+			strcpy(tileConfigFile, found.c_str());
+			sage::printLog("fsManager: using [%s] tile configuration file", tileConfigFile);
+		}
+		else if (strcmp(token, "globalSync") == 0) {
+			getToken(fileFsConf, token);
+			sage::toupper(token);
+			if (strcmp(token, "NO") == 0)
+				globalSync = false;
+			else
+				globalSync = true;
+		}
+		else if (strcmp(token, "receiverSyncPort") == 0) {
+			getToken(fileFsConf, token);
+			rInfo.syncPort = atoi(token);
+		}
+		else if (strcmp(token, "receiverStreamPort") == 0) {
+			getToken(fileFsConf, token);
+			rInfo.streamPort = atoi(token);
+		}
+		else if (strcmp(token, "receiverBufSize") == 0) {
+			getToken(fileFsConf, token);
+			rInfo.bufSize = atoi(token);
+		}
+		else if (strcmp(token, "fullScreen") == 0) {
+			getToken(fileFsConf, token);
+			rInfo.fullScreen = (bool)atoi(token);
+		}
+		else if (strcmp(token, "rcvNwBufSize") == 0) {
+			getToken(fileFsConf, token);
+			nwInfo->rcvBufSize = getnumber(token); // atoi(token);
+		}
+		else if (strcmp(token, "sendNwBufSize") == 0) {
+			getToken(fileFsConf, token);
+			nwInfo->sendBufSize = getnumber(token); // atoi(token);
+		}
+		else if (strcmp(token, "MTU") == 0) {
+			getToken(fileFsConf, token);
+			nwInfo->mtuSize = atoi(token);
+		}
+		else if (strcmp(token, "winTime") == 0) {
+			getToken(fileFsConf, token);
+			winTime = atoi(token);
+		}
+		else if (strcmp(token, "winStep") == 0) {
+			getToken(fileFsConf, token);
+			winStep = atoi(token);
+		}
+		else if (strcmp(token, "NRM") == 0) {
+			getToken(fileFsConf, token);
+			NRM = (bool)atoi(token);
+		}
+		else if (strcmp(token, "audioConfiguration") == 0) {
+			getToken(fileFsConf, token);
+			if (rInfo.audioOn) {
+				data_path path;
+				std::string found = path.get_file(token);
+				if (found.empty()) {
+					sage::printLog("fsManager: cannot find the audioConfigFile file [%s]", token);
+					return -1;
+				}			
+				strcpy(audioConfigFile, found.c_str());
+				sage::printLog("fsManager: using [%s] audio configuration file", audioConfigFile);
+			}
+		}
+		else if (strcmp(token, "audio") == 0) {
+			getToken(fileFsConf, token);
+			rInfo.audioOn = (bool) (strcmp(token, "true") == 0);
+		}
+		else if (strcmp(token, "receiverAudioSyncPort") == 0) {
+			getToken(fileFsConf, token);
+			rInfo.audioSyncPort = atoi(token);
+		}
+		else if (strcmp(token, "receiverAudioPort") == 0) {
+			getToken(fileFsConf, token);
+			rInfo.audioPort = atoi(token);
+		}
+		else if (strcmp(token, "syncPort") == 0) {
+			getToken(fileFsConf, token);
+			rInfo.agSyncPort = atoi(token);
+		}
+		else if ( strcmp(token, "syncBarrierPort") == 0 ) {
+			getToken(fileFsConf, token);
+			rInfo.syncBarrierPort = atoi(token); // SUNGWON
+		}
+		else if ( strcmp(token, "refreshInterval") == 0 ) {
+			getToken(fileFsConf, token);
+			rInfo.refreshInterval = atoi(token); // SUNGWON
+		}
+		else if ( strcmp(token, "syncMasterPollingInterval") == 0 ) {
+			getToken(fileFsConf, token);
+			rInfo.syncMasterPollingInterval = atoi(token); // SUNGWON
+		}
+		else if ( strcmp(token, "syncLevel") == 0 ) {
+			getToken(fileFsConf, token);
+			rInfo.syncLevel = atoi(token); // SUNGWON
+		}
+		
+		if (!tokenAcquired)
+			tokenIdx = getToken(fileFsConf, token);
+	}
+	
 	for(int i=0; i<MAX_INST_NUM; i++)
 	{
 		m_execIDList[i] = 0;
 	}
-
-   server = new fsServer;
-   server->init(this);
-
-   core = new fsCore;
-   core->init(this);
-
-   FILE *tileFp = fopen(tileConfigFile, "r");
-   if (!tileFp) {
-      printf("fsManager::init() : fail to open tile config file [%s]\n", tileConfigFile);
-      return -1;
-   }
-
-   bool nextDisplay = true;
-   int displayID = 0;
-
-   while (nextDisplay) {
-      sageVirtualDesktop *vdt = new sageVirtualDesktop(this, displayID);
-      nextDisplay = vdt->parseConfigfile(tileFp, displayID > 0);
-      if (globalSync && displayID > 0)
-         strcpy(vdt->masterIP, vdtList[0]->masterIP);
-      vdt->launchReceivers(fsIP, sysPort, rInfo.syncPort, globalSync, rInfo.syncBarrierPort, rInfo.refreshInterval, rInfo.syncMasterPollingInterval, rInfo.syncLevel); // SUNGWON
-      vdtList.push_back(vdt);
-      displayID++;
-   }
-
-   if (vdtList.size() > 1)
-      parseDisplayConnectionInfo(tileFp);
-
+	
+	server = new fsServer;
+	server->init(this);
+	
+	core = new fsCore;
+	core->init(this);
+	
+	FILE *tileFp = fopen(tileConfigFile, "r");
+	if (!tileFp) {
+		printf("fsManager::init() : fail to open tile config file [%s]\n", tileConfigFile);
+		return -1;
+	}
+	
+	bool nextDisplay = true;
+	int displayID = 0;
+	
+	while (nextDisplay) {
+		sageVirtualDesktop *vdt = new sageVirtualDesktop(this, displayID);
+		nextDisplay = vdt->parseConfigfile(tileFp, displayID > 0);
+		if (globalSync && displayID > 0)
+			strcpy(vdt->masterIP, vdtList[0]->masterIP);
+		vdt->launchReceivers(fsIP, sysPort, rInfo.syncPort, globalSync, rInfo.syncBarrierPort, rInfo.refreshInterval, rInfo.syncMasterPollingInterval, rInfo.syncLevel); // SUNGWON
+		vdtList.push_back(vdt);
+		displayID++;
+	}
+	
+	if (vdtList.size() > 1)
+		parseDisplayConnectionInfo(tileFp);
+	
 #ifdef SAGE_AUDIO
-   if(rInfo.audioOn) {
-      FILE *audioFp = fopen(audioConfigFile, "r");
-      std::cout << "audio on " << std::endl;
-
-      if (!audioFp) {
-         printf("fsManager::init() : fail to open tile config file [%s]\n", audioConfigFile);
-         return -1;
-      }
-      vdtList[0]->parseAudioConfigfile(audioFp);
-      vdtList[0]->launchAudioReceivers(fsIP, sysPort, rInfo.syncPort);
-
-      fclose(audioFp);
-   }
+	if(rInfo.audioOn) {
+		FILE *audioFp = fopen(audioConfigFile, "r");
+		std::cout << "audio on " << std::endl;
+		
+		if (!audioFp) {
+			printf("fsManager::init() : fail to open tile config file [%s]\n", audioConfigFile);
+			return -1;
+		}
+		vdtList[0]->parseAudioConfigfile(audioFp);
+		vdtList[0]->launchAudioReceivers(fsIP, sysPort, rInfo.syncPort);
+		
+		fclose(audioFp);
+	}
 #endif
-
-   blockCommands = false;
-
-   pthread_t thId;
-
-   if (conManEnabled && pthread_create(&thId, 0, msgThread, (void*)this) != 0) {
-      std::cerr << "fsManager : can't create msgThread" << std::endl;
-      return -1;
-   }
-
-   return 0;
+	
+	blockCommands = false;
+	
+	pthread_t thId;
+	
+	if (conManEnabled && pthread_create(&thId, 0, msgThread, (void*)this) != 0) {
+		std::cerr << "fsManager : can't create msgThread" << std::endl;
+		return -1;
+	}
+	
+	return 0;
 }
 
 int fsManager::talkToConnectionManager()

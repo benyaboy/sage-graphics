@@ -157,6 +157,8 @@ public:
   std::string              path_name;
   std::vector<std::string> path;
 
+  data_path(std::string subdir="");
+
 	// Finds and returns the directory (or NULL) to a given filename
   std::string get_path(std::string filename);
 	// Finds and returns the complete path (or NULL) to a given filename

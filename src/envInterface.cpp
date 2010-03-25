@@ -50,61 +50,52 @@ envInterface::~envInterface()
       
 int envInterface::init(sailConfig &conf)
 {
-   config = conf;
-   
-   if (config.master) {
-
+	config = conf;
+	
+	if (config.master) {
+		
         char *sageDir = getenv("SAGE_DIRECTORY");
         if (!sageDir) {
-                sage::printLog("envInterface: cannot find the environment variable SAGE_DIRECTORY");
-                return -1;
+			sage::printLog("envInterface: cannot find the environment variable SAGE_DIRECTORY");
+			return -1;
         }
-
+		
         data_path path;
-        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
-        std::string sagedir = std::string( sageDir ) + "/bin";
-                // First search in current directory
-        path.path.push_back( "." );
-                // Then search in ~/.sage/ directory
-        path.path.push_back( homedir );
-                // Finally search in SAGE_DIRECTORY/bin directory
-        path.path.push_back( sagedir );
-
         std::string found = path.get_file("fsManager.conf");
         if (found.empty()) {
-                sage::printLog("envInterface: cannot find the file [%s]", "fsManager.conf");
-                return -1;
+			sage::printLog("envInterface: cannot find the file [%s]", "fsManager.conf");
+			return -1;
         }
         const char *fsConfigFile = found.c_str();
         sage::printLog("envInterface: SAGE version [%s]", SAGE_VERSION);
         sage::printLog("envInterface: using [%s] configuration file", fsConfigFile);
-
-
-      fsClient::init(fsConfigFile, "systemPort");
-
-      while(connect(NULL) < 0)
-         sage::sleep(1);
-      
-      numClients = 0;
-      if (config.nodeNum > 1) {
-         sailServer = new QUANTAnet_tcpServer_c;
-         sailServer->init(config.msgPort + config.appID);
-         sailServer->setSockOptions(QUANTAnet_tcpServer_c::READ_BUFFER_SIZE, 65536);
-         sailServer->setSockOptions(QUANTAnet_tcpServer_c::WRITE_BUFFER_SIZE, 65536);
-      }
-      else
-         sailServer = NULL;
-   }
-   else if (config.nodeNum > 1) {
-      fsClient::init(config.msgPort + config.appID);
-      
-      while(connect(config.masterIP) < 0) {
-         sage::sleep(1);
-         std::cout << "envInterface::init() : retry to connect to master" << std::endl;
-      }   
-   }
-      
-   return 0;
+		
+		
+		fsClient::init(fsConfigFile, "systemPort");
+		
+		while(connect(NULL) < 0)
+			sage::sleep(1);
+		
+		numClients = 0;
+		if (config.nodeNum > 1) {
+			sailServer = new QUANTAnet_tcpServer_c;
+			sailServer->init(config.msgPort + config.appID);
+			sailServer->setSockOptions(QUANTAnet_tcpServer_c::READ_BUFFER_SIZE, 65536);
+			sailServer->setSockOptions(QUANTAnet_tcpServer_c::WRITE_BUFFER_SIZE, 65536);
+		}
+		else
+			sailServer = NULL;
+	}
+	else if (config.nodeNum > 1) {
+		fsClient::init(config.msgPort + config.appID);
+		
+		while(connect(config.masterIP) < 0) {
+			sage::sleep(1);
+			std::cout << "envInterface::init() : retry to connect to master" << std::endl;
+		}   
+	}
+	
+	return 0;
 }
 
 int envInterface::init(sailConfig &conf, char *ip, int port)

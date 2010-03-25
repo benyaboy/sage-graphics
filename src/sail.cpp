@@ -151,8 +151,8 @@ int sail::init(sailConfig &conf)
    // write the PID to a temp file named: $SAGE_DIRECTORY/bin/appLauncher/pid/appName_appID.pid
    char fileName[100];
    memset(fileName,' ', 100);
-   char *sageDir = getenv("SAGE_DIRECTORY");
-   sprintf(fileName, "%s/bin/appLauncher/pid/%s_%d.pid", sageDir, config.appName, config.appID);
+   char *sageDir = getenv("HOME");
+   sprintf(fileName, "%s/.sageConfig/appLauncher/pid/%s_%d.pid", sageDir, config.appName, config.appID);
    FILE *fp1 = fopen(fileName, "w");
    if (!fp1) {
       printf("failed to create a pid file %s\n", fileName);
