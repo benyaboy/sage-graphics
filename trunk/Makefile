@@ -1,8 +1,10 @@
+MACHINE=$(shell uname -s)
 SHELL=/bin/bash
 preprojects = QUANTA/src
 subprojects = app/render app/atlantis app/checker app/FileViewer app/bitplay app/vnc
 
 PREFIX=${RPM_BUILD_ROOT}
+
 
 default:
 	@for i in `echo $(preprojects)`; do cd $$i; $(MAKE) install; cd - ; done
@@ -14,12 +16,20 @@ build: default
 	@for i in `echo $(subprojects)`; do cd $$i; $(MAKE) install; cd - ; done
 
 install: build
+# make user directories
+	mkdir -p ${HOME}/.sageConfig
+	mkdir -p ${HOME}/.sageConfig/applications
+	mkdir -p ${HOME}/.sageConfig/appLauncher/pid
 # make directories
 	mkdir -p ${PREFIX}/usr/local/sage/bin
 	mkdir -p ${PREFIX}/usr/local/sage/bin/log
 	mkdir -p ${PREFIX}/usr/local/sage/bin/appLauncher
 	mkdir -p ${PREFIX}/usr/local/sage/include
+ifeq ($(MACHINE), Darwin)
+	mkdir -p ${PREFIX}/usr/local/sage/lib
+else
 	mkdir -p ${PREFIX}/usr/local/sage/lib64
+endif
 	mkdir -p ${PREFIX}/usr/local/sage/ui
 	mkdir -p ${PREFIX}/usr/local/sage/ui/data
 	mkdir -p ${PREFIX}/usr/local/sage/ui/misc
@@ -37,6 +47,9 @@ install: build
 # copy binaries
 	cp bin/fsManager ${PREFIX}/usr/local/sage/bin
 	cp bin/sageDisplayManager ${PREFIX}/usr/local/sage/bin
+ifeq ($(MACHINE), Darwin)
+	cp -r bin/sageDisplayManager.app ${PREFIX}/usr/local/sage/bin
+endif
 	cp bin/render ${PREFIX}/usr/local/sage/bin
 	cp bin/atlantis ${PREFIX}/usr/local/sage/bin
 	cp bin/checker ${PREFIX}/usr/local/sage/bin
@@ -68,8 +81,13 @@ install: build
 # copy includes
 	cp include/*.h ${PREFIX}/usr/local/sage/include
 # copy libraries
+ifeq ($(MACHINE), Darwin)
+	cp lib/libquanta.dylib ${PREFIX}/usr/local/sage/lib
+	cp lib/libsail.dylib ${PREFIX}/usr/local/sage/lib
+else
 	cp lib/libquanta.so ${PREFIX}/usr/local/sage/lib64
 	cp lib/libsail.so ${PREFIX}/usr/local/sage/lib64
+endif
 # copy appLauncher files
 	cp bin/appLauncher/appLauncher.py ${PREFIX}/usr/local/sage/bin/appLauncher
 	cp bin/appLauncher/GO ${PREFIX}/usr/local/sage/bin/appLauncher

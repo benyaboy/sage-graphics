@@ -65,216 +65,203 @@ sageBridge::~sageBridge()
 sageBridge::sageBridge(int argc, char **argv) : syncPort(0), syncGroupID(0), audioPort(44000),
       allocPolicy(ALLOC_SINGLE_NODE)
 {
-   nwCfg = new sageNwConfig;
-   instNum = 0;   
-   
-   if (argc < 2) {  // master mode with default configuration file
-      initMaster("sageBridge.conf");
-   }
-   else if (strcmp(argv[1], "slave") != 0) {  // master mode with user configuration file
-      initMaster(argv[1]);
-   }   
-   else {  // slave mode
-      if (argc < 5) {
-         sage::printLog("sageBridge::sageBridge() : more arguments are needed for SAGE bridge slaves" );
-         exit(0);
-      }
-      
-      shared = new bridgeSharedData;
-      master = false;
-      strcpy(masterIP, argv[2]);
-      
-      msgPort = atoi(argv[3]);
-      
-      msgInfConfig conf;
-      conf.master = false;
-      strcpy(conf.serverIP, masterIP);
-      conf.serverPort = msgPort;
-      
-      msgInf = new messageInterface();
-      msgInf->init(conf);
-      msgInf->msgToServer(0, BRIDGE_REG_NODE, argv[4]);
-      
-      shared->nodeID = atoi(argv[4]);
-      sage::printLog("sageBridge : start slave node %d", shared->nodeID);
-      
-      tcpObj = NULL;
-      udpObj = NULL;
-      bridgeEnd = false;   
-      
-      pthread_t thId;
-
-      if (pthread_create(&thId, 0, msgCheckThread, (void*)this) != 0) {
-         sage::printLog("sageBridge::initSlave : can't create message checking thread");
-      }
-
-      if (pthread_create(&thId, 0, perfReportThread, (void*)this) != 0) {
-         sage::printLog("sageBrdige::initSlave : can't create performance report thread");
-      }
-   }
+	nwCfg = new sageNwConfig;
+	for (int i=0; i<MAX_INST_NUM; i++)
+		appInstList[i] = NULL;
+	instNum = 0;   
+	
+	if (argc < 2) {  // master mode with default configuration file
+		initMaster("sageBridge.conf");
+	}
+	else if (strcmp(argv[1], "slave") != 0) {  // master mode with user configuration file
+		initMaster(argv[1]);
+	}   
+	else {  // slave mode
+		if (argc < 5) {
+			sage::printLog("sageBridge::sageBridge() : more arguments are needed for SAGE bridge slaves" );
+			exit(0);
+		}
+		
+		shared = new bridgeSharedData;
+		master = false;
+		strcpy(masterIP, argv[2]);
+		
+		msgPort = atoi(argv[3]);
+		
+		msgInfConfig conf;
+		conf.master = false;
+		strcpy(conf.serverIP, masterIP);
+		conf.serverPort = msgPort;
+		
+		msgInf = new messageInterface();
+		msgInf->init(conf);
+		msgInf->msgToServer(0, BRIDGE_REG_NODE, argv[4]);
+		
+		shared->nodeID = atoi(argv[4]);
+		sage::printLog("sageBridge : start slave node %d", shared->nodeID);
+		
+		tcpObj = NULL;
+		udpObj = NULL;
+		bridgeEnd = false;   
+		
+		pthread_t thId;
+		
+		if (pthread_create(&thId, 0, msgCheckThread, (void*)this) != 0) {
+			sage::printLog("sageBridge::initSlave : can't create message checking thread");
+		}
+		
+		if (pthread_create(&thId, 0, perfReportThread, (void*)this) != 0) {
+			sage::printLog("sageBrdige::initSlave : can't create performance report thread");
+		}
+	}
 }   
 
 int sageBridge::initMaster(const char *cFile)
 {
-   shared = new bridgeSharedData;
-   shared->nodeID = 0;
-   master = true;
-   bridgeEnd = false;
-   
-        char *sageDir = getenv("SAGE_DIRECTORY");
-        if (!sageDir) {
-		sage::printLog("sageBridge: cannot find the environment variable SAGE_DIRECTORY");
-                return -1;
-        }
-
-        data_path path;
-        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
-        std::string sagedir = std::string( sageDir ) + "/bin";
-                // First search in current directory
-        path.path.push_back( "." );
-                // Then search in ~/.sage/ directory
-        path.path.push_back( homedir );
-                // Finally search in SAGE_DIRECTORY/bin directory
-        path.path.push_back( sagedir );
-
-        std::string found = path.get_file(cFile);
-        if (found.empty()) {
+	shared = new bridgeSharedData;
+	shared->nodeID = 0;
+	master = true;
+	bridgeEnd = false;
+	
+	data_path path;
+	std::string found = path.get_file(cFile);
+	if (found.empty()) {
 		sage::printLog("sageBridge: cannot find the file [%s]", cFile);
-                return -1;
-        }
+		return -1;
+	}
 	const char *bridgeConfigFile = found.c_str();
-        sage::printLog("sageBridge: SAGE version [%s]", SAGE_VERSION);
+	sage::printLog("sageBridge: SAGE version [%s]", SAGE_VERSION);
 	sage::printLog("sageBridge: using [%s] configuration file", bridgeConfigFile);
-
-   FILE *fileBridgeConf = fopen(bridgeConfigFile, "r");
-   
-   if (!fileBridgeConf) {
-      sage::printLog("sageBridge: fail to open SAGE Bridge config file [%s]\n",bridgeConfigFile);
-      return -1;
-   }
-
-   char token[TOKEN_LEN];
-   int tokenIdx = getToken(fileBridgeConf, token);
-   
-   while(tokenIdx != EOF) {
-      if (strcmp(token, "masterIP") == 0) {
-         getToken(fileBridgeConf, masterIP);
-      }
-      else if (strcmp(token, "slaveList") == 0) {   
-         getToken(fileBridgeConf, token);
-         slaveNum = atoi(token);
-         shared->nodeNum = slaveNum + 1;
-         for (int i=0; i<slaveNum; i++)
-            getToken(fileBridgeConf, slaveIPs[i]);
-      }
-      else if (strcmp(token, "streamPort") == 0) {   
-         getToken(fileBridgeConf, token);
-         streamPort = atoi(token);
-      }
-      else if (strcmp(token, "msgPort") == 0) {   
-         getToken(fileBridgeConf, token);
-         msgPort = atoi(token);
-      }
-      else if (strcmp(token, "syncPort") == 0) {
-         getToken(fileBridgeConf, token);
-         syncPort = atoi(token);
-      }
-      else if (strcmp(token, "audioPort") == 0) {
-         getToken(fileBridgeConf, token);
-         audioPort = atoi(token);
-      }
-      else if (strcmp(token, "rcvNwBufSize") == 0) {
-         getToken(fileBridgeConf, token);
-         nwCfg->rcvBufSize = getnumber(token); //atoi(token);
-      }
-      else if (strcmp(token, "sendNwBufSize") == 0) {
-         getToken(fileBridgeConf, token);
-         nwCfg->sendBufSize = getnumber(token); //atoi(token);
-      }
-      else if (strcmp(token, "MTU") == 0) {
-         getToken(fileBridgeConf, token);
-         nwCfg->mtuSize = atoi(token);
-      }
-      else if (strcmp(token, "maxBandWidth") == 0) {
-         getToken(fileBridgeConf, token);
-         nwCfg->maxBandWidth = atoi(token);
-      }
-      else if (strcmp(token, "maxCheckInterval") == 0) {
-         getToken(fileBridgeConf, token);
-         nwCfg->maxCheckInterval = atoi(token);
-      }
-      else if (strcmp(token, "flowWindowSize") == 0) {
-         getToken(fileBridgeConf, token);
-         nwCfg->flowWindow = atoi(token);
-      }
-      else if (strcmp(token, "memSize") == 0) {
-         getToken(fileBridgeConf, token);
-         shared->bufSize = atoi(token) * 1024*1024;
-      }
-      else if (strcmp(token, "nodeAllocation") == 0) {
-         getToken(fileBridgeConf, token);
-         if (strcmp(token, "single") == 0) 
-            allocPolicy = ALLOC_SINGLE_NODE;
-         else if (strcmp(token, "balanced") == 0)
-            allocPolicy = ALLOC_LOAD_BALANCING;
-      }
-      else if (strcmp(token, "frameDrop") == 0) {
-         getToken(fileBridgeConf, token);
-         if (strcmp(token, "true") == 0)
-            shared->frameDrop = true;
-         else
-            shared->frameDrop = false;
-      }
-      else if (strcmp(token, "nwProtocol") == 0) {
-         getToken(fileBridgeConf, token);
-         sage::toupper(token);
-         if (strcmp(token, "TCP") == 0) 
-            shared->protocol = SAGE_TCP;
-         else if (strcmp(token, "UDP") == 0)
-            shared->protocol = SAGE_UDP;   
-      }
-
-      tokenIdx = getToken(fileBridgeConf, token);
-   }
-
-   msgInfConfig conf;
-   conf.master = true;
-   conf.serverPort = msgPort;
-
-   msgInf = new messageInterface;
-   msgInf->init(conf);
-   
-   syncServerObj = new sageSyncServer;
-   
-   if (syncServerObj->init(syncPort) < 0) {
-      sage::printLog("SAGE Bridge : Error init'ing the sync server object" );
-      bridgeEnd = true;   
-      return -1;
-   }
-
-   pthread_t thId;
-   
-   if (pthread_create(&thId, 0, msgCheckThread, (void*)this) != 0) {
-      sage::printLog("sageBridge::initMaster : can't create message checking thread");
-   }
-   
-   if (pthread_create(&thId, 0, perfReportThread, (void*)this) != 0) {
-      sage::printLog("sageBrdige::initMaster : can't create performance report thread");
-   }
-
-   shared->syncClientObj = new sageSyncClient;
-
-   if (shared->syncClientObj->connectToServer(strdup("127.0.0.1"), syncPort) < 0) {
-      sage::printLog("SAGE Bridge : Fail to connect to sync master" );
-      return -1;
-   }
-
-   launchSlaves();
-   initNetworks();
-   
-   //audioBridge = new sageAudioBridge(masterIP, audioPort, msgInf, shared);
-
-   return 0;
+	
+	FILE *fileBridgeConf = fopen(bridgeConfigFile, "r");
+	
+	if (!fileBridgeConf) {
+		sage::printLog("sageBridge: fail to open SAGE Bridge config file [%s]\n",bridgeConfigFile);
+		return -1;
+	}
+	
+	char token[TOKEN_LEN];
+	int tokenIdx = getToken(fileBridgeConf, token);
+	
+	while(tokenIdx != EOF) {
+		if (strcmp(token, "masterIP") == 0) {
+			getToken(fileBridgeConf, masterIP);
+		}
+		else if (strcmp(token, "slaveList") == 0) {   
+			getToken(fileBridgeConf, token);
+			slaveNum = atoi(token);
+			shared->nodeNum = slaveNum + 1;
+			for (int i=0; i<slaveNum; i++)
+				getToken(fileBridgeConf, slaveIPs[i]);
+		}
+		else if (strcmp(token, "streamPort") == 0) {   
+			getToken(fileBridgeConf, token);
+			streamPort = atoi(token);
+		}
+		else if (strcmp(token, "msgPort") == 0) {   
+			getToken(fileBridgeConf, token);
+			msgPort = atoi(token);
+		}
+		else if (strcmp(token, "syncPort") == 0) {
+			getToken(fileBridgeConf, token);
+			syncPort = atoi(token);
+		}
+		else if (strcmp(token, "audioPort") == 0) {
+			getToken(fileBridgeConf, token);
+			audioPort = atoi(token);
+		}
+		else if (strcmp(token, "rcvNwBufSize") == 0) {
+			getToken(fileBridgeConf, token);
+			nwCfg->rcvBufSize = getnumber(token); //atoi(token);
+		}
+		else if (strcmp(token, "sendNwBufSize") == 0) {
+			getToken(fileBridgeConf, token);
+			nwCfg->sendBufSize = getnumber(token); //atoi(token);
+		}
+		else if (strcmp(token, "MTU") == 0) {
+			getToken(fileBridgeConf, token);
+			nwCfg->mtuSize = atoi(token);
+		}
+		else if (strcmp(token, "maxBandWidth") == 0) {
+			getToken(fileBridgeConf, token);
+			nwCfg->maxBandWidth = atoi(token);
+		}
+		else if (strcmp(token, "maxCheckInterval") == 0) {
+			getToken(fileBridgeConf, token);
+			nwCfg->maxCheckInterval = atoi(token);
+		}
+		else if (strcmp(token, "flowWindowSize") == 0) {
+			getToken(fileBridgeConf, token);
+			nwCfg->flowWindow = atoi(token);
+		}
+		else if (strcmp(token, "memSize") == 0) {
+			getToken(fileBridgeConf, token);
+			shared->bufSize = atoi(token) * 1024*1024;
+		}
+		else if (strcmp(token, "nodeAllocation") == 0) {
+			getToken(fileBridgeConf, token);
+			if (strcmp(token, "single") == 0) 
+				allocPolicy = ALLOC_SINGLE_NODE;
+			else if (strcmp(token, "balanced") == 0)
+				allocPolicy = ALLOC_LOAD_BALANCING;
+		}
+		else if (strcmp(token, "frameDrop") == 0) {
+			getToken(fileBridgeConf, token);
+			if (strcmp(token, "true") == 0)
+				shared->frameDrop = true;
+			else
+				shared->frameDrop = false;
+		}
+		else if (strcmp(token, "nwProtocol") == 0) {
+			getToken(fileBridgeConf, token);
+			sage::toupper(token);
+			if (strcmp(token, "TCP") == 0) 
+				shared->protocol = SAGE_TCP;
+			else if (strcmp(token, "UDP") == 0)
+				shared->protocol = SAGE_UDP;   
+		}
+		
+		tokenIdx = getToken(fileBridgeConf, token);
+	}
+	
+	msgInfConfig conf;
+	conf.master = true;
+	conf.serverPort = msgPort;
+	
+	msgInf = new messageInterface;
+	msgInf->init(conf);
+	
+	syncServerObj = new sageSyncServer;
+	
+	if (syncServerObj->init(syncPort) < 0) {
+		sage::printLog("SAGE Bridge : Error init'ing the sync server object" );
+		bridgeEnd = true;   
+		return -1;
+	}
+	
+	pthread_t thId;
+	
+	if (pthread_create(&thId, 0, msgCheckThread, (void*)this) != 0) {
+		sage::printLog("sageBridge::initMaster : can't create message checking thread");
+	}
+	
+	if (pthread_create(&thId, 0, perfReportThread, (void*)this) != 0) {
+		sage::printLog("sageBrdige::initMaster : can't create performance report thread");
+	}
+	
+	shared->syncClientObj = new sageSyncClient;
+	
+	if (shared->syncClientObj->connectToServer(strdup("127.0.0.1"), syncPort) < 0) {
+		sage::printLog("SAGE Bridge : Fail to connect to sync master" );
+		return -1;
+	}
+	
+	launchSlaves();
+	initNetworks();
+	
+	//audioBridge = new sageAudioBridge(masterIP, audioPort, msgInf, shared);
+	
+	return 0;
 }
 
 int sageBridge::launchSlaves()

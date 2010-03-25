@@ -103,297 +103,282 @@ int sailConfig::setAppName(const char *name)
 
 int sailConfig::init(const char *fname)
 {
-        char *sageDir = getenv("SAGE_DIRECTORY");
-        if (!sageDir) {
-                sage::printLog("sailConfig: cannot find the environment variable SAGE_DIRECTORY");
-                return -1;
-        }
-
-        data_path path;
-        std::string homedir = std::string( getenv("HOME") ) + "/.sage";
-        std::string sagedir = std::string( sageDir ) + "/bin";
-                // First search in current directory
-        path.path.push_back( "." );
-                // Then search in ~/.sage/ directory
-        path.path.push_back( homedir );
-                // Finally search in SAGE_DIRECTORY/bin directory
-        path.path.push_back( sagedir );
-
-        std::string found = path.get_file(fname);
-        if (found.empty()) {
-                sage::printLog("sailConfig: cannot find the file [%s]", fname);
-                return -1;
-        }
-        const char *configName = found.c_str();
-        sage::printLog("sailConfig: SAGE version [%s]", SAGE_VERSION);
-        sage::printLog("sailConfig: using [%s] configuration file", configName);
-
-
-   FILE *fp = fopen(configName, "r");   
-   if (!fp) {
-      sage::printLog("sailConfig: fail to open sail config file [%s]\n", configName);
-      return -1;
-   }
-
-   char token[TOKEN_LEN];
-   while(getToken(fp, token) != EOF) {
-      sage::toupper(token);
-      if (strcmp(token, "APPNAME") == 0) {
-         getToken(fp, appName);
-      }
-      else if (strcmp(token, "FSIP") == 0) {
-         getToken(fp, fsIP);
-      }
-      else if (strcmp(token, "FSPORT") == 0) {
-         getToken(fp, token);
-         fsPort = atoi(token);
-      }
-      else if (strcmp(token, "BRIDGEON") == 0) {
-         getToken(fp, token);
-         sage::tolower(token);
-         bridgeOn = (strcmp(token, "true") == 0);
-      }
-      else if (strcmp(token, "BRIDGEIP") == 0) {
-         getToken(fp, bridgeIP);
-      }
-      else if (strcmp(token, "BRIDGEPORT") == 0) {
-         getToken(fp, token);
-         bridgePort = atoi(token);
-      }
-      else if (strcmp(token, "MASTERIP") == 0) {
-         getToken(fp, masterIP);
-      }
-      else if (strcmp(token, "NWID") == 0) {
-         getToken(fp, token);
-         nwID = atoi(token);
-      }
-      else if (strcmp(token, "MSGPORT") == 0) {
-         getToken(fp, token);
-         msgPort = atoi(token);
-      } 
-      else if (strcmp(token, "SYNCPORT") == 0) {
-         getToken(fp, token);
-         syncPort = atoi(token);
-      }
-      else if (strcmp(token, "NODENUM") == 0) {
-         getToken(fp, token);
-         nodeNum = atoi(token);
-      }          
-      else if (strcmp(token, "APPID") == 0) {
-         getToken(fp, token);
-         appID = atoi(token);
-      }
-      else if (strcmp(token, "LAUNCHERID") == 0) {
-	 getToken(fp, launcherID);
-      }
-      else if (strcmp(token, "PIXELBLOCKSIZE") == 0) {
-         getToken(fp, token);
-         blockX = atoi(token);
-         getToken(fp, token);
-         blockY = atoi(token);
-      }
-      else if (strcmp(token, "BLOCKTHRESHOLD") == 0) {
-         getToken(fp, token);
-         blockSize = atoi(token);
-      }
-      else if (strcmp(token, "WINX") == 0) {
-         getToken(fp, token);
-         winX = atoi(token);
-      }
-      else if (strcmp(token, "WINY") == 0) {
-         getToken(fp, token);
-         winY = atoi(token);
-      }
-      else if (strcmp(token, "WINWIDTH") == 0) {
-         getToken(fp, token);
-         winWidth = atoi(token);
-      }
-      else if (strcmp(token, "WINHEIGHT") == 0) {
-         getToken(fp, token);
-         winHeight = atoi(token);
-      }          
-      else if (strcmp(token, "NWPROTOCOL") == 0) {
-         getToken(fp, token);
-         sage::toupper(token);
-         if (strcmp(token, "TCP") == 0) 
-            protocol = SAGE_TCP;
-         else if (strcmp(token, "UDP") == 0)
-            protocol = SAGE_UDP;   
-      }
-      else if (strcmp(token, "ASYNCUPDATE") == 0) {
-         getToken(fp, token);
-         sage::tolower(token);
-         asyncUpdate = (strcmp(token, "true") == 0);
-      }   
-      else if (strcmp(token, "SYNCMODE") == 0) {
-         getToken(fp, token);
-         syncMode = atoi(token);
-      }
-      else if (strcmp(token, "STREAMIP") == 0) {
-         getToken(fp, streamIP);
-      }
-      else if (strcmp(token, "FRAMERATE") == 0) {
-         getToken(fp, token);
-         frameRate = atoi(token);
-      }          
-      else if (strcmp(token, "COMPRESSION") == 0) {
-         getToken(fp, token);
-         if (strcmp(token, "RLE") == 0)
-            compression = RLE_COMP;
-         else if (strcmp(token, "LUV") == 0)
-            compression = LUV_COMP;   
-         else if (strcmp(token, "DXT") == 0)
-            compression = DXT_COMP;   
-         else
-            compression = NO_COMP;   
-      }
-      else if (strcmp(token, "STREAMTYPE") == 0) {
-         getToken(fp, token);
-         if (strcmp(token, "SAGE_BLOCK_NO_SYNC") == 0) {
-            streamType = SAGE_BLOCK_NO_SYNC;
-         }   
-         else if (strcmp(token, "SAGE_BLOCK_CONST_SYNC") == 0) {
-            streamType = SAGE_BLOCK_CONST_SYNC;   
-         }   
-         else if (strcmp(token, "SAGE_BLOCK_SOFT_SYNC") == 0) {
-            streamType = SAGE_BLOCK_SOFT_SYNC;
-         }
-         else if (strcmp(token, "SAGE_BLOCK_HARD_SYNC") == 0) {
-            streamType = SAGE_BLOCK_HARD_SYNC;
-         }
-         else {
-            streamType = SAGE_BLOCK_NO_SYNC;
-         }   
-      }
-      else if (strcmp(token, "GROUPSIZE") == 0) {
-         getToken(fp, token);
-         groupSize = atoi(token);
-      }
-      else if (strcmp(token, "AUTOBLOCKSIZE") == 0) {
-         getToken(fp, token);
-         sage::tolower(token);
-         autoBlockSize = (strcmp(token, "true") == 0);
-      }
-      else if (strcmp(token, "MAXBANDWIDTH") == 0) {
-         getToken(fp, token);
-         maxBandwidth = atoi(token);
-      }
-      else if (strcmp(token, "MAXCHECKINTERVAL") == 0) {
-         getToken(fp, token);
-         maxCheckInterval = atoi(token);
-      }
-      else if (strcmp(token, "FLOWCONTROL") == 0) {
-         getToken(fp, token);
-         flowWindow = atoi(token);
-      }
-      else if (strcmp(token, "PORTFORWARDING") == 0) {
-         getToken(fp, token);
-         portForwarding = atoi(token);
-      }
-      else if (strcmp(token, "AUDIOON") == 0) {
-         getToken(fp, token);
-         sage::tolower(token);
-         audioOn = (strcmp(token, "true") == 0);
-      }
-      else if (strcmp(token, "AUDIO") == 0) {
-         getToken(fp, token);
-         sage::tolower(token);
-         audioOn = (strcmp(token, "true") == 0);
-      }
-      else if (strcmp(token, "AUDIOKEYFRAME") == 0) {
-         getToken(fp, token);
-         audioKeyFrame = atoi(token);
-      }
-      else if(strcmp(token, "AUDIOTYPE") == 0) {
-         getToken(fp, token);
-         sage::tolower(token);
-         if(strcmp(token, "capture") == 0) {
-            audioMode = SAGE_AUDIO_CAPTURE;
-         }
-         else if(strcmp(token, "fwcapture") == 0) {
-            audioMode = SAGE_AUDIO_FWCAPTURE;
-         }
-         else if(strcmp(token, "play") == 0) {
-            audioMode = SAGE_AUDIO_PLAY;
-         }
-         else if(strcmp(token, "read") == 0) {
-            audioMode = SAGE_AUDIO_READ;
-         }
-         else if(strcmp(token, "appData") == 0) {
-            audioMode = SAGE_AUDIO_APP;
-         }
-      }
-      else if(strcmp(token, "AUDIOFILE") == 0) {
-         getToken(fp, audioFileName);
-      }
-      else if (strcmp(token, "AUDIOPORT") == 0) {
-         getToken(fp, token);
-         audioPort = atoi(token);
-      }
-      else if (strcmp(token, "DEVICENUM") == 0) {
-         getToken(fp, token);
-         audioDeviceNum = atoi(token);
-      }
-      else if (strcmp(token, "SAMPLINGRATE") == 0) {
-         getToken(fp, token);
-         samplingRate = atoi(token);
-      }
-      else if (strcmp(token, "SAMPLEFORMAT") == 0) {
-         getToken(fp, token);
-         sage::tolower(token);
-         if (strcmp(token, "float32") == 0) {
-            sampleFmt = SAGE_SAMPLE_FLOAT32;
-         }
-         else if (strcmp(token, "int16") == 0) {
-            sampleFmt = SAGE_SAMPLE_INT16;
-         }
-         else if (strcmp(token, "int8") == 0) {
-            sampleFmt = SAGE_SAMPLE_INT8;
-         }
-         else if (strcmp(token, "uint8") == 0) {
-            sampleFmt = SAGE_SAMPLE_UINT8;
-         }
-      }
-      else if (strcmp(token, "CHANNELS") == 0) {
-         getToken(fp, token);
-         channels = atoi(token);
-      }
-      else if (strcmp(token, "FRAMEPERBUFFER") == 0) {
-         getToken(fp, token);
-         framePerBuffer = atoi(token);
-      }
-      else if (strcmp(token, "SYNCTYPE") == 0) {
-         getToken(fp, token);
-         sage::tolower(token);
-         if (strcmp(token, "none") == 0) {
-            syncType = SAGE_SYNC_NONE;
-         }
-         else if (strcmp(token, "audiodriven") == 0) {
-            syncType = SAGE_SYNC_AUDIO_DRIVEN;
-         }
-         else if (strcmp(token, "graphicdriven") == 0) {
-            syncType = SAGE_SYNC_GRAPHIC_DRIVEN;
-         }
-      }
-      else if (strcmp(token, "AUDIONWPROTOCOL") == 0) {
-         getToken(fp, token);
-         sage::toupper(token);
-         if (strcmp(token, "TCP") == 0) 
-            audioProtocol = SAGE_TCP;
-         else if (strcmp(token, "UDP") == 0)
-            audioProtocol = SAGE_UDP;   
-      }
-      else if (strcmp(token, "RENDERBUFX") == 0) {
-         getToken(fp, token);
-         resX = atoi(token);
-      }
-      else if (strcmp(token, "RENDERBUFY") == 0) {
-         getToken(fp, token);
-         resY = atoi(token);
-      }
-   }
-
-   fclose(fp);
-   
-   return 0;
+	data_path path("applications");
+	std::string found = path.get_file(fname);
+	if (found.empty()) {
+		sage::printLog("sailConfig: cannot find the file [%s]", fname);
+		return -1;
+	}
+	const char *configName = found.c_str();
+	sage::printLog("sailConfig: SAGE version [%s]", SAGE_VERSION);
+	sage::printLog("sailConfig: using [%s] configuration file", configName);
+	
+	
+	FILE *fp = fopen(configName, "r");   
+	if (!fp) {
+		sage::printLog("sailConfig: fail to open sail config file [%s]\n", configName);
+		return -1;
+	}
+	
+	char token[TOKEN_LEN];
+	while(getToken(fp, token) != EOF) {
+		sage::toupper(token);
+		if (strcmp(token, "APPNAME") == 0) {
+			getToken(fp, appName);
+		}
+		else if (strcmp(token, "FSIP") == 0) {
+			getToken(fp, fsIP);
+		}
+		else if (strcmp(token, "FSPORT") == 0) {
+			getToken(fp, token);
+			fsPort = atoi(token);
+		}
+		else if (strcmp(token, "BRIDGEON") == 0) {
+			getToken(fp, token);
+			sage::tolower(token);
+			bridgeOn = (strcmp(token, "true") == 0);
+		}
+		else if (strcmp(token, "BRIDGEIP") == 0) {
+			getToken(fp, bridgeIP);
+		}
+		else if (strcmp(token, "BRIDGEPORT") == 0) {
+			getToken(fp, token);
+			bridgePort = atoi(token);
+		}
+		else if (strcmp(token, "MASTERIP") == 0) {
+			getToken(fp, masterIP);
+		}
+		else if (strcmp(token, "NWID") == 0) {
+			getToken(fp, token);
+			nwID = atoi(token);
+		}
+		else if (strcmp(token, "MSGPORT") == 0) {
+			getToken(fp, token);
+			msgPort = atoi(token);
+		} 
+		else if (strcmp(token, "SYNCPORT") == 0) {
+			getToken(fp, token);
+			syncPort = atoi(token);
+		}
+		else if (strcmp(token, "NODENUM") == 0) {
+			getToken(fp, token);
+			nodeNum = atoi(token);
+		}          
+		else if (strcmp(token, "APPID") == 0) {
+			getToken(fp, token);
+			appID = atoi(token);
+		}
+		else if (strcmp(token, "LAUNCHERID") == 0) {
+			getToken(fp, launcherID);
+		}
+		else if (strcmp(token, "PIXELBLOCKSIZE") == 0) {
+			getToken(fp, token);
+			blockX = atoi(token);
+			getToken(fp, token);
+			blockY = atoi(token);
+		}
+		else if (strcmp(token, "BLOCKTHRESHOLD") == 0) {
+			getToken(fp, token);
+			blockSize = atoi(token);
+		}
+		else if (strcmp(token, "WINX") == 0) {
+			getToken(fp, token);
+			winX = atoi(token);
+		}
+		else if (strcmp(token, "WINY") == 0) {
+			getToken(fp, token);
+			winY = atoi(token);
+		}
+		else if (strcmp(token, "WINWIDTH") == 0) {
+			getToken(fp, token);
+			winWidth = atoi(token);
+		}
+		else if (strcmp(token, "WINHEIGHT") == 0) {
+			getToken(fp, token);
+			winHeight = atoi(token);
+		}          
+		else if (strcmp(token, "NWPROTOCOL") == 0) {
+			getToken(fp, token);
+			sage::toupper(token);
+			if (strcmp(token, "TCP") == 0) 
+				protocol = SAGE_TCP;
+			else if (strcmp(token, "UDP") == 0)
+				protocol = SAGE_UDP;   
+		}
+		else if (strcmp(token, "ASYNCUPDATE") == 0) {
+			getToken(fp, token);
+			sage::tolower(token);
+			asyncUpdate = (strcmp(token, "true") == 0);
+		}   
+		else if (strcmp(token, "SYNCMODE") == 0) {
+			getToken(fp, token);
+			syncMode = atoi(token);
+		}
+		else if (strcmp(token, "STREAMIP") == 0) {
+			getToken(fp, streamIP);
+		}
+		else if (strcmp(token, "FRAMERATE") == 0) {
+			getToken(fp, token);
+			frameRate = atoi(token);
+		}          
+		else if (strcmp(token, "COMPRESSION") == 0) {
+			getToken(fp, token);
+			if (strcmp(token, "RLE") == 0)
+				compression = RLE_COMP;
+			else if (strcmp(token, "LUV") == 0)
+				compression = LUV_COMP;   
+			else if (strcmp(token, "DXT") == 0)
+				compression = DXT_COMP;   
+			else
+				compression = NO_COMP;   
+		}
+		else if (strcmp(token, "STREAMTYPE") == 0) {
+			getToken(fp, token);
+			if (strcmp(token, "SAGE_BLOCK_NO_SYNC") == 0) {
+				streamType = SAGE_BLOCK_NO_SYNC;
+			}   
+			else if (strcmp(token, "SAGE_BLOCK_CONST_SYNC") == 0) {
+				streamType = SAGE_BLOCK_CONST_SYNC;   
+			}   
+			else if (strcmp(token, "SAGE_BLOCK_SOFT_SYNC") == 0) {
+				streamType = SAGE_BLOCK_SOFT_SYNC;
+			}
+			else if (strcmp(token, "SAGE_BLOCK_HARD_SYNC") == 0) {
+				streamType = SAGE_BLOCK_HARD_SYNC;
+			}
+			else {
+				streamType = SAGE_BLOCK_NO_SYNC;
+			}   
+		}
+		else if (strcmp(token, "GROUPSIZE") == 0) {
+			getToken(fp, token);
+			groupSize = atoi(token);
+		}
+		else if (strcmp(token, "AUTOBLOCKSIZE") == 0) {
+			getToken(fp, token);
+			sage::tolower(token);
+			autoBlockSize = (strcmp(token, "true") == 0);
+		}
+		else if (strcmp(token, "MAXBANDWIDTH") == 0) {
+			getToken(fp, token);
+			maxBandwidth = atoi(token);
+		}
+		else if (strcmp(token, "MAXCHECKINTERVAL") == 0) {
+			getToken(fp, token);
+			maxCheckInterval = atoi(token);
+		}
+		else if (strcmp(token, "FLOWCONTROL") == 0) {
+			getToken(fp, token);
+			flowWindow = atoi(token);
+		}
+		else if (strcmp(token, "PORTFORWARDING") == 0) {
+			getToken(fp, token);
+			portForwarding = atoi(token);
+		}
+		else if (strcmp(token, "AUDIOON") == 0) {
+			getToken(fp, token);
+			sage::tolower(token);
+			audioOn = (strcmp(token, "true") == 0);
+		}
+		else if (strcmp(token, "AUDIO") == 0) {
+			getToken(fp, token);
+			sage::tolower(token);
+			audioOn = (strcmp(token, "true") == 0);
+		}
+		else if (strcmp(token, "AUDIOKEYFRAME") == 0) {
+			getToken(fp, token);
+			audioKeyFrame = atoi(token);
+		}
+		else if(strcmp(token, "AUDIOTYPE") == 0) {
+			getToken(fp, token);
+			sage::tolower(token);
+			if(strcmp(token, "capture") == 0) {
+				audioMode = SAGE_AUDIO_CAPTURE;
+			}
+			else if(strcmp(token, "fwcapture") == 0) {
+				audioMode = SAGE_AUDIO_FWCAPTURE;
+			}
+			else if(strcmp(token, "play") == 0) {
+				audioMode = SAGE_AUDIO_PLAY;
+			}
+			else if(strcmp(token, "read") == 0) {
+				audioMode = SAGE_AUDIO_READ;
+			}
+			else if(strcmp(token, "appData") == 0) {
+				audioMode = SAGE_AUDIO_APP;
+			}
+		}
+		else if(strcmp(token, "AUDIOFILE") == 0) {
+			getToken(fp, audioFileName);
+		}
+		else if (strcmp(token, "AUDIOPORT") == 0) {
+			getToken(fp, token);
+			audioPort = atoi(token);
+		}
+		else if (strcmp(token, "DEVICENUM") == 0) {
+			getToken(fp, token);
+			audioDeviceNum = atoi(token);
+		}
+		else if (strcmp(token, "SAMPLINGRATE") == 0) {
+			getToken(fp, token);
+			samplingRate = atoi(token);
+		}
+		else if (strcmp(token, "SAMPLEFORMAT") == 0) {
+			getToken(fp, token);
+			sage::tolower(token);
+			if (strcmp(token, "float32") == 0) {
+				sampleFmt = SAGE_SAMPLE_FLOAT32;
+			}
+			else if (strcmp(token, "int16") == 0) {
+				sampleFmt = SAGE_SAMPLE_INT16;
+			}
+			else if (strcmp(token, "int8") == 0) {
+				sampleFmt = SAGE_SAMPLE_INT8;
+			}
+			else if (strcmp(token, "uint8") == 0) {
+				sampleFmt = SAGE_SAMPLE_UINT8;
+			}
+		}
+		else if (strcmp(token, "CHANNELS") == 0) {
+			getToken(fp, token);
+			channels = atoi(token);
+		}
+		else if (strcmp(token, "FRAMEPERBUFFER") == 0) {
+			getToken(fp, token);
+			framePerBuffer = atoi(token);
+		}
+		else if (strcmp(token, "SYNCTYPE") == 0) {
+			getToken(fp, token);
+			sage::tolower(token);
+			if (strcmp(token, "none") == 0) {
+				syncType = SAGE_SYNC_NONE;
+			}
+			else if (strcmp(token, "audiodriven") == 0) {
+				syncType = SAGE_SYNC_AUDIO_DRIVEN;
+			}
+			else if (strcmp(token, "graphicdriven") == 0) {
+				syncType = SAGE_SYNC_GRAPHIC_DRIVEN;
+			}
+		}
+		else if (strcmp(token, "AUDIONWPROTOCOL") == 0) {
+			getToken(fp, token);
+			sage::toupper(token);
+			if (strcmp(token, "TCP") == 0) 
+				audioProtocol = SAGE_TCP;
+			else if (strcmp(token, "UDP") == 0)
+				audioProtocol = SAGE_UDP;   
+		}
+		else if (strcmp(token, "RENDERBUFX") == 0) {
+			getToken(fp, token);
+			resX = atoi(token);
+		}
+		else if (strcmp(token, "RENDERBUFY") == 0) {
+			getToken(fp, token);
+			resY = atoi(token);
+		}
+	}
+	
+	fclose(fp);
+	
+	return 0;
 }

@@ -209,15 +209,6 @@ void* readThread(void *args)
 		}
 
 		data_path path;
-		std::string homedir = std::string( getenv("HOME") ) + "/.sage";
-		std::string sagedir = std::string( sageDir ) + "/bin";
-		// First search in current directory
-		path.path.push_back( "." );
-		// Then search in ~/.sage/ directory
-		path.path.push_back( homedir );
-		// Finally search in SAGE_DIRECTORY/bin directory
-		path.path.push_back( sagedir );
-
 		std::string found = path.get_file("log");
 		if (found.empty()) {
 			sage::printLog("fsConsole: cannot find the directory [%s]", "log");

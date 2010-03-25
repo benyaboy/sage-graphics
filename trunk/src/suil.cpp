@@ -43,22 +43,7 @@
 
 int suil::init(const char *config)
 {
-	char *sageDir = getenv("SAGE_DIRECTORY");
-	if (!sageDir) {
-		sage::printLog("suil: cannot find the environment variable SAGE_DIRECTORY");
-		return -1;
-	}   
-
 	data_path path;
-	std::string homedir = std::string( getenv("HOME") ) + "/.sage";
-	std::string sagedir = std::string( sageDir ) + "/bin";
-		// First search in current directory
-	path.path.push_back( "." );
-		// Then search in ~/.sage/ directory
-	path.path.push_back( homedir );
-		// Finally search in SAGE_DIRECTORY/bin directory
-	path.path.push_back( sagedir );
-
 	std::string found = path.get_file(config);
 	if (found.empty()) {
 		sage::printLog("suil: cannot find any file called [%s]", config);
