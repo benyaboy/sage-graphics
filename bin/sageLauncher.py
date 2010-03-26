@@ -51,6 +51,9 @@ import subprocess as sp
 from threading import Thread
 
 
+# shortcut
+opj = os.path.join
+from sagePath import getUserPath, SAGE_DIR, getPath, getDefaultPath
 
 
 # --------------------------------------------------------
@@ -74,13 +77,11 @@ components = {}   # key=componentType, value=Component()
 tileConfig = None
 
 MAX_TEXT_LEN = 64000     # max characters in the output text ctrl
-PREFS_FILE = "sageLauncherSettings.pickle"   # store the settings in a pickle file
+PREFS_FILE = getUserPath("sageLauncherSettings.pickle")   # store the settings in a pickle file
 PY_EXEC = sys.executable    # platform dependent python executable
 
 # quit if the SAGE_DIRECTORY env var is not set
-if "SAGE_DIRECTORY" in os.environ:
-    SAGE_DIR = os.environ["SAGE_DIRECTORY"]    # where sage is located
-else:
+if not "SAGE_DIRECTORY" in os.environ:
     print "SAGE_DIRECTORY environment variable not set."
     print "Please first set the SAGE_DIRECTORY environment variable to your sage directory."
     sys.exit(0)
@@ -123,9 +124,6 @@ def makeBiggerBoldFont(widget):
 def isWin():
     return "__WXMSW__" in wx.PlatformInfo
 
-
-# so that we dont have to type so much
-opj = os.path.join
 
 
 # if the loadSettings fails for some reason (other than first execution),
@@ -183,13 +181,13 @@ def getTileConfig():
     """ returns the full path of the currently used tile
         config file as specifed in the fsManager.conf """
     
-    f = open(opj(SAGE_DIR, "bin", "fsManager.conf"), "r")
+    f = open( getPath("fsManager.conf"), "r")
     for line in f:
         line = line.strip()
         if line.startswith('tileConfiguration'):
             config = line.split()[1].strip()
     f.close()
-    return opj(SAGE_DIR, "bin", config)
+    return getPath(config)
 
 
 
@@ -233,7 +231,7 @@ class ComponentSettings:
     """ this is the base class for all the settings """
     def __init__(self, t):
         self.inBG = False
-        self.doRun = False
+        self.doRun = True
         self.cmd = ""
         self.componentType = t
         self.pid = -1  # pid from the started process
@@ -265,11 +263,11 @@ class SageSettings(ComponentSettings):
     def __init__(self, componentType):
         ComponentSettings.__init__(self, componentType)
         self.doRun = True
-        self.onStart = "python ../dim/dim.py\npython ../dim/hwcapture/joystick.py localhost"  # a string of commands to be executed after shutdown (split by \n)
+        self.onStart = "python ../dim/dim.py\npython ../dim/hwcapture/localPointer.py localhost 1"  # a string of commands to be executed after shutdown (split by \n)
         self.onStop = "fuser -k 19010/tcp"
 
         # things to kill on each node
-        self.toKill = "fsManager sageDisplayManager sageAudioManager svc imageviewer mplayer JuxtaView JuxtaSCUI bplay bplay-noglut VNCViewer render atlantis atlantis-mpi checker magicarpet VRA VRA_UI"
+        self.toKill = "fsManager sageDisplayManager sageAudioManager svc imageviewer mplayer bplay bplay-noglut VNCViewer render atlantis atlantis-mpi checker"
         
 
     def getStartCommand(self):
@@ -334,11 +332,11 @@ class AppLauncherSettings(ComponentSettings):
 
 
     def getAppConfigFilename(self):
-        return opj(SAGE_DIR, "bin", "appLauncher", "sage.conf")
+        return getPath("applications", "applications.conf")
 
     def getStartCommand(self):
         """ commmand used to run this component """
-        cmd = [PY_EXEC, "-u", opj(SAGE_DIR, "bin", "appLauncher", "appLauncher.py"), "-v", "-p", str(self.port)]
+        cmd = [PY_EXEC, "-u", opj(self.getCwd(), "appLauncher.py"), "-v", "-p", str(self.port)]
 
         # report to sage server?
         if self.doReport: cmd.extend( ["-s", self.server] )
@@ -373,19 +371,19 @@ class FileServerSettings(ComponentSettings):
 
 
     def getConfigFilename(self):
-        return opj(SAGE_DIR, "bin", "file_server", "file_server.conf")
+        return getPath("fileServer", "fileServer.conf")
 
 
     def getStartCommand(self):
         """ commmand used to run this component """
         if self.inBG and not isWin(): bg = "&"
         else: bg = ""
-        return [PY_EXEC, "-u", opj(SAGE_DIR, "bin", "file_server", "file_server.py"), "-v", bg]
+        return [PY_EXEC, "-u", opj(self.getCwd(), "fileServer.py"), "-v", bg]
 
 
     def getCwd(self):
         """ returns the current working directory """
-        return opj(SAGE_DIR, "bin", "file_server")
+        return opj(SAGE_DIR, "bin", "fileServer")
 
         
     def __getinitargs__(self):
@@ -406,7 +404,7 @@ class SageProxySettings(ComponentSettings):
 
     def getStartCommand(self):
         """ commmand used to run this component """
-        return [PY_EXEC, "-u", opj(SAGE_DIR, "bin", "sageProxy", "sageProxy.py"),
+        return [PY_EXEC, "-u", opj(self.getCwd(), "sageProxy.py"),
                 "-s", self.host, "-p", str(self.port), "-x", self.password, "-v"]
 
 
@@ -434,7 +432,7 @@ class SageUISettings(ComponentSettings):
 
     def getStartCommand(self):
         """ commmand used to run this component """
-        cmd = [PY_EXEC, "-u", opj(SAGE_DIR,"ui","sageui.py"), "-v", "-s", self.host, "-p", str(self.port)]
+        cmd = [PY_EXEC, "-u", opj(self.getCwd(),"sageui.py"), "-v", "-s", self.host, "-p", str(self.port), "-t"]
         if self.autologinMachine != "":
             cmd.extend( ["-a", self.autologinMachine] )
         if self.loadState != "":
@@ -1227,7 +1225,7 @@ class FileServerFrame(ComponentFrame):
         try:
             self.filesDir = self.fbb.GetValue()
             
-            f = open(self.settings.getConfigFilename(), "w")
+            f = open(getUserPath("fileServer", "fileServer.conf"), "w")
             f.write("FILES_DIR = "+ self.filesDir+"\n")
 
             f.write("\n#"+"----"*12+"\n\n")  # separator
@@ -1851,6 +1849,8 @@ class QuickFrame(wx.Frame):
 
         # add the default radio button
         choices = {}
+        states = stateHash.keys()
+        states.sort()
         defaultBtn = wx.RadioButton(statesPanel, -1, "New session", style=wx.RB_GROUP)
         defaultBtn.Bind(wx.EVT_RADIOBUTTON, OnSelectedRadioButton, defaultBtn)
         #defaultBtn.SetBackgroundColour(wx.Colour(14,51,51))
@@ -1867,9 +1867,9 @@ class QuickFrame(wx.Frame):
             except: pass
             sizer.Add(t, 0, wx.ALIGN_LEFT | wx.ALIGN_TOP | wx.BOTTOM | wx.TOP, border=2)
             
-        for stateName, description in stateHash.iteritems():
+        for stateName in states:
             btn = wx.RadioButton(statesPanel, wx.ID_ANY, stateName)
-            btn.SetToolTipString(description)
+            btn.SetToolTipString(stateHash[stateName])
             #btn.SetBackgroundColour(wx.Colour(14,51,51))
             #btn.SetForegroundColour(wx.Colour(200,200,200))
             choices[stateName] = btn
@@ -1888,7 +1888,7 @@ class QuickFrame(wx.Frame):
 
     def GetStateList(self):
         """ returns a hash of key=stateName, value=description """
-        savedStatesDir = os.path.join(SAGE_DIR, "ui", "saved-states")
+        savedStatesDir = getUserPath("saved-states")
         stateHash = {}
         appList = []
         description = ""
@@ -1898,7 +1898,7 @@ class QuickFrame(wx.Frame):
         
         # load all the states and read descriptions from them
         for fileName in os.listdir(savedStatesDir):
-            filePath = os.path.join(savedStatesDir, fileName)
+            filePath = opj(savedStatesDir, fileName)
             if os.path.isfile(filePath) and os.path.splitext(filePath)[1] == ".state":
                 try:
                     stateName = os.path.splitext( os.path.split(filePath)[1] )[0]
@@ -2633,7 +2633,7 @@ class OneConfig:
 
     
     def getAppLauncherConfig(self):
-        """ this returns the appLauncher config format (for sage.conf)"""
+        """ this returns the appLauncher config format (for applications.conf)"""
 
         s = ""
 
@@ -2913,7 +2913,8 @@ class AppConfigurations:
              
 
     def writeConfig(self):
-        """ write sage.conf based on the current configuration """
+        """ write applications.conf based on the current configuration """
+        self._configFile = getUserPath("applications", "applications.conf")
         f = open(self._configFile, "w")
 
         # loop through all the apps and write their configs to a file
