@@ -5,7 +5,7 @@
 include ../../config.mk
 
 #MYFLAGS=-g -Wno-deprecated -fPIC -O3 -I../include $(SDL_CFLAGS) $(QUANTA_CFLAGS) $(GLEW_CFLAGS) $(GLSL_YUV_DEFINE) $(PORTAUDIO_CFLAGS)
-MYFLAGS=-g ${SAGE_CFLAGS} -O3 -I../include  
+MYFLAGS=${SAGE_CFLAGS} -O3 -I../include  
 
 LIBS= -lpthread -lm -ldl $(SUN_LIBS)
 
