@@ -381,7 +381,7 @@ int sdlSingleContext::init(struct sageDisplayConfig &cfg)
       if ( configStruct.fullScreenFlag ) {
          flags |= SDL_NOFRAME;
          flags |= SDL_RESIZABLE;
-         flags |= SDL_FULLSCREEN;
+         //flags |= SDL_FULLSCREEN;
       }
       
       window_width  = cfg.width*cfg.dimX;
