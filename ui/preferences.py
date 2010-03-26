@@ -41,15 +41,17 @@
 
 import os, os.path, cPickle, copy, sys
 
+from globals import *
+from sagePath import getUserPath
+
 # where we store all the prefs
-PREFS_DIR = "prefs"
-if not os.path.isdir(PREFS_DIR): os.mkdir(PREFS_DIR)
-FILE_LIB_FILE = os.path.join(PREFS_DIR, "file_libs.pickle")
-USERNAMES_FILE = os.path.join(PREFS_DIR, "usernames.pickle")
-VISUAL_FILE = os.path.join(PREFS_DIR, "visuals.pickle")
-FAVORITES_FILE = os.path.join(PREFS_DIR, "favorite_files.pickle")
-MACHINES_FILE = os.path.join(PREFS_DIR, "machines.pickle")
-VNC_FILE = os.path.join(PREFS_DIR, "vnc.pickle")
+PREFS_DIR = getUserPath("sageui", "prefs")
+FILE_LIB_FILE = opj(PREFS_DIR, "file_libs.pickle")
+USERNAMES_FILE = opj(PREFS_DIR, "usernames.pickle")
+VISUAL_FILE = opj(PREFS_DIR, "visuals.pickle")
+FAVORITES_FILE = opj(PREFS_DIR, "favorite_files.pickle")
+MACHINES_FILE = opj(PREFS_DIR, "machines.pickle")
+VNC_FILE = opj(PREFS_DIR, "vnc.pickle")
 
 global fileLib
 global usernames

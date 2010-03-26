@@ -87,7 +87,7 @@ manifestVersion="1.0">
 
 
 
-VERSION = "3.0a"
+VERSION = "3.0"
 NAME = "sageui"
 DESCRIPTION = "SAGE UI v"+str(VERSION)
 
@@ -96,16 +96,17 @@ import sys, glob
 
 
 #####    MAC   ######
-# RUN WITH: python setup.py py2app -a
+# RUN WITH: python setup.py py2app --site-packages
 #
 if sys.platform == 'darwin':
     import py2app
     opts = dict(argv_emulation=True, 
-		   dist_dir="sageui")
+                iconfile="images/sageUIIcon.icns",
+                dist_dir="sageui")
     setup(app=['sageui.py'],
 	  name = NAME,
 	  options=dict(py2app=opts),
-          data_files = [(".", ["README","RECENT_CHANGES","load_pauses.list", "images", "prefs"]),
+          data_files = [(".", ["README","RECENT_CHANGES", "images", "prefs"]),
 			("images", glob.glob("images\\*.*")),
                         ("prefs", glob.glob("prefs\\*.*"))],
 	  )
@@ -118,14 +119,14 @@ if sys.platform == 'darwin':
 elif sys.platform == 'win32':
     import py2exe
     opts = dict(dist_dir="sageui")
-    setup(windows=[{"script":"sageui.py",
-                    "other_resources": [(24,1,manifest)]
-                   }],
+    setup(windows=[{"script":"sageui.py"}],
+                    #"other_resources": [(24,1,manifest)]
+                   #}],
 	  name = NAME,
 	  version = str(VERSION),
 	  description = DESCRIPTION,
 	  options=dict(py2exe=opts),
-          data_files = [(".", ["README", "RECENT_CHANGES", "load_pauses.list", "gdiplus.dll", "MSVCP71.dll"]),
+          data_files = [(".", ["README", "RECENT_CHANGES", "gdiplus.dll", "MSVCP90.dll", "msvcr90.dll"]),
 			("images", glob.glob("images\\*.*")),
                         ("prefs", glob.glob("prefs\\*.*"))],
 	  )

@@ -1001,7 +1001,7 @@ class MyEvtHandler(ogl.ShapeEvtHandler):
 
       # figure out if we resized the shape beyond the edge of our UI tiled display
       # if so, resize it down to the maximum allowable size
-      shape.SizeDown(pt)
+      #shape.SizeDown(pt)
 
       # convert the new coords and send a message to SAGE
       left = self.displayCanvas.ToSAGECoordsX( shape.GetLeft(), shape.app.getDisplayId() )

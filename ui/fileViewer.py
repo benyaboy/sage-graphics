@@ -430,7 +430,7 @@ class CanvasDropTarget(FileDropTarget):
                 cornerX = 0
             res = self.sageGate.executeApp(appName, pos=(cornerX, cornerY), size=(imageWidth,imageHeight), optionalArgs = fullRemotePath+" "+str(imageWidth)+" "+str(imageHeight)+" "+params)
             
-        elif fileType == "video":
+        elif fileType == "video" or fileType == "pdf":
             res = self.sageGate.executeApp(appName, pos=(self.lastX, self.lastY), optionalArgs=params+" "+fullRemotePath)
             
         else:  #for other types
@@ -464,7 +464,7 @@ class LibraryDropTarget(FileDropTarget):
 dirTextColor = wx.Colour(204, 153, 102)#250,50,50)
 
 class FileLibrary(wx.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, parentPos):
         self.canvas = parent 
         self.sageGate = self.canvas.sageGate
         self.sageHost = self.sageGate.sageHost  #for the filegrabber
@@ -484,7 +484,8 @@ class FileLibrary(wx.Frame):
         if not self.serverObj.IsConnected():
             Message("Unable to access file library. There is no connection with the File Server.", "No connection")
         else:
-            wx.Frame.__init__(self, parent, help.FILE_LIBRARY, "File Library - "+self.libName, pos=(300,300), size=(550,550))
+            x,y=parentPos
+            wx.Frame.__init__(self, parent, help.FILE_LIBRARY, "File Library - "+self.libName, pos=(x+200, y+200), size=(550,550))
             self.previewSize = (150,150)
             self.panel = wx.lib.scrolledpanel.ScrolledPanel(self, wx.ID_ANY)
             self.__SetupLayout()
@@ -1038,9 +1039,9 @@ class FileLibrary(wx.Frame):
             self.showBtn.Enable()
 
             # no preview if we didnt select an image
-            if itemData.GetType() != "image":
-                self.currentImage.SetBitmap(self.no_preview)
-                return
+            #if itemData.GetType() != "image":
+            #    self.currentImage.SetBitmap(self.no_preview)
+            #    return
 
             # get the preview from the server (and get other info like the size of the image)
             self.currentImage.SetBitmap(self.retrieving_preview)
@@ -1056,6 +1057,7 @@ class FileLibrary(wx.Frame):
                 if isBinary:
                     stream=wx.InputStream(cStringIO.StringIO(base64.decodestring(previewData))) #make a stream out of the image
                     im = wx.ImageFromStream(stream)
+                    im.Rescale(PREVIEW_SIZE[0], PREVIEW_SIZE[1])
                 else:
                     im = wx.EmptyImage(PREVIEW_SIZE[0], PREVIEW_SIZE[1])
                     im.SetData(base64.decodestring(previewData))
@@ -1118,7 +1120,7 @@ class FileLibrary(wx.Frame):
             cornerY = 0
             
             res = self.sageGate.executeApp(appName ,pos=(cornerX, cornerY), size=(imageWidth,imageHeight), optionalArgs = fullPath+" "+str(imageWidth)+" "+str(imageHeight)+" "+useDXT+" "+params, useBridge=bridge)
-        elif fileType == "video":
+        elif fileType == "video" or fileType=="pdf":
             res = self.sageGate.executeApp(appName, optionalArgs=params+" "+fullPath, useBridge=bridge)
         else:  #for other types
             res = self.sageGate.executeApp(appName, optionalArgs=fullPath+" "+params, useBridge=bridge)

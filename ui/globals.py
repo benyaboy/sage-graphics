@@ -40,9 +40,12 @@
 
 # this file holds functions and constants used throughout the application
 
-import os.path, time, wx
+import os.path, time, wx, sys
 
-
+# shortcut
+opj = os.path.join
+sys.path.append( opj(os.environ["SAGE_DIRECTORY"], "bin" ) )
+from sagePath import getUserPath, getPath, SAGE_DIR
 
 
 #------------------------------------------------------------------------
@@ -78,9 +81,18 @@ perfPanelColor = wx.Colour(102,204,153)
 
 
 
+#------------------------------------------------------------------------
+#     PATHS
+#------------------------------------------------------------------------
+
 def ConvertPath(path):
     """Convert paths to the platform-specific separator"""
-    return apply(os.path.join, tuple(path.split('\\')))
+    return apply(opj, tuple(path.split('\\')))
+
+
+DATA_DIR = getUserPath("sageui", "data")
+LOG_FILE = getUserPath("sageui", "output_log.txt")
+SAVED_STATES_DIR = getUserPath("saved-states")
 
 
 #------------------------------------------------------------------------
@@ -245,7 +257,6 @@ def getTimeStamp():
         startTime = time.time()
     return int(round(time.time() - startTime))
 
-    
 
 
 #------------------------------------------------------------------------

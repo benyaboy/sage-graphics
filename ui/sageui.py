@@ -62,6 +62,9 @@ try:
 except:
     use_hyperlink = False
 
+# if this UI should autosave
+global autosave
+
 # my stuff
 import Graph
 from sageGate import *
@@ -71,7 +74,7 @@ from globals import *
 from users import * 
 import preferences as prefs
 import launcherAdmin as lAdmin
-
+from sagePath import getUserPath
 
 
 ############################################################################
@@ -135,11 +138,9 @@ class DisplayNotebook(wx.Notebook):
 
         # open the file for recording totals for all sites
         try:
-            if not os.path.isdir( os.path.expanduser("~/.sage/") + "data/"):  #make the directory if it doesnt exist
-                os.mkdir( os.path.expanduser("~/.sage/") + "data/")
             stDateTime = time.strftime("%Y%m%d-%H%M%S", time.localtime())
             stFilename = "ALL_SITES_TOTALS-" + stDateTime
-            stPath = os.path.expanduser("~/.sage/") + "data/" + stFilename + ".txt"
+            stPath = opj(DATA_DIR, stFilename + ".txt")
             self._totalsFile = open(stPath, "w")
             self._totalsFile.write( time.asctime() + "\n" )
             self._totalsFile.write( '-' * 40 + "\n" )
@@ -329,8 +330,8 @@ class DisplayPage(wx.Panel):
         self.machineId = machineId
         self.usersClient = usersClient
         self.usersData = getUsersData()
-        self.sageData = SageData()
         self.sageGate = sageGate
+        self.sageData = SageData(sageGate, autosave, title.split('@')[1])
         self.RegisterCallbacks()
         self.menuCheckItems = self.GetParent().GetDefaultMenuCheckItems()
         self.GetParent().GetFrame().UpdateMenuItems(self.GetCurrentMenuItems()) #update the menu items
@@ -525,9 +526,11 @@ class DisplayPage(wx.Panel):
         okBtn = wx.Button(dlg, wx.ID_OK, "Save")
         delBtn = wx.Button(dlg, wx.ID_OK, " Delete ", style=wx.BU_EXACTFIT)
         delBtn.Bind(wx.EVT_BUTTON, OnDeleteState)
-        
+
+        states = stateHash.keys()
+        states.sort()
         nameLabel = wx.StaticText(dlg, -1, "Session name:")
-        nameText = wx.ComboBox(dlg, -1, "", choices=stateHash.keys(), style=wx.CB_DROPDOWN)
+        nameText = wx.ComboBox(dlg, -1, "", choices=states, style=wx.CB_DROPDOWN)
         nameText.Bind(wx.EVT_COMBOBOX, OnStateSelected)
         nameText.SetFocus()
         descriptionLabel = wx.StaticText(dlg, -1, "Description:")
@@ -563,7 +566,7 @@ class DisplayPage(wx.Panel):
                     dlg.Destroy()
                 else:
                     continue
-            self.sageData.saveState(stateName, description, self.sageGate)
+            self.sageData.saveState(stateName, description)
             break
             
         return
@@ -599,9 +602,13 @@ class DisplayPage(wx.Panel):
         okBtn.Disable()
         delBtn = wx.Button(dlg, wx.ID_OK, " Delete ", style=wx.BU_EXACTFIT)
         delBtn.Bind(wx.EVT_BUTTON, OnDeleteState)
-        
+
+        states = stateHash.keys()
+        states.sort()
+        states = stateHash.keys()
+        states.sort()
         stateLabel = wx.StaticText(dlg, -1, "Saved Sessions:")
-        stateList = wx.Choice(dlg, -1, choices=stateHash.keys())
+        stateList = wx.Choice(dlg, -1, choices=states)
         stateList.Bind(wx.EVT_CHOICE, OnStateSelected)
         descriptionBox = wx.StaticBox(dlg, -1, "Description:")
         descriptionText = wx.StaticText(dlg, -1, "", style=wx.ST_NO_AUTORESIZE)
@@ -635,7 +642,7 @@ class DisplayPage(wx.Panel):
             if stateName == "":
                 Message("No saved sessions exist", "")
                 return
-            self.sageData.loadState(stateName, self.sageGate)
+            self.sageData.loadState(stateName)
 
         return
         
@@ -948,7 +955,7 @@ class SAGEuiFrame(wx.Frame):
         # load the saved state of the display if requested
         if self.loadState:
             sageData = self.notebook.GetPage(self.notebook.GetSelection()).sageData
-            t = Timer(4, sageData.loadState, (self.loadState, self.sageGate))
+            t = Timer(4, sageData.loadState, [self.loadState])
             t.start()
         
 
@@ -992,13 +999,11 @@ class SAGEuiFrame(wx.Frame):
         # files are not made causing an error, allow the new app's file to be created but do
         # not write to it.  Later, delete the 0-size file.
         try:   #in case the file and directory permissions are not right
-            if not os.path.isdir( os.path.expanduser("~/.sage/") + ConvertPath("data") ):  #make the directory if it doesnt exist
-                os.mkdir( os.path.expanduser("~/.sage/") + ConvertPath("data") )
-            os.chdir( os.path.expanduser("~/.sage/") + ConvertPath('data') )
-            listFilenames = os.listdir( '.' )
+            listFilenames = os.listdir( DATA_DIR )
 
             # remove files that were never written or minimally written (i.e. <= 1K)
             for stFilename in listFilenames:
+                stFilename = opj(DATA_DIR, stFilename)
                 stCompleteFilename = os.path.normcase( stFilename )
                 structStats = os.stat( stCompleteFilename )
 
@@ -1007,7 +1012,6 @@ class SAGEuiFrame(wx.Frame):
                     print "Deleting", stCompleteFilename
                 # end if
             # end loop
-            os.chdir( '..' )
         except:
             pass
         
@@ -1054,7 +1058,7 @@ class SAGEuiFrame(wx.Frame):
             wx.GetApp().RestoreStdio()
         else:
             try:
-                wx.GetApp().RedirectStdio("output_log.txt")
+                wx.GetApp().RedirectStdio( LOG_FILE )
             except IOError:
                 message = "\nCould not redirect output to a log file. Probably because of file permissions."
                 message = message+"\nInstead, output will be printed in the console"
@@ -1162,7 +1166,7 @@ class SAGEui(wx.App):
             wx.App.__init__(self, redirect=False)
         else:
             try:
-                wx.App.__init__(self, redirect=True, filename="output_log.txt")
+                wx.App.__init__(self, redirect=True, filename=LOG_FILE)
             except IOError:
                 print "\nError: Could not redirect output to a log file. Possibly because of file permissions."
                 print "Instead, output will be printed in the console"
@@ -1212,7 +1216,7 @@ class SAGEui(wx.App):
 def get_commandline_options():
     parser = optparse.OptionParser()
 
-    h = "if set, prints output to console, otherwise to output_log.txt"
+    h = "if set, prints output to console, otherwise to ~/.sageConfig/sageui/output_log.txt"
     parser.add_option("-v", "--verbose", action="store_true", help=h, dest="verbose", default=False)
 
     h = "which sage server / connection manager to use (default is sage.sl.startap.net)"
@@ -1230,14 +1234,18 @@ def get_commandline_options():
     h = "upon startup load this saved state (write saved state name from saved-states directory)"
     parser.add_option("-o", "--load_state", dest="load_state", help=h, default=None)
 
+    h = "perform autosave?"
+    parser.add_option("-t", "--autosave", action="store_true", help=h, dest="autosave", default=False)
+
     return parser.parse_args()
 
 
 
 def main(argv):
-    os.chdir(sys.path[0])  #change to the folder where the script is running
+    os.chdir(sys.path[0])  # change to the folder where script is running
+    global autosave
     verbose = False
-    usersServerIP = "206.220.241.46"
+    usersServerIP = "74.114.99.36"
     usersServerPort = 15558
     
     # parse the command line params
@@ -1248,6 +1256,7 @@ def main(argv):
     appLauncher = options.launcher
     autologinMachine = options.autologin
     loadState = options.load_state
+    autosave = options.autosave
     
     # set the overridden app launcher
     if appLauncher != "":
