@@ -40,29 +40,33 @@
 #
 ############################################################################
  
-import os, base64, os.path, socket, shutil, sys, SocketServer, wx, stat
+import os, base64, os.path, socket, shutil, sys, SocketServer, wx, stat, urllib
 from SimpleXMLRPCServer import *
 from threading import Thread
 from time import asctime, time
+import makeThumbs
 
 # miscellaneous stuff (3rd party supporting tools)
 sys.path.append("misc")  #so that we can import packages from "misc" folder
 from imsize import imagesize  # reads the image header and gets the size from it
-#import mmpython
-#import countPDFpages
-
+import mmpython
+import countPDFpages
 
 # a shortcut
 opj = os.path.join
 
+# for loading the sagePath helper file
+sys.path.append( opj(os.environ["SAGE_DIRECTORY"], "bin" ) )
+from sagePath import getUserPath, getPath
+
 
 ## some globals defining the environment
 SCRIPT_PATH = sys.path[0]
-CONFIG_FILE = opj(SCRIPT_PATH, "file_server.conf")
-CACHE_DIR = opj(SCRIPT_PATH, "file_server_cache")
+CONFIG_FILE = getPath("fileServer", "fileServer.conf")
+CACHE_DIR = getUserPath("fileServer", "file_server_cache")
 FILES_DIR = opj(SCRIPT_PATH, "file_library")
 REDIRECT = False
-PREVIEW_DIR = opj(FILES_DIR, "image_thumbnails")
+THUMB_DIR = opj(FILES_DIR, "thumbnails")
 RUN_SERVER = True
 
 ## holds information about the types that we support (read from the config file)
@@ -73,14 +77,14 @@ types = {}
 
 def ParseConfigFile():
     global FILES_DIR
-    global PREVIEW_DIR
+    global THUMB_DIR
     global dirHash
     global types
     global viewers
 
     # reinitialize everything
     FILES_DIR = ""
-    PREVIEW_DIR = ""
+    THUMB_DIR = ""
     dirHash = {}
     types = {}
     viewers = {}
@@ -92,9 +96,9 @@ def ParseConfigFile():
         if line.startswith("FILES_DIR"):
             FILES_DIR = line.split("=")[1].strip()
             if not os.path.isabs(FILES_DIR):
-                FILES_DIR = opj(SCRIPT_PATH, FILES_DIR)
+                FILES_DIR = getUserPath("fileServer", FILES_DIR)
             FILES_DIR = os.path.realpath(FILES_DIR)  #expand any symbolic links in the library directory
-            PREVIEW_DIR = opj(FILES_DIR, "image_thumbnails")
+            THUMB_DIR = opj(FILES_DIR, "thumbnails")
         elif line.startswith("type:"):
             line = line.split(":",1)[1]
             (type, extensions) = line.split("=")
@@ -113,14 +117,16 @@ def ParseConfigFile():
 
     # create the folders first if they dont exist
     if not os.path.isdir(FILES_DIR):
-        os.mkdir(FILES_DIR)
+        os.makedirs(FILES_DIR)
     if not os.path.isdir(CACHE_DIR):
-        os.mkdir(CACHE_DIR)
+        os.makedirs(CACHE_DIR)
     for type, typeDir in dirHash.items():
         if not os.path.isdir( ConvertPath(typeDir) ):
-            os.mkdir(typeDir)
-    if not os.path.isdir(PREVIEW_DIR):
-        os.mkdir(PREVIEW_DIR)
+            os.makedirs(typeDir)
+        if not os.path.isdir( ConvertPath( opj(typeDir, "Trash")) ):
+            os.makedirs( opj(typeDir, "Trash") )
+    if not os.path.isdir(THUMB_DIR):
+        os.makedirs(THUMB_DIR)
 
 
 
@@ -159,7 +165,7 @@ class Listener(ThreadingTCPServer):
             except KeyboardInterrupt:
                 break
             except:
-                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
                 break
  
 
@@ -210,7 +216,7 @@ class SingleFileUpload(StreamRequestHandler):
             except socket.timeout:
                 continue
             except:
-                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
                 f.close()
                 os.remove(fullPath)
                 break
@@ -248,7 +254,7 @@ class FileLibrary:
 
          ### gets the file info:
         ### full path, file type, application info, size (for images...), file size
-    def GetFileInfo(self, filename, fileSize, path=None):
+    def GetFileInfo(self, filename, fileSize=-1, path=None):
         try:
             ParseConfigFile()
             fileType = self.GetFileType(filename)
@@ -262,8 +268,16 @@ class FileLibrary:
                     fullPath = opj(self.__GetFilePath(fileType), filename)  # return a default path if not passed in
                     res = self.__FileAlreadyThere(filename, fileType, fileSize)
                     if res:  #if the file was found it will return its directory
+                        if fileType == "image":   #if the file is an image, return its size
+                            try:
+                                imsize = imagesize(fullPath)
+                                size = (imsize[1], imsize[0])
+                            except:
+                                size = (-1,-1)
+
                         fullPath = opj(res, filename)  #the path of the found file
                         fileExists = True
+                        
                 elif not self.__LegalPath(path):
                     return False
                 else:             # the user is trying to show an existing file
@@ -282,7 +296,7 @@ class FileLibrary:
             else:
                 return False  #file type not supported
         except:
-            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
             return False
 
 
@@ -332,7 +346,7 @@ class FileLibrary:
             else:
                 return False
         except:
-            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
             return False
 
 
@@ -346,12 +360,31 @@ class FileLibrary:
             else:
                 return False
         except:
-            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
+            return False
+
+
+        ### move the file to Trash
+    def DeleteFile(self, fullPath):
+        try:
+            fullPath = ConvertPath(fullPath)
+            if not self.__LegalPath(fullPath):  # restrict the users to the FILES_DIR folder
+                return False
+            fileType = self.GetFileType(fullPath)
+            if not fileType:  # no extension so don't allow deletion
+                return False
+
+            trashPath = opj( opj(self.__GetFilePath(fileType), "Trash"), os.path.split(fullPath)[1] )
+            self.MoveFile( fullPath, trashPath )
+            return True
+        
+        except:
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
             return False
 
 
         ### deletes the file from the library (also deletes it's thumbnail preview if it exists)
-    def DeleteFile(self, fullPath):
+    def DeleteFilePermanently(self, fullPath):
         try:
             fullPath = ConvertPath(fullPath)
             if not self.__LegalPath(fullPath):  # restrict the users to the FILES_DIR folder
@@ -370,7 +403,7 @@ class FileLibrary:
                 os.remove( previewPath )  #remove its preview thumbnail
             return True
         except:
-            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
             return False
 
 
@@ -389,7 +422,7 @@ class FileLibrary:
                     shutil.move(oldDxtFilePath, newDxtFilePath)
                 return True
             except:
-                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
                 return False
         else:
             return False
@@ -413,41 +446,89 @@ class FileLibrary:
 
             return True
         except:
-            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
             return False
 
 
+    def UploadLink(self, url):
+        name = os.path.basename(url)   # strip any directory and just keep the filename (for security reasons)
+        fileType = self.GetFileType(name)
+        if not fileType:
+            return False  #dont allow upload of anything that doesn't have an extension
+
+        try:
+            filename, headers = urllib.urlretrieve(url, opj(dirHash[fileType], name))
+            return True
+        except:
+            return False
+        
+
         ### looks if there is a preview already saved... if not, create one and send it back
     def GetPreview(self, fullPath, previewSize=(150,150)):
+        try:
+            res = self.MakeThumbnail(fullPath)
+            if res:
+                return (self.__ReadFile(res), True)
+            else:
+                return False
+        except:
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
+            return False
+
+        
+##         fullPath = ConvertPath(fullPath)
+##         if not self.__LegalPath(fullPath):
+##             return False
+##         fileType = self.GetFileType(fullPath)
+
+##         try:
+##             if fileType != "image" or not os.path.isfile(fullPath):
+##                 return False
+##             previewPath = self.__GetPreviewName(fullPath)
+##             wxImageType = self.__GetWxBitmapType(os.path.basename(fullPath))
+##             if not os.path.isfile(previewPath):  #if the preview doesnt exist, make it 
+##                 if wxImageType:               # is writing this file type supported?
+##                     im = wx.Image(fullPath)  # read the original image
+##                     if not im.Ok():   
+##                         return False         # the image is probably corrupted
+##                     preview = im.Rescale(previewSize[0], previewSize[1])        # resize it
+##                     im.SaveFile(previewPath, wxImageType)    # save it back to a file
+##                     self.__SetWritePermissions(previewPath)
+##                 else:     #if writing is not supported, try and read it and resize it on the fly
+##                     im = wx.Image(fullPath)  # read the original image
+##                     if not im.Ok():   
+##                         return False         # the image is probably corrupted
+##                     preview = im.Rescale(previewSize[0], previewSize[1])        # resize it
+##                     data = preview.GetData()
+##                     return (base64.encodestring(data), False)   #return the pixels themselves (isBinary=False)
+            
+##             return (self.__ReadFile(previewPath), True)
+##         except:
+##             WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
+##             return False
+
+
+    def MakeThumbnail(self, fullPath):
         fullPath = ConvertPath(fullPath)
         if not self.__LegalPath(fullPath):
             return False
         fileType = self.GetFileType(fullPath)
+        
         try:
-            if fileType != "image" or not os.path.isfile(fullPath):
+            if not os.path.isfile(fullPath):
                 return False
+
             previewPath = self.__GetPreviewName(fullPath)
-            wxImageType = self.__GetWxBitmapType(os.path.basename(fullPath))
-            if not os.path.isfile(previewPath):  #if the preview doesnt exist, make it 
-                if wxImageType:               # is writing this file type supported?
-                    im = wx.Image(fullPath)  # read the original image
-                    if not im.Ok():   
-                        return False         # the image is probably corrupted
-                    preview = im.Rescale(previewSize[0], previewSize[1])        # resize it
-                    im.SaveFile(previewPath, wxImageType)    # save it back to a file
-                    self.__SetWritePermissions(previewPath)
-                else:     #if writing is not supported, try and read it and resize it on the fly
-                    im = wx.Image(fullPath)  # read the original image
-                    if not im.Ok():   
-                        return False         # the image is probably corrupted
-                    preview = im.Rescale(previewSize[0], previewSize[1])        # resize it
-                    data = preview.GetData()
-                    return (base64.encodestring(data), False)   #return the pixels themselves (isBinary=False)
-            
-            return (self.__ReadFile(previewPath), True)
+            if not os.path.isfile(previewPath):  #if the preview doesnt exist, make it
+                makeThumbs.makeThumbnail(fullPath, fileType, previewPath)
+                if not os.path.isfile(previewPath):
+                    return False
+                
+            return previewPath
         except:
-            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]))
             return False
+
 
 
         ### get the file ready for loading by the app on the "host" machine
@@ -462,7 +543,7 @@ class FileLibrary:
             # if the file exists already, there's no need to transfer it 
             filePath = fileServer.FileExists(fullPath, os.stat(fullPath).st_size)
         except:
-            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
             return False
         if filePath:
             return filePath  # if the file is already cached, just send the path back
@@ -471,7 +552,7 @@ class FileLibrary:
                 # file is not cached so read it and send it to the remote FileServer
                 fileData = self.__ReadFile(fullPath)
             except:
-                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
                 return False
             else:
                 return fileServer.PutFile(os.path.basename(fullPath), fileData)
@@ -521,7 +602,7 @@ class FileLibrary:
             return os.path.abspath( opj(CACHE_DIR, filename) )  #return the path of the file to be passed to the app
         except:
             del data
-            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
             return False
 
 
@@ -543,10 +624,16 @@ class FileLibrary:
         ### preview name is: filename+fileSize+original_extension
         ### (such as trees56893.jpg where 56893 is file size in bytes)
     def __GetPreviewName(self, fullPath):
+        fileType = self.GetFileType(fullPath)
+
         fileSize = os.stat(fullPath).st_size
         (root, ext) = os.path.splitext( os.path.basename(fullPath) )
-        previewName = root+str(fileSize)+ext        #construct the preview name 
-        return opj( PREVIEW_DIR, previewName )
+        previewName = root+str(fileSize)+ext        #construct the preview name
+
+        # all the files have .jpg tacked onto the end
+        previewName += ".jpg"
+            
+        return opj( THUMB_DIR, previewName )
 
 
     def __MakePreview(self, name, previewSize):
@@ -563,7 +650,7 @@ class FileLibrary:
                     im.SaveFile(previewPath, wxImageType)    # save it back to a file
                 self.__SetWritePermissions(previewPath, opj(dirHash[fileType], name))
         except:
-            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+            WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
             pass    # no preview was saved... oh well
 
 
@@ -575,7 +662,7 @@ class FileLibrary:
                 flags = stat.S_IWUSR | stat.S_IRUSR | stat.S_IWGRP | stat.S_IRGRP | stat.S_IROTH
                 os.chmod(filePath, flags)
             except:
-                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1]) )
+                WriteLog( str(sys.exc_info()[0])+" "+str(sys.exc_info()[1])+" "+str(sys.exc_info()[2]) )
                 
         
         ### reads a file and encodes it in a string (for transfer over the network)
@@ -603,7 +690,7 @@ class FileLibrary:
             for item in items:   #loop through all the items in this directory (files or dirs)
                 if os.path.isfile( opj(dirPath, item) ):  #is it a file
                     if item.lower() == filename.lower():  #are their filenames equal
-                        if size==os.stat(opj(dirPath, item)).st_size:
+                        if size==-1 or size==os.stat(opj(dirPath, item)).st_size:
                             fileDir = dirPath
                             return dirPath
                 elif os.path.isdir( opj(dirPath, item) ):  #is it a directory
@@ -635,6 +722,7 @@ class FileLibrary:
         ext = ext.lower()
         if ext==".jpg": return wx.BITMAP_TYPE_JPEG
         elif ext==".png": return wx.BITMAP_TYPE_PNG
+        elif ext==".gif": return wx.BITMAP_TYPE_GIF
         elif ext==".bmp": return wx.BITMAP_TYPE_BMP
         elif ext==".pcx": return wx.BITMAP_TYPE_PCX
         elif ext==".pnm": return wx.BITMAP_TYPE_PNM
