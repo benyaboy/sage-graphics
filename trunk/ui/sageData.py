@@ -39,8 +39,7 @@
 
 
 # python stuff
-import sys, string, pickle, time, os.path, os, wx, xmlrpclib
-from threading import Timer
+import sys, string, pickle, time, os.path, os, xmlrpclib, shutil
 import traceback as tb
 
 # my imports
@@ -49,6 +48,7 @@ from sageAppPerfInfo import sageAppPerfInfo
 from sageDisplayInfo import SageDisplayInfo
 import Graph
 from globals import *
+from sagePath import getUserPath
 
 
 ## Main class to store all the messages returned by SAGE
@@ -56,7 +56,7 @@ class SageData:
 
 
     #### constructor initializes member values       
-    def __init__(self) :
+    def __init__(self, sageGate, autosave, displayName):
         self.noOfApps = 0
         self.hashCallback = {}       # functions to call in sageui.py for updating the UI
         self.hashApps = {}           # all the apps available for running??
@@ -64,7 +64,12 @@ class SageData:
         self.hashAppPerfInfo = {}
         self.hashFileInfo = {}
         self.displayInfo = SageDisplayInfo()
-
+        self.sageGate = sageGate
+        self.autosave = autosave
+        self.timeStarted = time.strftime("%Y%m%d-%H%M%S", time.localtime())
+        self.displayName = displayName.strip()
+        self.__firstAutosave = True
+        
         self._sageColor = (0,0,0)
         self.__bPerformanceLogging = True
 
@@ -259,8 +264,13 @@ class SageData:
         if ( 40001 in self.hashCallback ):
             self.hashCallback[ 40001 ]( self.hashAppStatusInfo[windowId] )
 
-        return
+        if self.autosave:
+            if self.__firstAutosave:
+                self.__deleteOldAutosaves()
+                self.__firstAutosave = False
+            self.saveState("_autosave_LATEST", "")
 
+        return
 
     #----------------------------------------------------------------------
     
@@ -300,6 +310,7 @@ class SageData:
     #### Set the SAGE app performance status
     #### prints Invalid app ID if does not exists
     def setSagePerfInfo(self, data):
+        #print ">>> SET SAGE PERF INFO <<<"
         listTokens = string.split(data, '\n', 1)
         windowId = int(listTokens[0])
         data = listTokens[1]
@@ -337,11 +348,8 @@ class SageData:
                     stAppName = sageApp.getName()
                     stDateTime = time.strftime("%Y%m%d-%H%M%S", time.localtime())
                     stFilename = stAppName + '-' + str(windowId) + '-' + stDateTime
-                    # stPath = "./data/" + stFilename + ".txt"
-                    # luc
-                    stPath = os.path.expanduser("~/.sage/") + "data/" + stFilename + ".txt"
-                    if not os.path.isdir( os.path.expanduser("~/.sage/") + "data/"):  #make the directory if it doesnt exist
-                        os.mkdir( os.path.expanduser("~/.sage") + "data/")
+                    
+                    stPath = opj(DATA_DIR, stFilename + ".txt")
                     stFilename = os.path.normpath( stPath )
                     fileObject = open(stFilename, "w")
 
@@ -355,9 +363,11 @@ class SageData:
                 # end of initialization
 
                 if ( self.__bPerformanceLogging == True ):
+
                     fileObject = self.hashFileInfo.get(windowId)
                     tempString = "%8.3f    %7.3f    %3.2f    %8d       " % (float(displayItemTokens[1]), float(displayItemTokens[2]),
                                                                             float(displayItemTokens[3]), int(displayItemTokens[4]))
+
                     fileObject.write(tempString)
 
                     tempString = "%8.3f    %7.3f    %3.2f    %8d\n" % (float(renderItemTokens[1]), float(renderItemTokens[2]),
@@ -366,7 +376,7 @@ class SageData:
                     fileObject.flush()
             # >>> end file writing...else, nothing
             except:
-                print "".join(tb.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
+                pass  #do nothing if something fails (such as permissions)
 
                 
             # calculate totals
@@ -465,9 +475,7 @@ class SageData:
                 stDateTime = time.strftime("%Y%m%d-%H%M%S", time.localtime())
                 stFilename = "SITE_TOTAL-" + siteName + '-' + stDateTime
                 #stPath = "./data/" + stFilename + ".txt"
-                stPath = os.path.expanduser("~/.sage/") + "data/" + stFilename + ".txt"
-                if not os.path.isdir( os.path.expanduser("~/.sage/") + "data/"):  #make the directory if it doesnt exist
-                    os.mkdir( os.path.expanduser("~/.sage/") + "data/")
+                stPath = opj(DATA_DIR, stFilename + ".txt")
                 stFilename = os.path.normpath( stPath )
                 fileObject = open(stFilename, "w")
 
@@ -533,7 +541,7 @@ class SageData:
         if (windowId in self.hashAppStatusInfo):
             self.hashAppStatusInfo[windowId].setZvalue(value)
         else:
-            print ('setZvalue: Invalid app instance ID')
+            print ('setZvalue: Invalid app instance ID: %d'% (windowId))
         return
 
 
@@ -705,21 +713,21 @@ class SageData:
     #----------------------------------------------------------------------
 
 
-    def saveState(self, stateName, description, sageGate):
-        appLaunchers = sageGate.getLaunchers()
+    def saveState(self, stateName, description):
+        appLaunchers = self.sageGate.getLaunchers()
         appList = []
 
         # gather all the data that needs to be saved for each app
-        for sageApp in self.hashAppStatusInfo.itervalues():
-            
+        for app in self.hashAppStatusInfo.values():
+
             # get the config info from the right appLauncher
-            if sageApp.getLauncherId() != "none":
-                appLauncher = xmlrpclib.ServerProxy("http://" + sageApp.getLauncherId())
+            if app.getLauncherId() != "none":
+                appLauncher = xmlrpclib.ServerProxy("http://" + app.getLauncherId())
                 try:
-                    res = appLauncher.getAppConfigInfo( sageApp.getAppId() )
+                    res = appLauncher.getAppConfigInfo( app.getAppId() )
                 except:
-                    print "\nUnable to connect to appLauncher on", sageApp.getLauncherId(), \
-                          "so not saving this app: ", sageApp.getName() 
+                    print "\nUnable to connect to appLauncher on", app.getLauncherId(), \
+                          "so not saving this app: ", app.getName() 
                     continue
                 
                 if res == -1:
@@ -727,45 +735,52 @@ class SageData:
                 configName, optionalArgs = res
 
                 # get the other app parameters from sageApp object
-                pos = (sageApp.getLeft(), sageApp.getBottom())
-                size = (sageApp.getWidth(), sageApp.getHeight())
-
+                pos = (app.getLeft(), app.getBottom())
+                size = (app.getWidth(), app.getHeight())
+                
                 # append the tuple of app's data to the list that will be saved
-                appList.append( (sageApp.getLauncherId(), sageApp.getName(), configName,
+                appList.append( (app.getLauncherId(), app.getName(), configName,
                                  pos, size, optionalArgs) )
 
-
-        # create the directory if it doesn't exist
-        if not os.path.isdir( os.path.expanduser("~/.sage/") + "saved-states"):  # make the directory if it doesnt exist
-            try:   # in case the file and directory permissions are not right
-                os.mkdir( os.path.expanduser("~/.sage/") + "saved-states")    
-            except:
-                print "\nFailed to create directory \"saved-states\"\n"
-                return False
-
+      
         # open the file and write to it
         try:   #in case the file and directory permissions are not right
-            f = open( os.path.expanduser("~/.sage/") + "saved-states/"+stateName+".state", "wb")
-            pickle.Pickler(f, pickle.HIGHEST_PROTOCOL).dump( (description, appList) )
+            f = open( opj(SAVED_STATES_DIR, stateName+".state"), "w")
+            pickle.Pickler(f, 0).dump( (description, appList) )
             f.close()
         except IOError:
+            print "".join(tb.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
             return False
 
         return True
 
 
+    def __deleteOldAutosaves(self):
+        # remove old autosave files...
+        try:
+            sd = SAVED_STATES_DIR
+            saves = os.listdir(sd)
+            if "_autosave_PREV.state" in saves:
+                os.remove(opj(sd, "_autosave_PREV.state"))
+            if "_autosave_LATEST.state" in saves:
+                shutil.move(opj(sd, "_autosave_LATEST.state"), opj(sd, "_autosave_PREV.state"))
+        except:
+            print "ERROR while deleting old states:"
+            print "".join(tb.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
 
-    def loadState(self, stateName, sageGate):
+
+    def loadState(self, stateName):
         """ tries to reload the apps from the saved state """
         appList = []
         description = ""
 
         # load the state from a file
         try:
-            f = open("saved-states/"+stateName+".state", "rb")
+            f = open( opj(SAVED_STATES_DIR, stateName+".state"), "r")
             (description, appList) = pickle.Unpickler(f).load()
             f.close()
         except:
+            print "".join(tb.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
             print "\nUnable to read saved state file: "+"saved-states/"+stateName+".state"
             return False
 
@@ -773,8 +788,7 @@ class SageData:
         count = 0
         for appInfo in appList: 
             launcherId, appName, configName, pos, size, optionalArgs = appInfo
-            t = Timer(3*count, sageGate.executeRemoteApp, (launcherId, appName, configName, pos, size, optionalArgs))
-            t.start()
+            self.sageGate.executeRemoteApp(launcherId, appName, configName, pos, size, optionalArgs)
             count+=1
             
         return True
@@ -784,9 +798,10 @@ class SageData:
     def deleteState(self, stateName):
         """ tries to delete an existing state """
         try:
-            filePath = "saved-states/"+stateName+".state"
+            filePath = opj(SAVED_STATES_DIR, stateName+".state")
             os.remove(filePath)
         except:
+            print "".join(tb.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
             print "\nUnable to delete the saved state: ", filePath
             return False
 
@@ -799,14 +814,12 @@ class SageData:
         stateHash = {}
         appList = []
         description = ""
-        
-        if not os.path.isdir( os.path.expanduser("~/.sage/") + "saved-states"):
-            os.mkdir( os.path.expanduser("~/.sage") + "saved-states")
-            return {}
+
+        sd = SAVED_STATES_DIR
         
         # load all the states and read descriptions from them
-        for fileName in os.listdir( os.path.expanduser("~/.sage/") + "saved-states"):
-            filePath = os.path.join( os.path.expanduser("~/.sage/") + "saved-states", fileName)
+        for fileName in os.listdir( sd ):
+            filePath = opj(sd, fileName)
             if os.path.isfile(filePath) and os.path.splitext(filePath)[1] == ".state":
                 try:
                     stateName = os.path.splitext( os.path.split(filePath)[1] )[0]
@@ -822,11 +835,11 @@ class SageData:
 
 
 
-    def closeAllApps(self, sageGate):
+    def closeAllApps(self):
         for app in self.hashAppStatusInfo.itervalues():
             if app.getId() == -5:
                 continue
-            sageGate.shutdownApp(app.getId())
+            self.sageGate.shutdownApp(app.getId())
             time.sleep(0.5)
 
 

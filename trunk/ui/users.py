@@ -448,7 +448,7 @@ class ConnectionDialog:
         if self.__firstTry and self.autologinMachine and self.usernameOK == None:
             print "Autologin to:", self.autologinMachine
             tries = 0
-            while not self.machineList.GetMachineByName(self.autologinMachine) and tries < 5:
+            while not self.machineList.GetMachineByName(self.autologinMachine) and tries < 10:
                 time.sleep(0.5)
                 tries += 1
                 self.machineList.RefreshMachineList()

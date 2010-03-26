@@ -701,7 +701,7 @@ class DisplayCanvas(ogl.ShapeCanvas):
 
     def ShowLibrary(self):
         #reload(fileViewer)  # for debugging only!
-        fileViewer.FileLibrary(self)
+        fileViewer.FileLibrary(self, self.frame.GetPositionTuple())
 
     def ChangeBackgroundColor(self, (r,g,b)):
         return
