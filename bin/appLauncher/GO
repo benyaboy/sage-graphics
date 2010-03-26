@@ -7,7 +7,7 @@ echo "Killing previous instances..."
 python KILL_LAUNCHER.py
 
 echo "Starting a new server..."
-python appLauncher.py -a Luc-sage3 &
+python appLauncher.py -a $HOST &
 
 echo "Done."
 
