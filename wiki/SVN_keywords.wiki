@@ -18,5 +18,5 @@ For instance, in a header file:
 Then add the substitution property to the file:
 
 {{{
-svn propset svn:keywords "Rev GlobalRev Author Date"   toto.h
+svn propset svn:keywords "Rev Author Date"   toto.h
 }}}
