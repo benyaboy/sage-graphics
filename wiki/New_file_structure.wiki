@@ -29,7 +29,7 @@ The search path order for each component is here:
 ||            || app.conf (e.g. render.conf)|| $PWD ---> ~/.sageConfig/applications ---> $SAGE_DIRECTORY/sageConfig/applications ||
 || sageLauncher|| sageLauncherSettings.pickle|| ~/.sageConfig ||
 ||             || generated applications.conf & fileServer.conf|| ~/.sageConfig ||
-|| FileServer|| fileServer.conf|| $PWD ---> ~/.sageConfig/fileServer ---> $SAGE_DIRECTORY/sageConfig/fileServer ||
+|| FileServer || fileServer.conf|| $PWD ---> ~/.sageConfig/fileServer ---> $SAGE_DIRECTORY/sageConfig/fileServer ||
 ||           || fileLibrary directory|| ~/.sageConfig/fileServer ||
 || SageUI || saved-states|| ~/.sageConfig/saved-states ||
 ||       || data, log, prefs|| ~/.sageConfig/sageui ||
