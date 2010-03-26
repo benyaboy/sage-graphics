@@ -41,6 +41,9 @@ import string, os, copy, os.path, sys
 import traceback as tb
 from myprint import *   # handles the printing or logging
 
+opj = os.path.join
+sys.path.append( opj(os.environ["SAGE_DIRECTORY"], "bin" ) )
+from sagePath import getUserPath, SAGE_DIR
 
 ## # read the master IP from the fsManager.conf
 ## f = open(os.environ["SAGE_DIRECTORY"]+"/bin/fsManager.conf", "r")
@@ -58,13 +61,13 @@ class OneConfig:
         self._configName = name
         self._dynamic = dynamic     # dynamic config???
         self._appName = appName
-        self._configFilename = appName+".conf"
+        self._configFilename = getUserPath("applications", appName+".conf")
         self._launcherId = ""
 
         self._binDir = "$SAGE_DIRECTORY/bin/"  # where the binary resides - this is where the config is copied to
         self._nodeNum = 1
         self._position = (100, 100)        # initial position of the window on SAGE
-        self._size = (1000, 1000)          # initial size of the window on SAGE
+        self._size = (-1, -1)          # initial size of the window on SAGE
         self._command = ""                 # the actual command used to start the application
         self._targetMachine = ""           # the render machine where the app will be started
         self._protocol = "TCP"

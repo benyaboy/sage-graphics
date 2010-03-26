@@ -39,10 +39,11 @@
 
 import subprocess as sp
 import traceback as tb
-import os, sys, time
+import os, sys, time, os.path
 from myprint import *   # handles the printing or logging
+from threading import RLock, Thread
 
-
+opj = os.path.join
 
 #######################################################################
 #####    NOT THREAD SAFE  !!!!!
@@ -55,14 +56,32 @@ class CurrentRequests:
         self._requests = {}  #key = id, value = Request()
         self._nodeHash = nodeHash  #key=IP, value=[0...n]   --> how many apps are running on that node
 
+        self.__submitThread = Thread(target=self.submitRequests)
+        self.__requestsToSubmit = []
+        self.__submitLock = RLock()
+        self.__doRunSubmitThread = True
+        self.__submitThread.start()
+        
 
     def __getFirstAvailableId(self):
         """ loops through the running requests until it finds an available id """
-        self.cleanup()  #first clean up all of the dead requests and their appIds
-        for i in range(0, 9999):
-            if not self._requests.has_key(i):
-                return i
 
+        def inQueue(appId):
+            for r in self.__requestsToSubmit:
+                if r.config.getAppId() == appId:
+                    return True
+            return False
+        
+        
+        self.cleanup()  #first clean up all of the dead requests and their appIds
+
+        self.__submitLock.acquire()
+        for i in range(0, 9999):
+            if not self._requests.has_key(i) and not inQueue(i):
+                self.__submitLock.release()
+                return i
+        self.__submitLock.release()
+        
 
     def __getNextAvailableNode(self):
         ''' it loops through all the nodes of this cluster and returns the
@@ -85,18 +104,26 @@ class CurrentRequests:
 
     def getRequest(self, appId):
         """ get the request based on its appID (port number in fact) """
+        self.__submitLock.acquire()
         if self._requests.has_key(appId):
-            return self._requests[appId]
+            r = self._requests[appId]
+            self.__submitLock.release()
+            return r
         else:
+            self.__submitLock.release()
             return False
 
 
     def getStatus(self):
         """ returns the current app status as a hash of appNames keyed by appId """
+        
         self.cleanup()
         status = {}
+        self.__submitLock.acquire()
         for appId, request in self._requests.iteritems():
-            status[str(appId)] = (request.config.getAppName(), request.command, request.targetMachine) 
+            status[str(appId)] = (request.config.getAppName(), request.command, request.targetMachine)
+
+        self.__submitLock.release()
         return status
         
 
@@ -111,28 +138,58 @@ class CurrentRequests:
         if config.getRunOnNodes():
             nodeIP = self.__getNextAvailableNode()
             config.setTargetMachine(nodeIP)
-            #WriteLog( "\nAPP TO START ON NODE IP: "+ nodeIP + str(self._nodeHash[nodeIP])+ "\n\n")
+            WriteLog( "\nNODE IP = "+ nodeIP + str(self._nodeHash[nodeIP])+ "\n\n")
         else:
             if self._nodeHash.has_key( config.getTargetMachine() ):
                 self._nodeHash[config.getTargetMachine()] += 1
             
-        config.writeToFile()
-        sp.call(["chmod", "g+w", config.getConfigFilename()])  #change the permissions of the temp file
-        
         # make the request
         request = SSHRequest(config)
-        self._requests[ appId ] = request
-        return request
 
+        # submit it... in a separate thread
+        self.__submitLock.acquire()
+        self.__requestsToSubmit.append(request)
+        self.__submitLock.release()
+        
+        return appId
+
+
+    def submitRequests(self):
+        while self.__doRunSubmitThread:
+            
+            if len(self.__requestsToSubmit) > 0:
+                self.__submitLock.acquire()
+                request = self.__requestsToSubmit.pop(0)
+                self.__submitLock.release()
+
+                res = request.submit()
+
+                if res != -1:
+                    self.__submitLock.acquire()
+                    self._requests[ request.config.getAppId() ] = request
+                    self.__submitLock.release()
+
+            time.sleep(1.5)
+
+
+    def stopSubmitThread(self):
+        self.__doRunSubmitThread = False
+        
 
     def stopRequest(self, appId):
         """ stops the request forcefully """
+
+        self.__submitLock.acquire()
+        
         if self._requests.has_key(appId):
             ret = self._requests[appId].kill()
+            self.__submitLock.release()
             time.sleep(1)
             self.cleanup()
+            
             return ret
         else:
+            self.__submitLock.release()
             return False
 
 
@@ -140,16 +197,19 @@ class CurrentRequests:
         """ this runs every so often and checks whether the requests that we started are still alive
             if they are not alive, they are removed from the list of requests and their port (appId) is recycled
         """
+        self.__submitLock.acquire()
+        
         for appId, request in self._requests.items():
             if not request.isAlive():
-                #WriteLog( ">>>> Cleaning up: " + request.config.getCommand() + "  appId = " + str(appId) )
+                WriteLog( ">>>> Cleaning up: " + request.config.getCommand() + "  appId = " + str(appId) )
                 request.deletePIDFile()
                 #if request.config.getRunOnNodes():
                 if self._nodeHash.has_key( request.config.getTargetMachine() ):
                     self._nodeHash[ request.config.getTargetMachine() ] -= 1  #decrease the num of apps running on this node
                 del self._requests[appId]
 
-                
+        self.__submitLock.release()
+
 
 
 class Request:
@@ -167,25 +227,23 @@ class SSHRequest(Request):
     def submit(self):
         # copy the configuration file over
         try:
-            retcode = sp.call(["/usr/bin/scp", self.configFilename, self.targetMachine+":"+self.config.getBinDir()])
-            sp.call(["/usr/bin/ssh", "-x", self.targetMachine, "chmod a+rw "+self.config.getBinDir()+self.configFilename])
+            self.config.writeToFile()
+            sp.call(["chmod", "g+w", self.config.getConfigFilename()])  #change the permissions of the temp file
+            
+            retcode = sp.call(["/usr/bin/scp", self.configFilename, self.targetMachine+":"+os.path.basename(self.configFilename)])
+            sp.call(["/usr/bin/ssh", "-x", self.targetMachine, "chmod a+rw "+self.configFilename])
         except:
             WriteLog( "===>  ERROR copying config file... application will use the default configuration:")
             WriteLog( "".join(tb.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])) )
 
         # launch the application via ssh
         try:
-            WriteLog("\n"+80*"-"+"\n  *******  STARTING "+self.config.getAppName()+"  *******")
-            WriteLog("COMMAND:        /usr/bin/ssh -x " + self.targetMachine + " cd "+self.config.getBinDir()+" ;env DISPLAY=:0.0 "+ self.command)
-            WriteLog("STARTING ON:   "+self.targetMachine)
-            WriteLog("STREAMING TO: "+self.config.getFSIP())
+            WriteLog( "\n\nRunning with command: /usr/bin/ssh -x " + self.targetMachine + " cd "+self.config.getBinDir()+" ;env DISPLAY=:0.0 "+ self.command)
             self.processObj = sp.Popen(["/usr/bin/ssh", "-x", self.targetMachine, "cd "+self.config.getBinDir(), ";env DISPLAY=:0.0 ", self.command])
-            WriteLog("APP PID:              " + str(self.processObj.pid))
-            WriteLog(80*"-"+"\n")
+            WriteLog( ">>>>  EXECUTING:  " + self.command + "\nPID = " + str(self.processObj.pid) + "\n")
         except:
             WriteLog( "===>  ERROR launching application ---------> :")
             WriteLog( "".join(tb.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])) )
-            WriteLog("\n"+80*"-")
             return -1
         
         return self.config.getAppId()
@@ -194,12 +252,13 @@ class SSHRequest(Request):
     def isAlive(self):
         """ returns true if the process is still alive """
         return self.processObj.poll() is None
-
+        
 
     def kill(self):
         # forcefully kill the application via ssh and delete its pid file if possible
-        killCmd = "/bin/kill -9 `cat $SAGE_DIRECTORY/bin/appLauncher/pid/"+self.config.getAppName()+"_"+str(self.config.getAppId())+".pid`"
-        delCmd = "/bin/rm -rf $SAGE_DIRECTORY/bin/appLauncher/pid/"+self.config.getAppName()+"_"+str(self.config.getAppId())+".pid"
+        pidPath = opj(os.path.basename(self.configFilename), "pid")
+        killCmd = "/bin/kill -9 `cat "+opj(pidPath, self.config.getAppName()+"_"+str(self.config.getAppId())+".pid")+"`"
+        delCmd = "/bin/rm -rf "+opj(pidPath, self.config.getAppName()+"_"+str(self.config.getAppId())+".pid")
         try:
             retcode = sp.Popen(["/usr/bin/ssh", "-x", self.targetMachine, killCmd, ";", delCmd])
             WriteLog( ">>>>  KILLING:  " + killCmd + "\nPID = " + str(self.processObj.pid) + "\n")
@@ -212,11 +271,12 @@ class SSHRequest(Request):
 
 
     def deletePIDFile(self):
-        # delete the temp file where the app writes its pid 
-        delCmd = "/bin/rm -rf $SAGE_DIRECTORY/bin/appLauncher/pid/"+self.config.getAppName()+"_"+str(self.config.getAppId())+".pid"
+        # delete the temp file where the app writes its pid
+        pidPath = opj(os.path.basename(self.configFilename), "pid")
+        delCmd = "/bin/rm -rf "+opj(pidPath, self.config.getAppName()+"_"+str(self.config.getAppId())+".pid")
         try:
             retcode = sp.Popen(["/usr/bin/ssh", "-x", self.targetMachine, delCmd], env={"DISPLAY": ":0.0"})
-            #WriteLog(">>>>  DELETING:  " + delCmd + "\nPID = " + str(self.processObj.pid) + "\n")
+            WriteLog(">>>>  DELETING:  " + delCmd + "\nPID = " + str(self.processObj.pid) + "\n")
         except:
             WriteLog("===>  ERROR deleting temporary pid file ---------> :")
             WriteLog( "".join(tb.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])) )

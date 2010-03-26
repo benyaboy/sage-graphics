@@ -36,6 +36,10 @@
 #
 ############################################################################
 
+import os.path, sys
+opj = os.path.join
+sys.path.append( opj(os.environ["SAGE_DIRECTORY"], "bin" ) )
+from sagePath import getUserPath
 
 
 REDIRECT = True
@@ -48,7 +52,7 @@ def doRedirect(redirect):
 def WriteLog(text):
     if REDIRECT:
         try:
-            logFile = open("output.txt", "a")
+            logFile = open(getUserPath("applications","output.txt"), "a")
             logFile.write( text+"\n" )
             logFile.flush()  #flush the buffer to a file (especially needed if running as a daemon)
             logFile.close()

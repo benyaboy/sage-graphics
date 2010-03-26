@@ -40,13 +40,18 @@
 from data import *
 from request import CurrentRequests, SSHRequest
 from SimpleXMLRPCServer import *
-import socket, os, sys, xmlrpclib, time, optparse
+import socket, os, sys, xmlrpclib, time, optparse, os.path
 import traceback as tb
 from threading import RLock
 from myprint import *   # handles the printing or logging
 
+opj = os.path.join
+sys.path.append( opj(os.environ["SAGE_DIRECTORY"], "bin" ) )
+from sagePath import getUserPath, SAGE_DIR, getPath, getDefaultPath
 
-APP_CONFIG_FILE = "sage.conf" 
+
+APP_CONFIG_FILE = getPath("applications", "applications.conf")
+print "AppConfigFile: ", APP_CONFIG_FILE
 TILE_CONFIG_FILE = None
 XMLRPC_PORT = 19010
 SAGE_SERVER_PORT = 8009    # sage server port for reporting to
@@ -64,7 +69,7 @@ os.chdir(sys.path[0])
 
 # read the SYSTEM_IP from the fsManager.conf
 try:
-    f = open(os.environ["SAGE_DIRECTORY"]+"/bin/fsManager.conf", "r")
+    f = open( getPath("fsManager.conf"), "r")
     for line in f:               # read the fsManager line
         if line.strip().startswith("fsManager"):
             lineTokens = line.split()
@@ -73,7 +78,7 @@ try:
         elif line.strip().startswith("systemPort"):
             DEFAULT_SYSTEM_PORT = line.split()[1]
         elif line.strip().startswith("tileConfiguration"):
-            TILE_CONFIG_FILE = os.environ["SAGE_DIRECTORY"]+"/bin/"+line.split()[1]
+            TILE_CONFIG_FILE = getPath( line.split()[1] )
     f.close()
 except:
     DEFAULT_SYSTEM_IP = None
@@ -117,7 +122,7 @@ class AppLauncher:
     
 
     def startDefaultApp(self, appName, fsIP, fsPort, useBridge, configName, pos=False, size=False, optionalArgs=""):
-        """ starts the application based on the entry in sage.conf """
+        """ starts the application based on the entry in applications.conf """
         return self.startApp(appName, fsIP, fsPort, useBridge, configName, optionalArgs=optionalArgs, pos=pos, size=size)
         
 
@@ -159,10 +164,9 @@ class AppLauncher:
         config.setCommand(config.getCommand()+" "+optionalArgs)
 
         # create the request, set the appropriate appId, write the config file and submit it
-        request = self.requests.addRequest(config)
-        return request.submit()      #returns appId(port Num) if successful, False otherwise
+        return self.requests.addRequest(config)
 
-
+        
     def stopApp(self, appId):
         """ forcefully kills the application """
         return self.requests.stopRequest(appId)
@@ -182,7 +186,8 @@ class AppLauncher:
     def getAppConfigInfo(self, appId):
         """ return the configuration information for the running app """
         if self.requests.getRequest(appId):
-            return self.requests.getRequest(appId).config.getConfigString()
+            s = self.requests.getRequest(appId).config.getConfigString()
+            return s
         else:
             return -1
   
@@ -240,8 +245,8 @@ def get_commandline_options():
     h = "change the port number that the server listens on (default is 19010)"
     parser.add_option("-p", "--port", help=h, type="int", dest="port", default=19010)
 
-    h = "specify the application configuration file to use (default is sage.conf)"
-    parser.add_option("-c", "--config", dest="config", help=h, default="sage.conf")
+    h = "specify the application configuration file to use (default is applications.conf)"
+    parser.add_option("-c", "--config", dest="config", help=h, default="")
 
     h = "which sage server to report to (default is sage.sl.startap.net)"
     parser.add_option("-s", "--server", dest="server", help=h, default="sage.sl.startap.net")
@@ -258,6 +263,7 @@ def get_commandline_options():
 
 
 def main(argv):
+    global STOP_LAUNCHER
     global APP_CONFIG_FILE
     global XMLRPC_PORT
     global SAGE_SERVER
@@ -267,7 +273,8 @@ def main(argv):
     # parse the command line params
     (options, args) = get_commandline_options()
     doRedirect(not options.verbose)
-    APP_CONFIG_FILE = options.config
+    if options.config != "":
+        APP_CONFIG_FILE = options.config
     XMLRPC_PORT = options.port
     SAGE_SERVER = options.server
     DO_REPORT = not options.report
@@ -304,11 +311,13 @@ def main(argv):
             # this times out every few seconds as defined by the setdefaulttimeout above
             server.handle_request()
         except KeyboardInterrupt:
-            sys.exit(0)
+            break
         except:
             WriteLog( "\n=======> XML_RPC SERVER ERROR: ")
             WriteLog( "".join(tb.format_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])) )
             continue
+
+    appLauncher.requests.stopSubmitThread()
     server.server_close()
     sys.exit(0)
 
