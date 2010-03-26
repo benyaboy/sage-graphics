@@ -74,7 +74,7 @@ default: $(TARGET)
 install: $(TARGET)
 	/bin/cp -f imageviewer $(SAGE_DIR)/bin
 ifdef DXT
-	/bin/cp -f imgToDxt dirToDxt.py $(SAGE_DIR)/bin/file_server
+	/bin/cp -f imgToDxt dirToDxt.py $(SAGE_DIR)/bin/fileServer
 endif
 	
 imageviewer: $(FILES)
