@@ -6,9 +6,9 @@ SERVER_DIR = ./FileServer
 # Macs dont have -u option on cp
 MACHINE=$(shell uname -s)
 ifeq ($(MACHINE), Darwin)
-	CP=/bin/cp -r
+	CP=/bin/cp -fr
 else
-	CP=/bin/cp -ru
+	CP=/bin/cp -fru
 endif
 
 
@@ -17,8 +17,7 @@ default: imageviewer
 install: imageviewer
 	/bin/mkdir -p -m 775 $(SAGE_DIR)/bin/file_server
 	cd $(VIEWER_DIR); make install; cd -
-	$(CP) $(SERVER_DIR)/*.py $(SERVER_DIR)/*.conf $(SERVER_DIR)/misc $(SAGE_DIR)/bin/file_server
-
+	$(CP) $(SERVER_DIR)/*.py $(SERVER_DIR)/misc $(SAGE_DIR)/bin/file_server
 
 imageviewer:
 	cd $(VIEWER_DIR); make; cd -
