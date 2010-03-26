@@ -46,7 +46,7 @@
 
 
 // This is the main version number
-#define SAGE_BASE_VERSION 3.1
+#define SAGE_BASE_VERSION 3.2
 
 // Utility macros to join and convert to string some values
 #define SAGE_STR(XX) #XX
