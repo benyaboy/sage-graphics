@@ -150,12 +150,13 @@ def captureMouse(mgr):
         panel.Bind(wx.EVT_MOTION, onMove)
         panel.Bind(wx.EVT_MOUSEWHEEL, onWheel)
 
-        label = wx.StaticText(panel, wx.ID_ANY, "Press SPACE to release mouse")
+        #label = wx.StaticText(panel, wx.ID_ANY, "Press SPACE to release mouse")
+        label = wx.StaticText(panel, wx.ID_ANY, "Press SPACE to capture mouse")
         panel.Fit()
         panel.SetFocus()
 
-        t = Timer(2.0, doCapture)
-        t.start()
+        #t = Timer(2.0, doCapture)
+        #t.start()
               
         frame.Show()
         app.MainLoop()
