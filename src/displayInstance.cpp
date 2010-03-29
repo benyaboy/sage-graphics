@@ -232,12 +232,18 @@ int displayInstance::changeWindow(sageRect &devRect, int steps)
 
 int displayInstance::accumulateBandwidth(char *rcvBand)
 {
+	//fprintf(stderr, "displayInstance::%s() : %s\n", __FUNCTION__, rcvBand);
+
    char token[TOKEN_LEN];
-   getToken(rcvBand, token);
+   char *tokenbuf;
+
+   getToken(rcvBand, token, &tokenbuf);
    float bWidth = atof(token);
-   getToken(rcvBand, token);
+
+   getToken(NULL, token, &tokenbuf);
    float pLoss = atof(token);
-   getToken(rcvBand, token);
+
+   getToken(NULL, token, &tokenbuf);
    int fSize = atoi(token);
    
    accBwidth += bWidth;
@@ -334,9 +340,11 @@ int displayInstance::parseMsg(sageMessage &msg)
 {
    switch (msg.getCode()) {
       case DISP_RCV_FRATE_RPT : {
-         char token[TOKEN_LEN];
-         getToken((char *)msg.getData(), token);
-         rcvFrate = atof(token);
+    	  int instID;
+    	  sscanf((char *)msg.getData(), "%d %f", &instID, &rcvFrate);
+         //char token[TOKEN_LEN];
+         //getToken((char *)msg.getData(), token);
+         //rcvFrate = atof(token);
          break;
       }
 

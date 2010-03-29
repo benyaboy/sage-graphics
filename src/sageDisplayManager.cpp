@@ -213,7 +213,7 @@ int sageDisplayManager::init(char *data)
    int dimX, dimY;
    int revY[MAX_TILES_PER_NODE];
    sageDisplayConfig dispCfg;
-
+/*
    getToken(data, token);
    nwCfg.rcvBufSize = atoi(token);
 
@@ -274,6 +274,61 @@ int sageDisplayManager::init(char *data)
          revY[i*dimX + j] = atoi(token);
       }
    }
+   */
+   char *tokenbuf;
+
+   getToken(data, token, &tokenbuf);
+      nwCfg.rcvBufSize = atoi(token);
+
+      getToken(NULL, token, &tokenbuf);
+      nwCfg.sendBufSize = atoi(token);
+
+      getToken(NULL, token, &tokenbuf);
+      nwCfg.mtuSize = atoi(token);
+
+      getToken(NULL, token, &tokenbuf);
+      streamPort = atoi(token);
+
+      getToken(NULL, token, &tokenbuf);
+      shared->bufSize = atoi(token)*1048576; // receiverBufSize to MB
+
+      getToken(NULL, token, &tokenbuf);
+      int fullScreen = atoi(token);
+
+      getToken(NULL, token, &tokenbuf);
+      totalRcvNum = atoi(token);
+
+
+      getToken(NULL, token, &tokenbuf);
+      strcpy(masterIp, token);
+
+      getToken(NULL, token, &tokenbuf);
+      screenWidth = atoi(token);
+      getToken(NULL, token, &tokenbuf);
+      screenHeight = atoi(token);
+      getToken(NULL, token, &tokenbuf);
+      dimX = atoi(token);
+      getToken(NULL, token, &tokenbuf);
+      dimY = atoi(token);
+      getToken(NULL, token, &tokenbuf);
+      dispCfg.winX = atoi(token);
+      getToken(NULL, token, &tokenbuf);
+      dispCfg.winY = atoi(token);
+
+      for (int i=0; i<dimY; i++) {
+         for (int j=0; j<dimX; j++) {
+            getToken(NULL, token, &tokenbuf); // will remove this line (tile id read) later.....
+            //shared->tileTable.addEntry(atoi(token));
+            getToken(NULL, token, &tokenbuf);
+            dispCfg.tileRect[i*dimX + j].x = atoi(token);
+            getToken(NULL, token, &tokenbuf);
+            dispCfg.tileRect[i*dimX + j].y = atoi(token);
+            dispCfg.tileRect[i*dimX + j].width = screenWidth;
+            dispCfg.tileRect[i*dimX + j].height = screenHeight;
+            getToken(NULL, token, &tokenbuf);
+            revY[i*dimX + j] = atoi(token);
+         }
+      }
 
    //shared->tileTable.generateTable();
 
@@ -622,6 +677,7 @@ pixelDownloader* sageDisplayManager::findApp(int id, int& index)
 
 int sageDisplayManager::shutdownApp(int instID)
 {
+	//fprintf(stderr, "[%d] SDM::shutdownApp(%d) \n", shared->nodeID, instID);
    bool appShutdown = false;
 	pixelDownloader* temp_app= NULL;
 	char* temp_str= NULL;
@@ -749,8 +805,11 @@ int sageDisplayManager::changeDepth(sageMessage *msg)
 {
    char *depthStr = (char *)msg->getData();
    char token[TOKEN_LEN];
+   char *tokenbuf; // strtok_r requires 3rd parameter
 
-   int tokenNum = getToken(depthStr, token);
+   //int tokenNum = getToken(depthStr, token);
+   getToken(depthStr, token, &tokenbuf);
+
    int numOfChange = atoi(token);
    bool zOrderChange = false;
 
@@ -758,7 +817,7 @@ int sageDisplayManager::changeDepth(sageMessage *msg)
 	pixelDownloader*  temp_app;
 	int instID, zValue;
    for (int i=0; i<numOfChange; i++) {
-
+/*
       if (tokenNum > 0) {
          tokenNum = getToken(depthStr, token);
          instID = atoi(token);
@@ -776,6 +835,11 @@ int sageDisplayManager::changeDepth(sageMessage *msg)
          sage::printLog("More arguments are needed for this command ");
          return -1;
       }
+      */
+	   getToken(NULL, token, &tokenbuf);
+	   instID = atoi(token);
+	   getToken(NULL, token, &tokenbuf);
+	   zValue = atoi(token);
 
 		temp_app = findApp(instID, index);
       if (temp_app) {
