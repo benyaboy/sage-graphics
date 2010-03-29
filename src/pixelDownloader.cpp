@@ -107,6 +107,7 @@ pixelDownloader::pixelDownloader() : reportRate(1), updatedFrame(0), curFrame(0)
    streamNum(0), bandWidth(0), montageList(NULL), configID(0), frameCheck(false),
    syncFrame(0), updateType(SAGE_UPDATE_FOLLOW), activeRcvs(0), passiveUpdate(false),
    dispConfigID(0), displayActive(false), status(PDL_WAIT_DATA), frameBlockNum(0), frameSize(0),
+   partition(NULL), blockBuf(NULL),
 	m_initialized(false)
 {
    perfTimer.reset();
@@ -122,6 +123,10 @@ int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, 
 
    msgPt = sage::tokenSeek(msg, 7);
    sscanf(msgPt, "%d %d %d %d %d", (int *)&pixFmt, &blockX, &blockY, &imgWidth, &imgHeight);
+
+   if (partition) {
+	   delete partition;
+   }
    partition = new sageBlockPartition(blockX, blockY, imgWidth, imgHeight);
    if (!partition) {
 		sage::printLog("[%d,%d] PDL::init() : unable to create block partition", shared->nodeID, instID);
@@ -137,6 +142,8 @@ int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, 
    tileNum = shared->displayObj->getTileNum();
 
    // montage INSTANTIATION
+   if ( montageList ) delete [] montageList;
+
    montageList = new montagePair[tileNum];
    float depth = 1.0f - 0.01f*instID;
 
@@ -146,8 +153,12 @@ int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, 
 
    configQueue.clear();
 
+   if ( blockBuf ) delete blockBuf;
    blockBuf = new sageBlockBuf(shared->bufSize, groupSize, blockSize, BUF_MEM_ALLOC | BUF_CTRL_GROUP);
+
+   if ( recv ) delete recv;
    recv = new sagePixelReceiver(msg, (rcvSharedData *)shared, nwObj, blockBuf);
+
 	m_initialized = true;
 
    return 0;
@@ -708,4 +719,7 @@ pixelDownloader::~pixelDownloader()
       configQueue.pop_front();
       delete [] configData;
    }
+#ifdef DEBUG_PDL
+   fprintf(stderr, "[%d,%d] PDL::~PDL()\n", shared->nodeID, instID);
+#endif
 }
