@@ -50,12 +50,15 @@ int sagePixelData::initBuffer()
    int size = (int)ceil(width*height*bytesPerPixel/(compressX*compressY)) + BLOCK_HEADER_SIZE;
 
    if (size <= BLOCK_HEADER_SIZE) {
-      sage::printLog("sagePixelBlock::initBuffer : incorrect block size");
+      sage::printLog("sagePixelBlock::initBuffer() : The size of a pixelblock must be greater than BLOCK_HEADER_SIZE(%d)", BLOCK_HEADER_SIZE);
       return -1;
    }
    
    releaseBuffer();
 
+#ifdef DEBUG_MEMORY
+   fprintf(stderr, "sagePixelData::initBuffer() : HEADER + ( w x h x Bpp  /  compX x compY ) : %d = %d + ((%d x %d x %d)/(%.1f x %1.f))\n", size, BLOCK_HEADER_SIZE, width, height, bytesPerPixel, compressX, compressY);
+#endif
    if (allocateBuffer(size) < 0)
       return -1;
 
@@ -67,15 +70,22 @@ int sagePixelData::initBuffer()
 
 int sagePixelData::releaseBuffer()
 {
-   //std::cout << "release buffer" << std::endl;
-   if (buffer) 
+   if (buffer) {
+#ifdef DEBUG_MEMORY
+	fprintf(stderr,"sagePixelData::releaseBuffer() : freeing the buffer\n");
+#endif
       free((void *)buffer);
+      buffer = 0;
+   }
 
    return 0;
 }
 
 int sagePixelData::allocateBuffer(int size)
 {
+	if ( buffer ) {
+		releaseBuffer();
+	}
    buffer = (char *)malloc(size);
    if (!buffer) {
       sage::printLog("sageBlock::allocateBuffer : fail to allocate %d bytes", size);
@@ -166,6 +176,9 @@ void sagePixelBlock::clearPixelBlock()
 
 sagePixelBlock::~sagePixelBlock()
 {
+#ifdef DEBUG_MEMORY
+	fprintf(stderr, "sagePixelBlock destructor. This could call sagePixelData::releaseBuffer()\n");
+#endif
    releaseBuffer();
 }
 
