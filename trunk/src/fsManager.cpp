@@ -313,52 +313,52 @@ int fsManager::init(const char *conf_file)
 
 int fsManager::talkToConnectionManager()
 {
-   int dimX = vdtList[0]->dimX;
-   int dimY = vdtList[0]->dimY;
-   int vdtWidth = vdtList[0]->width;
-   int vdtHeight = vdtList[0]->height;
-   int tileWidth = vdtList[0]->globalType.width;
-   int tileHeight = vdtList[0]->globalType.height;
+	int dimX = vdtList[0]->dimX;
+	int dimY = vdtList[0]->dimY;
+	int vdtWidth = vdtList[0]->width;
+	int vdtHeight = vdtList[0]->height;
+	int tileWidth = vdtList[0]->globalType.width;
+	int tileHeight = vdtList[0]->globalType.height;
 
-   char fsMsg[CMAN_MSG_SIZE];
-   memset((void *)fsMsg, 0, CMAN_MSG_SIZE);
-   sprintf(fsMsg, "100\n%s %s\n%s %d\n%s %d\n%d %d %d %d %d %d", fsName, SAGE_VERSION, fsIP, sysPort, pubIP, uiPort,
-            dimX, dimY, vdtWidth, vdtHeight,   tileWidth, tileHeight);
+	char fsMsg[CMAN_MSG_SIZE];
+	memset((void *)fsMsg, 0, CMAN_MSG_SIZE);
+	sprintf(fsMsg, "100\n%s %s\n%s %d\n%s %d\n%d %d %d %d %d %d", fsName, SAGE_VERSION, fsIP, sysPort, pubIP, uiPort,
+			dimX, dimY, vdtWidth, vdtHeight,   tileWidth, tileHeight);
 
-   int dataSize = CMAN_MSG_SIZE;
-   QUANTAnet_tcpClient_c *client = new QUANTAnet_tcpClient_c;
-   client->setTimeOut(1);
+	int dataSize = CMAN_MSG_SIZE;
+	QUANTAnet_tcpClient_c *client = new QUANTAnet_tcpClient_c;
+	client->setTimeOut(1);
 
-   sage::printLog("fsManager::talkToConnectionManager() : try to connect to .... %s : %d", conManIP, conManPort);
-   while (client->connectToServer(conManIP, conManPort) < 0) {
-      sage::printLog("fsManager : fail to connect to the connection manager");
-      sage::sleep(1);
-   }
-   sage::printLog("fsManager::talkToConnectionManager() : connected to connection manager %s : %d", conManIP, conManPort);
+	//sage::printLog("fsManager::talkToConnectionManager() : try to connect to Connection Manager at %s:%d", conManIP, conManPort);
+	while (client->connectToServer(conManIP, conManPort) < 0) {
+		sage::printLog("fsManager::%s() : fail to connect to the connection manager", __FUNCTION__);
+		sage::sleep(1);
+	}
+	sage::printLog("fsManager::talkToConnectionManager() : connected to the connection manager %s:%d", conManIP, conManPort);
 
-   bool reconnect = false;
+	bool reconnect = false;
 
-   while (!fsmClose) {
-      int status = client->write(fsMsg, &dataSize, QUANTAnet_tcpClient_c::BLOCKING);
-      if (status != QUANTAnet_tcpClient_c::OK) {
-         reconnect = true;
-      }
-      //else
-      //   std::cout << "message sent to connection manager : " << fsMsg << std::endl;
+	while (!fsmClose) {
+		int status = client->write(fsMsg, &dataSize, QUANTAnet_tcpClient_c::BLOCKING);
+		if (status != QUANTAnet_tcpClient_c::OK) {
+			reconnect = true;
+		}
+		//else
+			//   std::cout << "message sent to connection manager : " << fsMsg << std::endl;
 
-      sage::sleep(5);
+		sage::sleep(5);
 
-      if (reconnect) {
-         sage::printLog("fsManager::talkToConnectionManager() : try to connect to .... %s : %d", conManIP, conManPort);
-         while (client->connectToServer(conManIP, conManPort) < 0) {
-            std::cout << "fsManager : fail to connect to the connection manager" << std::endl;
-            sage::sleep(1);
-         }
-         sage::printLog("fsManager::talkToConnectionManager() : connected to connection manager %s : %d", conManIP, conManPort);
-         reconnect = false;
-      }
-   }
-   return 0;
+		if (reconnect) {
+			sage::printLog("fsManager::talkToConnectionManager() : failed to send message to the connection manager. Reconnecting. %s:%d", conManIP, conManPort);
+			while (client->connectToServer(conManIP, conManPort) < 0) {
+				sage::printLog("fsManager::%s() : fail to connect to the connection manager", __FUNCTION__);
+				sage::sleep(1);
+			}
+			sage::printLog("fsManager::talkToConnectionManager() : connected to connection manager %s : %d", conManIP, conManPort);
+			reconnect = false;
+		}
+	}
+	return 0;
 }
 
 void* fsManager::msgThread(void *args)
@@ -401,9 +401,14 @@ int fsManager::msgToDisp(sageMessage &msg, int clientID)
       }
    }
    else {
+	   /*
       char token[TOKEN_LEN];
       getToken((char *)msg.getData(), token);
       int winId = atoi(token);
+      */
+
+	   int winId = atoi( (char *)msg.getData() );
+
       //      std::cout << "disp message win id " << winId << std::endl;
       //if (winId >= dispNum) {
       //   sage::printLog("fsManager::msgToDisp : window ID is out of scope");
