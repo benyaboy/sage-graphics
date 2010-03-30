@@ -4,15 +4,15 @@
  * Module   :  sageAudioModule.cpp
  *   Author   :   Hyejung Hur
  *   Description:   Code file for managing audio module-create audio, play, capture, save it
- *   
+ *
  * Copyright (C) 2004 Electronic Visualization Laboratory,
  * University of Illinois at Chicago
  *
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *  * Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  *  * Redistributions in binary form must reproduce the above
@@ -21,7 +21,7 @@
  *  * Neither the name of the University of Illinois at Chicago nor
  *    the names of its contributors may be used to endorse or promote
  *    products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -41,7 +41,7 @@
 
 #include "sageAudioModule.h"
 #include "sageAudio.h"
-#include "sail.h" 
+#include "sail.h"
 
 sageAudioModule* sageAudioModule::_instance = NULL;
 
@@ -67,38 +67,38 @@ sageAudioModule::~sageAudioModule()
    if(fileWriter != NULL) {
       fileWriter->stop();
    }
-   
+
    if(fileReader != NULL) {
       fileReader->stop();
    }
-   
-   sage::usleep(1000);      
 
-	if(mainAudio) 
+   sage::usleep(1000);
+
+	if(mainAudio)
 	{
       mainAudio->stop();
       mainAudio->closeStream();
 	}
 
    Pa_Terminate();
-   sage::usleep(2000);   
+   sage::usleep(2000);
 
-	if(mainAudio) 
+	if(mainAudio)
 	{
 		delete mainAudio;
 		mainAudio = NULL;
 	}
-      
+
    if(fileReader != NULL) {
       delete fileReader;
       fileReader = NULL;
    }
-   
+
    if(fileWriter != NULL) {
       delete fileWriter;
       fileWriter = NULL;
    }
-   
+
    if(formatManager != NULL) {
       delete formatManager;
       formatManager = NULL;
@@ -116,7 +116,7 @@ sageAudioModule::~sageAudioModule()
    {
       buffer = (sageAudioCircBuf*) *iterBuffer;
       delete buffer;
-      buffer = NULL;      
+      buffer = NULL;
    }
    bufferList.clear();
 
@@ -124,7 +124,7 @@ sageAudioModule::~sageAudioModule()
 	audioAppInfo* app;
 	for(int i=0; i < channel_size; i++)
 	{
-		app = (audioAppInfo*) channelList[i];	
+		app = (audioAppInfo*) channelList[i];
 		if(app == NULL) continue;
 		delete app;
 		app = NULL;
@@ -141,7 +141,7 @@ sageAudioModule* sageAudioModule::instance()
 {
    if(_instance == NULL) {
       _instance = new sageAudioModule();
-   } 
+   }
    return _instance;
 }
 
@@ -165,7 +165,7 @@ void sageAudioModule::init(sageAudioConfig &conf)
    config.channels = conf.channels;
    config.framePerBuffer = conf.framePerBuffer;
    config.audioMode = conf.audioMode;
-   
+
    init();
 }
 
@@ -181,8 +181,8 @@ void sageAudioModule::init()
       		formatManager = NULL;
    		}
    		formatManager = new audioFormatManager();
-   
-   		// create objects for reading and writing audio files 
+
+   		// create objects for reading and writing audio files
    		if(fileReader != NULL) {
       		delete fileReader;
       		fileReader = NULL;
@@ -199,7 +199,7 @@ void sageAudioModule::init()
       		formatManager = NULL;
    		}
    		formatManager = new audioFormatManager();
-      
+
    		if(fileWriter != NULL) {
       		delete fileWriter;
       		fileWriter = NULL;
@@ -233,7 +233,7 @@ void sageAudioModule::init()
 	}
 	break;
 	}
-   
+
    std::cout << "[sageAudioModule::init] initialized" << std::endl;
 
 }
@@ -264,7 +264,6 @@ audioAppInfo* sageAudioModule::findApp(int id, int& index)
 
 void sageAudioModule::changeWindow(int id, int left, int bottom, int width, int height, int zvalue)
 {
-	std::cout << "audio module" << std::endl;
 	while(appLock == true) sage::usleep(1000);
 
 	appLock = true;
@@ -276,7 +275,7 @@ void sageAudioModule::changeWindow(int id, int left, int bottom, int width, int 
 		channelList.push_back(app);
 		app->instID = id;
 		index = channelList.size() -1;
-	} 
+	}
 
 	app->left = left;
 	app->bottom = bottom;
@@ -291,7 +290,7 @@ void sageAudioModule::changeWindow(int id, int left, int bottom, int width, int 
 	{
 		// temporal.....
 		app->channel = 2;
-	} else 
+	} else
 		app->channel = center_x;
 
 	appList.push_back(index);
@@ -299,6 +298,7 @@ void sageAudioModule::changeWindow(int id, int left, int bottom, int width, int 
 
 	//int center_y = bottom + (height /2);
 	std::cout << "[sageAudioModule::changeWindow] id=" << id << ", channel " << app->channel << " " << zvalue <<  std::endl;
+
 }
 
 void* sageAudioModule::mergeThread(void *args)
@@ -313,10 +313,10 @@ void* sageAudioModule::mergeThread(void *args)
 	int remove_size =0, app_size=0;
   	sageAudioCircBuf* buffer = NULL;
 	int remove_id, app_id, channel_id;
-   
+
    while (!This->rcvEnd) {
 		output_block = output->getNextWriteBlock();
-		if(output_block == NULL) 
+		if(output_block == NULL)
 		{
       	sage::usleep(100);
 			continue;
@@ -347,7 +347,7 @@ void* sageAudioModule::mergeThread(void *args)
 					if(buffer->getInstID() == remove_id)
 					{
       				delete buffer;
-      				buffer = NULL;      
+      				buffer = NULL;
 						This->bufferList.erase(iterBuffer);
 						std::cout << "[sageAudioModule::mergeThread] buffer " << remove_id << " is deleted " << This->bufferList.size() << std::endl;
 						break;
@@ -388,7 +388,7 @@ void* sageAudioModule::mergeThread(void *args)
 				if(This->channelList[app_id] == NULL) continue;
 
 				channel_id =This->channelList[app_id]->channel;
-				if(channel_id >= 0) 
+				if(channel_id >= 0)
 				{
    				for(iterBuffer = This->bufferList.begin(); iterBuffer != This->bufferList.end(); iterBuffer++)
    				{
@@ -438,7 +438,7 @@ sageAudioCircBuf* sageAudioModule::load(char* filename, bool loop, int nframes, 
    if(fileReader != NULL) {
       return (fileReader->load(filename, loop, nframes, totalframes));
    }
-   
+
    return NULL;
 }
 
@@ -449,7 +449,7 @@ int sageAudioModule::save(char* filename)
    if(fileWriter != NULL) {
       fileWriter->write(filename, config, mainBuffer);
    }
-   
+
    return 0;
 }
 
@@ -457,28 +457,28 @@ int sageAudioModule::play(void)
 {
 	if(playFlag == sageAudio::AUDIO_PLAY) return 0;
 
-   sageAudio* audio = NULL;
+	sageAudio* audio = NULL;
 	switch(config.audioMode)
 	{
-   case SAGE_AUDIO_CAPTURE : 
-	case SAGE_AUDIO_FWCAPTURE : 
+	case SAGE_AUDIO_CAPTURE :
+	case SAGE_AUDIO_FWCAPTURE :
 	case SAGE_AUDIO_PLAY :
 		if(playFlag != sageAudio::AUDIO_PAUSE)
 			mainAudio->openStream();
 		mainAudio->play();
 		break;
-   case SAGE_AUDIO_READ :
-      fileReader->start();
+	case SAGE_AUDIO_READ :
+		fileReader->start();
 		break;
-   case SAGE_AUDIO_WRITE :
-      fileWriter->start();
+	case SAGE_AUDIO_WRITE :
+		fileWriter->start();
 		break;
-   //case SAGE_AUDIO_APP :
-   //	fileWriter->start();
-	//	break;
-   }
+		//case SAGE_AUDIO_APP :
+		//	fileWriter->start();
+		//	break;
+	}
 	playFlag = sageAudio::AUDIO_PLAY;
-   return 0;
+	return 0;
 }
 
 int sageAudioModule::pause(void)
@@ -488,7 +488,7 @@ int sageAudioModule::pause(void)
    switch(config.audioMode)
 	{
 	case SAGE_AUDIO_CAPTURE :
-	case SAGE_AUDIO_FWCAPTURE : 
+	case SAGE_AUDIO_FWCAPTURE :
 	case SAGE_AUDIO_PLAY :
 		//mainAudio->openStream();
 		mainAudio->pause();
@@ -498,8 +498,8 @@ int sageAudioModule::pause(void)
 		break;
    case SAGE_AUDIO_WRITE :
 		break;
-   }   
-   
+   }
+
 	playFlag = sageAudio::AUDIO_PAUSE;
    return 0;
 }
@@ -512,7 +512,7 @@ int sageAudioModule::stop(void)
    switch(config.audioMode)
 	{
    case SAGE_AUDIO_CAPTURE :
-	case SAGE_AUDIO_FWCAPTURE : 
+	case SAGE_AUDIO_FWCAPTURE :
 	case SAGE_AUDIO_PLAY :
 		mainAudio->stop();
 		mainAudio->closeStream();
@@ -523,7 +523,7 @@ int sageAudioModule::stop(void)
    case SAGE_AUDIO_WRITE :
 		break;
    }
-   
+
 	playFlag = sageAudio::AUDIO_STOP;
    return -1;
 }
@@ -548,51 +548,51 @@ sageAudioCircBuf* sageAudioModule::createObject(int instID)
 
 sageAudioCircBuf* sageAudioModule::createObject(int instID, sageAudioConfig* conf)
 {
-   int id = bufferList.size();
-   if(instID >= 0)
-	   id = instID;
+	int id = bufferList.size();
+	if(instID >= 0)
+		id = instID;
 
-   // create shared circular buffer for audio data
-   sageAudioCircBuf *objectBuffer= NULL;
-   int bufferBlockNum = 16;  // 64
-   int newBufSize = conf->framePerBuffer * conf->channels;
+	// create shared circular buffer for audio data
+	sageAudioCircBuf *objectBuffer= NULL;
+	int bufferBlockNum = 16;  // 64
+	int newBufSize = conf->framePerBuffer * conf->channels;
 
-   int err = -1;
-   // according to mode, create objects and set init values to the objects
-   // create audio 
-   sageAudio* audio = NULL;
-   switch(config.audioMode)
+	int err = -1;
+	// according to mode, create objects and set init values to the objects
+	// create audio
+	sageAudio* audio = NULL;
+	switch(config.audioMode)
 	{
-	case SAGE_AUDIO_CAPTURE :  
-   case SAGE_AUDIO_FWCAPTURE : 
-		if(mainBuffer) 
+	case SAGE_AUDIO_CAPTURE :
+	case SAGE_AUDIO_FWCAPTURE :
+		if(mainBuffer)
 		{
 			delete mainBuffer;
 		}
-   	mainBuffer= new sageAudioCircBuf(nodeID);
-      mainBuffer->init(id, bufferBlockNum, conf->sampleFmt, newBufSize);
+		mainBuffer= new sageAudioCircBuf(nodeID);
+		mainBuffer->init(id, bufferBlockNum, conf->sampleFmt, newBufSize);
 
-		if(mainAudio) 
+		if(mainAudio)
 		{
 			delete mainAudio;
-		}	
-      mainAudio = new sageAudio();
-      err = mainAudio->init(id, conf, config.audioMode, mainBuffer);
-      if(err <0) {
-         delete mainBuffer;
-         delete mainAudio;
-         mainBuffer = NULL;
-         mainAudio = NULL;
-         std::cerr << "[sageAudioModule::createObject] failed" << std::endl;
-         return NULL;
-      }
-      std::cout << "[sageAudioModule::createObject] audio object is created" << std::endl;
+		}
+		mainAudio = new sageAudio();
+		err = mainAudio->init(id, conf, config.audioMode, mainBuffer);
+		if(err <0) {
+			delete mainBuffer;
+			delete mainAudio;
+			mainBuffer = NULL;
+			mainAudio = NULL;
+			std::cerr << "[sageAudioModule::createObject] failed" << std::endl;
+			return NULL;
+		}
+		std::cout << "[sageAudioModule::createObject] audio object is created" << std::endl;
 		return mainBuffer;
 		break;
-   case SAGE_AUDIO_PLAY :
-   	objectBuffer= new sageAudioCircBuf(nodeID);
+	case SAGE_AUDIO_PLAY :
+		objectBuffer= new sageAudioCircBuf(nodeID);
 		// create buffer with main format
-      objectBuffer->init(id, bufferBlockNum, config.sampleFmt, newBufSize);
+		objectBuffer->init(id, bufferBlockNum, config.sampleFmt, newBufSize);
 		std::cout << "[sageAudioModule::createObject] audio buffer is created " << objectBuffer->getAudioId() << std::endl;
 		while(addLock == true) sage::usleep(1000);
 		addLock = true;
@@ -601,10 +601,10 @@ sageAudioCircBuf* sageAudioModule::createObject(int instID, sageAudioConfig* con
 		if(playFlag != sageAudio::AUDIO_PLAY)
 			play();
 		break;
-   }
+	}
 
-   return objectBuffer;
-}   
+	return objectBuffer;
+}
 
 int sageAudioModule::deleteObject(int id)
 {
@@ -617,7 +617,7 @@ int sageAudioModule::deleteObject(int id)
    // delete object
    // delete buffer
    // remove from the list
-   
+
    return 0;
 }
 
@@ -634,7 +634,7 @@ sageAudioCircBuf* sageAudioModule::createBuffer(int instID, sageAudioConfig* con
 
    // create shared circular buffer for audio data
    sageAudioCircBuf *objectBuffer= new sageAudioCircBuf(nodeID);
-   int bufferBlockNum = size; 
+   int bufferBlockNum = size;
    int newBufSize = conf->framePerBuffer * conf->channels;
    objectBuffer->init(id, bufferBlockNum, conf->sampleFmt, newBufSize);
 
@@ -642,9 +642,9 @@ sageAudioCircBuf* sageAudioModule::createBuffer(int instID, sageAudioConfig* con
 	{
 		while(addLock == true) sage::usleep(1000);
 		addLock = true;
-   	addList.push_back(objectBuffer);   
+   	addList.push_back(objectBuffer);
 		addLock = false;
-	} else 
+	} else
 	{
 		if(mainBuffer)
 		{
@@ -653,7 +653,7 @@ sageAudioCircBuf* sageAudioModule::createBuffer(int instID, sageAudioConfig* con
 		}
 		mainBuffer = objectBuffer;
 
-   	if (config.audioMode == SAGE_AUDIO_READ) { 
+   	if (config.audioMode == SAGE_AUDIO_READ) {
 			config.sampleFmt = conf->sampleFmt;
 			config.samplingRate = conf->samplingRate;
 			config.channels = conf->channels;
@@ -661,9 +661,9 @@ sageAudioCircBuf* sageAudioModule::createBuffer(int instID, sageAudioConfig* con
 		}
 	}
    std::cout << "[sageAudioModule::createBuffer] audio buffer is created" << std::endl;
-	
+
    return objectBuffer;
-}   
+}
 
 void sageAudioModule::setgFrameNum(long frames)
 {

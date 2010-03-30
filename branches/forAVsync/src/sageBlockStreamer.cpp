@@ -55,6 +55,8 @@ sageBlockStreamer::sageBlockStreamer(streamerConfig &conf, int pixSize) : compFa
 	fflush(stderr);
 #endif
 
+	avDiff = 0;
+	frameInterval = 0.0;
 
    config = conf;
    blockSize = config.blockSize;
@@ -169,7 +171,7 @@ int sageBlockStreamer::sendPixelBlock(sagePixelBlock *block)
 	pixelBlockMap *map = partition->getBlockMap(block->getID());
 
 #ifdef DEBUG_STREAMER
-	//fprintf(stderr, "\tSBS::sendPixelBlock() : blocknum %d, entrynum %d\n", partition->getBlockNum(), partition->tableEntryNum());
+	fprintf(stderr, "\tSBS::sendPixelBlock() : blocknum %d, entrynum %d\n", partition->getBlockNum(), partition->tableEntryNum());
 	//fflush(stderr);
 #endif
 
@@ -204,7 +206,7 @@ int sageBlockStreamer::sendPixelBlock(sagePixelBlock *block)
 		int dataSize = 0;
 
 #ifdef DEBUG_STREAMER
-		//fprintf(stderr, "\t\tSBS::sendPixelBlock() : Iter %d; sending [%d of %d / %d / %d] to rcvID [%d]\n", count, block->getID(), params[map->infoID].activeBlockNum, frameID, configID, params[map->infoID].rcvID);
+		fprintf(stderr, "\t\tSBS::sendPixelBlock() : Iter %d; sending [%d of %d / %d / %d] to rcvID [%d]\n", count, block->getID(), params[map->infoID].activeBlockNum, frameID, configID, params[map->infoID].rcvID);
 		//fflush(stderr);
 #endif
 
@@ -370,17 +372,23 @@ int sageBlockStreamer::streamLoop()
 		//sage::printLog("\n========= got a frame ==========\n");
 
 		/** AV sync */
-		if ( config.avDiff < 0 ) {
+		if ( avDiff < 0 ) {
 			// skip video streaming
 			// what about frame numbering.???
-
 #ifdef DEBUG_AVSYNC
-			fprintf(stderr, "[%d] SBS::streamLoop() : avDiff %d\n", config.rank, config.avDiff);
+			fprintf(stderr, "\n\n[%d] SBS::streamLoop() : avDiff %d. skipping a frame %d\n", config.rank, avDiff, frameID);
 #endif
-			(config.avDiff)++;
+			avDiff++; //reset or increment?
 			frameID++;
 			doubleBuf->releaseBackBuffer();
 			continue;
+		}
+		else if ( avDiff > 0 ) {
+#ifdef DEBUG_AVSYNC
+			fprintf(stderr, "\n\n[%d] SBS::streamLoop() : avDiff %d. pausing for %d usec\n", config.rank, avDiff, avDiff * (int)(frameInterval * 1000000.0));
+#endif
+			sage::usleep(avDiff * (int)(frameInterval * 1000000.0)); // INTERVAL usec * number of frame
+			avDiff=0;
 		}
 
 		char *msgStr = NULL;
@@ -414,6 +422,10 @@ int sageBlockStreamer::streamLoop()
 		// the frame in the buf will be splited into many blocks
 		// below sends control blocks too
 		//
+
+
+		//usleep(10000);
+		//fprintf(stderr,"SBS::%s() : frame %d\n", __FUNCTION__, frameID);
 		if (streamPixelData(buf) < 0) {
 			streamerOn = false;
 		}

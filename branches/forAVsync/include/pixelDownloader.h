@@ -220,6 +220,7 @@ public:
    inline int getInstID() { return instID; }
    inline int getStatus() { return status; }
 	bool isInitialized(void) { return m_initialized; }
+	inline int getUpdatedFrame() { return updatedFrame; }
 
    ~pixelDownloader();
 };

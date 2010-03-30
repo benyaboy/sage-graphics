@@ -387,17 +387,16 @@ int sageDisplayManager::init(char *data)
 }
 
 void* sageDisplayManager::refreshThread(void *args) {
-   sageDisplayManager *This = (sageDisplayManager *)args;
-	fprintf(stderr,"SDM%d::refreshThread() : starting refresh thread. refresh interval %d usec\n", This->shared->nodeID, DISPLAY_REFRESH_INTERVAL);
+	sageDisplayManager *This = (sageDisplayManager *)args;
+	fprintf(stderr,"[%d] SDM::refreshThread() : starting refresh thread. refresh interval %d usec\n", This->shared->nodeID, DISPLAY_REFRESH_INTERVAL);
 
-   while (!This->rcvRefreshEnd) {
-      This->shared->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
-      sage::usleep(DISPLAY_REFRESH_INTERVAL);
-   }
-
-   sage::printLog("SDM%d::refreshThread() : exiting", This->shared->nodeID);
-   pthread_exit(NULL);
-   return NULL;
+	while (!This->rcvRefreshEnd) {
+		This->shared->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
+		sage::usleep(DISPLAY_REFRESH_INTERVAL);
+	}
+	//sage::printLog("SDM%d::refreshThread() : exiting", This->shared->nodeID);
+	pthread_exit(NULL);
+	return NULL;
 }
 
 void* sageDisplayManager::msgCheckThread(void *args)
@@ -820,8 +819,10 @@ int sageDisplayManager::parseEvent(sageEvent *event)
       }
 
       case EVENT_REFRESH_SCREEN : {
-         if (shared->displayObj->isDirty())
+         if (shared->displayObj->isDirty()) {
             shared->displayObj->updateScreen(shared, false);
+            //fprintf(stderr,"SDM::%s() : frame %d\n", __FUNCTION__, downloaderList[0]->getUpdatedFrame());
+         }
 
          if (shared->context)
             shared->context->checkEvent();
@@ -1003,6 +1004,9 @@ int sageDisplayManager::processSync(sageEvent *e)
 				PDL->fetchSageBlocks(); // should change PDL status
 			}
 			 */
+#ifdef DEBUG_AVSYNC
+		//fprintf(stderr,"SDM::%s() : [%d] now displaying app %d, frame %d\n", __FUNCTION__, shared->nodeID, intMsg[2*i+1], intMsg[2*i+2]);
+#endif
 		}
 	}
 

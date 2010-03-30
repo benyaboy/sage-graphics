@@ -92,7 +92,6 @@ public:
    char  audioFileName[SAGE_NAME_LEN];  // application name
    int   audioBuffSize;
    
-   int avDiff; /*< audio and video frame difference. Received from syncMaster through FSM. Highly recommend to enforce MUTEX on this variable */
 
    int  syncPolicy, syncID;
    syncGroup *sGroup;

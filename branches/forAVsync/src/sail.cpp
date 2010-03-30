@@ -79,6 +79,14 @@ sail::sail() : winID(0), bufID(0), sailOn(false), audioOn(false), sGroup(NULL), 
    audioAppDataHander = NULL;
 #endif
 
+   /** fps sungwon */
+   _frameInterval = 0.0;
+   _fpsS.tv_sec = 0;
+   _fpsS.tv_usec = 0;
+   _fpsE.tv_sec = 0;
+   _fpsE.tv_usec = 0;
+   _fpsCoin = true;
+   _fps = 0.0;
 }
 
 sail::~sail()
@@ -364,6 +372,7 @@ int sail::init(sailConfig &conf)
          //audioObj->save("c.wav");   // testing...
       }
       else if(config.audioMode == SAGE_AUDIO_READ) {
+    	  // read audio file through audioFileReader
 		  buffer = audioModule->load(config.audioFileName, true, config.framePerBuffer, config.totalFrames);   // for the test
 			sageAudioConfig* audioConfig = audioModule->getAudioConfig();
 			config.sampleFmt = audioConfig->sampleFmt;
@@ -421,6 +430,19 @@ int sail::swapBuffer(int mode)
       return 1;
    }
 
+   /** FPS */
+   if ( _fpsCoin ) {
+	   gettimeofday( &_fpsS, NULL);
+	   _fpsCoin = false;
+   }
+   else {
+	   gettimeofday(&_fpsE, NULL);
+	   _fpsCoin = true;
+	   _frameInterval = ((double)_fpsE.tv_sec + 0.000001*(double)_fpsE.tv_usec) - ((double)_fpsS.tv_sec + 0.000001 * (double)_fpsS.tv_usec); // in second
+	   _fps = 1.0 / _frameInterval; // frame per second
+	   //_frameInterval *= 1000.0; // millisecond
+   }
+
 	// update time stamp
    /*
 	sagePixelData* data = doubleBuf->getFrontBuffer();
@@ -438,13 +460,11 @@ int sail::swapBuffer(int mode)
 #ifdef SAGE_AUDIO
    if(audioModule)
    {
-      audioModule->setgFrameNum(pixelStreamer->getFrameID());
+      //audioModule->setgFrameNum(pixelStreamer->getFrameID());
    }
 #endif
 
-#ifdef DEBUG_SAIL
-   fprintf(stderr, "\nsail::swapBuffer() : returning.\n");
-#endif
+   //fprintf(stderr, "sail::swapBuffer() : returning. video frame %d\n", pixelStreamer->getFrameID());
 
    return 0;
 }
@@ -587,25 +607,23 @@ int sail::parseMessage(sageMessage &msg)
 	char *msgData = (char *)msg.getData();
 
 	switch (msg.getCode()) {
-	case SAIL_EMPTY_SWAPBUFFER : {
+	case SAIL_AVSYNC : {
 		// for AV sync. if a video is slower then execute empty swapbuffer.
 		int frameDif = 0;
 		if ( msgData ) {
 			sscanf(msgData, "%d", &frameDif);
+			/**
+			 * pixelStreamer::streamLoop() will check this variable before streaming.
+			 *
+			 * pixelStreamer::streamLoop() is a thread
+			 * sail::parseMessage() is a thread
+			 * read from / write to this variable is thread safe ???
+			 */
 #ifdef DEBUG_AVSYNC
-			fprintf(stderr, "sail::parseMessage() : received SAIL_EMPTY_SWAPBUFFER msg. frameDif %d\n", frameDif);
+			fprintf(stderr, "sail::parseMessage() : SAIL_AVSYNC. frameDif %d, FPS(%7.2f)\n", frameDif, _fps);
 #endif
+			pixelStreamer->setAvDiff(frameDif, _frameInterval);
 		}
-
-		/**
-		 * pixelStreamer::streamLoop() will check this variable before streaming.
-		 *
-		 * pixelStreamer::streamLoop() is a thread
-		 * sail::parseMessage() is a thread
-		 * read from / write to this variable is thread safe ???
-		 */
-		config.avDiff = frameDif; // negative value means video is lagging
-
 		break;
 	}
 	case SAIL_INIT_MSG : {
@@ -970,22 +988,23 @@ int sail::generateSageBlocks()
 
    return 0;
 }
-*/
+ */
 
 
 #ifdef SAGE_AUDIO
 int sail::pushAudioData(int size, void *buf)
 {
-   if(audioAppDataHander != NULL) {
+	if(audioAppDataHander != NULL) {
 		if((_update == VIDEO_UPDATE) || (_update == NONE_UPDATE))
 			gettimeofday(&_timeStamp, NULL);
 		//std::cout << "audio time stamp : " << _timeStamp.tv_sec << " " << _timeStamp.tv_usec << std::endl;
 		_update = AUDIO_UPDATE;
 		audioAppDataHander->swapBuffer(size, buf, &_timeStamp);
-   } else
-               return -1;
+		//fprintf(stderr,"sail::%s(), audio swapbuffer\n", __FUNCTION__);
+	} else
+		return -1;
 
-   return 0;
+	return 0;
 }
 #endif
 
