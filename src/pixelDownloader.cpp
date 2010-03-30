@@ -229,7 +229,7 @@ void pixelDownloader::processSync(int frame, int cmd)
    // when the sync slave keeps the pace
    if (updatedFrame == syncFrame) {
 #ifdef DEBUG_PDL
-	   fprintf(stderr,"PDL%d,%d::processSync() : syncFrame %d\n", shared->nodeID, instID, syncFrame);
+	   fprintf(stderr,"[%d,%d] PDL::%s() : syncFrame %d\n", shared->nodeID, instID, __FUNCTION__, syncFrame);
 #endif
       swapMontages(); // swap textures (one for display, one for pixel downloading)
    }
@@ -411,12 +411,17 @@ int pixelDownloader::fetchSageBlocks()
    while (sbg = blockBuf->front()) {
 
 		 /**
-		  * the difference between updatedFrame and syncFrame should always 1
-		  * because the new frame it gets is always right next frame of current frame
+		  * When END_FRAME flag is used,
+		  * the difference between updatedFrame and syncFrame should always be 1,
+		  * because the new frame it gets is always right next frame of current frame. (curFrame == updatedFrame + 1)
 		  * otherwise, PDL should WAIT until others catch up
 		  *
-		  * This is the most important pre-requisite of the sync algorithm
+		  * This is the most important pre-requisite of the sync algorithm.
+		  *
+		  * But this code block makes PDL deadlocked (sets its state PDL_WAIT_SYNC forever),
+		  * when the Receiver receives a frame which is (curFrame > updatedFrame + 1)
 		  */
+	   /*
 	   if ( syncOn && (sbg->getFrameID() > syncFrame + 1) ) {
 			 status = PDL_WAIT_SYNC; // wait for others to catch up
 #ifdef DEBUG_PDL
@@ -424,6 +429,7 @@ int pixelDownloader::fetchSageBlocks()
 #endif
 		   return status;
 	   }
+	   */
 
 		 //
 		 // pixelReceiver received entire frame

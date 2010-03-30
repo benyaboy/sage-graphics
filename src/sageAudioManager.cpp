@@ -224,7 +224,7 @@ int sageAudioManager::init(char *data)
 		//sendMessage(SYNC_INIT_ARCV, nodeID);
 	}
 
-	pthread_t thId;
+	//pthread_t thId;
 
 	/*
    if (pthread_create(&thId, 0, syncCheckThread, (void*)this) != 0) {
@@ -268,7 +268,7 @@ void* sageAudioManager::msgCheckThread(void *args)
 	pthread_exit(NULL);
 	return NULL;
 }
-
+/*
 void* sageAudioManager::syncCheckThread(void *args)
 {
 	sageAudioManager *This = (sageAudioManager *)args;
@@ -287,6 +287,7 @@ void* sageAudioManager::syncCheckThread(void *args)
 	pthread_exit(NULL);
 	return NULL;
 }
+*/
 
 void* sageAudioManager::perfReportThread(void *args)
 {
@@ -302,7 +303,7 @@ void* sageAudioManager::perfReportThread(void *args)
    pthread_exit(NULL);
    return NULL;
 }
-
+/*
 void* sageAudioManager::refreshThread(void *args)
 {
    sageAudioManager *This = (sageAudioManager *)args;
@@ -316,10 +317,10 @@ void* sageAudioManager::refreshThread(void *args)
    pthread_exit(NULL);
    return NULL;
 }
-
+*/
 int sageAudioManager::initNetworks()
 {
-	//sage::printLog("sageAudioManager::initNetworks() : initializing network objects....");
+	sage::printLog("sageAudioManager::initNetworks() : initializing network objects....");
 
 	tcpObj = new sageTcpModule;
 	if (tcpObj->init(SAGE_ARCV, streamPort, nwCfg) == 1) {
@@ -367,6 +368,7 @@ void* sageAudioManager::nwCheckThread(void *args)
          senderID = nwObj->checkConnections(regMsg);
          if (senderID >= 0 && !This->rcvEnd) {
             This->eventQueue->sendEvent(EVENT_NEW_CONNECTION, regMsg, (void *)nwObj);
+            //fprintf(stderr,"SAM::%s() : EVENT_NEW_CONNECTION\n", __FUNCTION__);
          }
       }
    }
@@ -464,6 +466,7 @@ int sageAudioManager::parseEvent(sageEvent *event)
 
    switch (event->eventType) {
       case EVENT_NEW_CONNECTION : {
+    	  //fprintf(stderr,"SAM::%s() : Calling initStream()\n", __FUNCTION__);
          initStreams(event->eventMsg, (streamProtocol *)event->param);
          break;
       }
@@ -494,9 +497,11 @@ int sageAudioManager::parseMessage(sageMessage *msg)
 	//std::cout << msg->getCode() << " parse mesage : " << (char *)msg->getData() << std::endl;
 	switch (msg->getCode()) {
 	case ARCV_AUDIO_INIT : {
+
 		if(initialized == true) break;
-		if (init((char *)msg->getData()) < 0)
+		if (init((char *)msg->getData()) < 0) {
 			rcvEnd = true;
+		}
 		break;
 	}
 	case ARCV_WINDOW_INIT : {
@@ -521,6 +526,10 @@ int sageAudioManager::parseMessage(sageMessage *msg)
 		char token[TOKEN_LEN];
 		char* data = (char *)msg->getData();
 
+		int id, x, y, width, height, zvalue;
+		sscanf(data, "%d %d %d %d %d %d", &id, &x, &y, &width, &height, &zvalue);
+
+		/*
 		getToken(data, token);
 		int id = atoi(token);
 		getToken(data, token);
@@ -533,6 +542,7 @@ int sageAudioManager::parseMessage(sageMessage *msg)
 		int height = atoi(token);
 		getToken(data, token);
 		int zvalue = atoi(token);
+		*/
 
 		audioModule->changeWindow(id, x, y, width, height, zvalue);
 		//getToken(data, token);

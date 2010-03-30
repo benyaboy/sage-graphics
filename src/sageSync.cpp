@@ -830,6 +830,9 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 								// this should be same for all nodes of this application
 								if ( updatedFrame >= 0 ) {
 									syncFrameMap[pdl] = updatedFrame;
+#ifdef DEBUG_AVSYNC
+									//fprintf(stderr, "syncMaster received video msg : instID %d, frame %d\n", pdl, updatedFrame);
+#endif
 								}
 								else {
 									//should never happen
@@ -844,7 +847,7 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 								if ( updatedFrame < 0 ) {
 									syncAudioFrameMap[pdl] = updatedFrame;
 #ifdef DEBUG_AVSYNC
-									fprintf(stderr, "syncMaster received audio msg : instID %d, frame %d\n", pdl, updatedFrame);
+									//fprintf(stderr, "syncMaster received audio msg : instID %d, frame %d\n", pdl, updatedFrame);
 #endif
 								}
 								else {
@@ -927,16 +930,20 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 						// there's audio for this app
 						int av_diff = syncFrameMap[appID] + syncAudioFrameMap[appID];
 #ifdef DEBUG_AVSYNC
-						fprintf(stderr, "syncMaster : app %d has audio. av_diff %d\n", appID, av_diff);
+						//fprintf(stderr, "syncMaster : app %d is ready and has audio. (%d,%d) av_diff %d\n", appID, syncFrameMap[appID], syncAudioFrameMap[appID], av_diff);
 #endif
-
+						syncAudioFrameMap[appID] = 0; //reset
+						char msg[32];
+						sprintf(msg, "%d %d", appID, av_diff);
+						This->sendMessage(MSG_FROM_SYNC_MASTER, msg);
+/*
 						if ( av_diff == 0 ) {
 						}
 						else if ( av_diff < 0 ) {
 							// audio leading
 							// sendMessage to fsCore. appID, frameDifference
 #ifdef DEBUG_AVSYNC
-							fprintf(stderr, "syncMaster : audio is leading by %d frame\n", av_diff);
+							//fprintf(stderr, "syncMaster : audio is leading by %d frame\n", av_diff);
 #endif
 							char msg[32];
 							sprintf(msg, "%d %d", appID, av_diff);
@@ -948,17 +955,19 @@ void* sageSyncBBServer::mainLoopThread(void *args)
 #ifdef DEBUG_AVSYNC
 							fprintf(stderr, "syncMaster : video is leading by %d frame\n", av_diff);
 #endif
-							//isReadyToSwapMonMap[ appID ] = true; // set again for next round
+							//isReadyToSwapMonMap[appID] = true;
 							//swapMontageReady = true;
-							//continue;
+							//what about numUpdatedApps
 						}
-						syncAudioFrameMap[appID] = 0; //reset
+						*/
 					}
 
+					/*
 					if ( intMsgIndex >= numUpdatedApps ) {
 						fprintf(stderr, "syncMaster : numUpdatedApps exdeeds sync message array index !\n ");
 						break;
 					}
+					*/
 					intMsg[2*intMsgIndex + 1] = appID;
 					intMsg[2*intMsgIndex + 2] = syncFrameMap[appID];
 					intMsgIndex++;

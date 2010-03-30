@@ -73,20 +73,20 @@ public:
 protected:
    FILE* fileID;
    
-   long formatLength;
+   unsigned int formatLength;
    short formatTag;
    short channels;
-   long sampleRate;
-   long avgBytesSec;
+   unsigned int sampleRate;
+   unsigned int avgBytesSec;
    short blockAlign;
    short bitsPerSample;   
-   long dataSize;
+   unsigned int dataSize;
    
    int framesPerBuffer;
    sageSampleFmt sampleFmt;
-   long blockSize;
-   long blockCount;
-   long totalBlocks;
+   unsigned int blockSize;
+   unsigned int blockCount;
+   unsigned int totalBlocks;
    
    fpos_t dataPos;
    int writeMode;

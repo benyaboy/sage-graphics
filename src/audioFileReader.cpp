@@ -118,6 +118,7 @@ sageAudioCircBuf* audioFileReader::load(char* filename, bool loop, int nframes, 
    if(gapTime < 100) gapTime = 1000;
    
    totalLoadedFrames = totalframes;
+   fprintf(stderr, "audioFileReader::%s() : video has total %d frames\n", __FUNCTION__, totalLoadedFrames);
    loopFlag = loop;
    return buffer;
       
@@ -140,49 +141,49 @@ int audioFileReader::stop()
    startFlag = false;
    return 0;
 }
-   
+
 void* audioFileReader::readThread(void *args)
 {      
-   audioFileReader *This = (audioFileReader *)args;
-   audioBlock* bufferBlock = NULL;
-   int result =0;
-   int blockIndex =0;
-   
-   while(This->startFlag) {
-      bufferBlock = This->buffer->getNextWriteBlock();
-      if(bufferBlock != NULL) {
-         result = This->converter->readFrames(bufferBlock->buff);
-         if(result >= 0)  {
-            bufferBlock->frameIndex = This->buffer->getWriteIndex();
-            if(This->totalLoadedFrames <= 0) {
-               bufferBlock->gframeIndex = sageAudioModule::_instance->getgFrameNum();
-               //std::cout << "gframeIndex(from current) : " << bufferBlock->gframeIndex << std::endl;
-            } else {
-               bufferBlock->gframeIndex = (This->totalLoadedFrames * blockIndex) / This->totalBlocks;
-               //std::cout << "gframeIndex(from calcurate) : " << bufferBlock->gframeIndex << std::endl;
-            }
-            bufferBlock->reformatted = 1;      
-            This->buffer->updateWriteIndex();
-            blockIndex++;
-         } else {
-            //std::cout << "result --- finish???" << std::endl;
-            if(This->loopFlag) {
-               This->converter->begin();
-               //blockIndex =0;
-            } else {
-               This->startFlag = false;
-            }
-         }
-      } else {
-         //std::cout << "buffer null" << std::endl;
-         //sage::usleep(This->gapTime);
-      }
-      sage::usleep(This->gapTime);
-   }   
-      
-   std::cout << "audioFileReader :end readThread" << std::endl;
-   This->converter->close();
-   fclose(This->fileID);
-   pthread_exit(NULL);
-   return NULL;
+	audioFileReader *This = (audioFileReader *)args;
+	audioBlock* bufferBlock = NULL;
+	int result =0;
+	int blockIndex =0;
+
+	while(This->startFlag) {
+		bufferBlock = This->buffer->getNextWriteBlock();
+		if(bufferBlock != NULL) {
+			result = This->converter->readFrames(bufferBlock->buff);
+			if(result >= 0)  {
+				bufferBlock->frameIndex = This->buffer->getWriteIndex();
+				if(This->totalLoadedFrames <= 0) {
+					bufferBlock->gframeIndex = sageAudioModule::_instance->getgFrameNum();
+					//std::cout << "gframeIndex(from current) : " << bufferBlock->gframeIndex << std::endl;
+				} else {
+					bufferBlock->gframeIndex = (This->totalLoadedFrames * blockIndex) / This->totalBlocks;
+					//std::cout << "gframeIndex(from calcurate) : " << bufferBlock->gframeIndex << " " << This->totalLoadedFrames << " blockIndex=" << blockIndex << " " << This->totalBlocks << std::endl;
+				}
+				bufferBlock->reformatted = 1;
+				This->buffer->updateWriteIndex();
+				blockIndex++;
+			} else {
+				//std::cout << "result --- finish???" << std::endl;
+				if(This->loopFlag) {
+					This->converter->begin();
+					//blockIndex =0;
+				} else {
+					This->startFlag = false;
+				}
+			}
+		} else {
+			//std::cout << "buffer null" << std::endl;
+			//sage::usleep(This->gapTime);
+		}
+		sage::usleep(This->gapTime);
+	}
+
+	std::cout << "audioFileReader :end readThread" << std::endl;
+	This->converter->close();
+	fclose(This->fileID);
+	pthread_exit(NULL);
+	return NULL;
 }

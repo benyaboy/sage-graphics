@@ -362,7 +362,7 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
     	  // store client ID of receivers
     	  fsm->vdtList[0]->regAudioRcv(clientID, nodeID);
 
-    	  if(fsm->syncMaster != -1)
+    	  if(fsm->rInfo.syncLevel == 0 || fsm->syncMaster != -1)
     	  {
     		  char info[TOKEN_LEN];
     		  // get the tile config info of display node
@@ -423,12 +423,12 @@ int fsCore::parseMessage(sageMessage &msg, int clientID)
     	  int frameDif = 0;
     	  sscanf((char *)msg.getData(), "%d %d", &appID, &frameDif);
 #ifdef DEBUG_AVSYNC
-    	  fprintf(stderr, "fsCore::parseMessage(%s, %d) : received msg from syncMaster. appID %d, frameDiff %d\n", (char *)msg.getData(), clientID, appID, frameDif);
+    	  //fprintf(stderr, "fsCore::parseMessage(%s, %d) : received msg from syncMaster. appID %d, frameDiff %d\n", (char *)msg.getData(), clientID, appID, frameDif);
 #endif
     	  int index = 0;
     	  app = findApp(appID, index);
 
-    	  if (fsm->sendMessage(app->sailClient, SAIL_EMPTY_SWAPBUFFER, frameDif) < 0) {
+    	  if (fsm->sendMessage(app->sailClient, SAIL_AVSYNC, frameDif) < 0) {
     		  sage::printLog("fsCore::parseMessage() : sendMessage to %s(%d) failed", app->appName, appID);
     		  //clearAppInstance(appID);
     	  }

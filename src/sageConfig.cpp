@@ -46,10 +46,10 @@ streamerConfig::streamerConfig() : rank(0), resX(0), resY(0), rowOrd(TOP_TO_BOTT
       compression(NO_COMP), pixFmt(PIXFMT_888), streamType(SAGE_BLOCK_HARD_SYNC), 
       syncClientObj(NULL), frameRate(60), totalWidth(0), totalHeight(0), groupSize(131072),
       audioOn(false), audioPort(0), audioDeviceNum(0), audioKeyFrame(100), audioProtocol(SAGE_TCP),
-      sampleFmt(SAGE_SAMPLE_FLOAT32), samplingRate(44100), channels(2), framePerBuffer(2048),
+      sampleFmt(SAGE_SAMPLE_FLOAT32), samplingRate(44100), channels(2), framePerBuffer(512),
       syncType(SAGE_SYNC_NONE), totalFrames(0), syncPolicy(SAGE_ASAP_SYNC_HARD),
       autoBlockSize(false), maxBandwidth(1000), maxCheckInterval(1000), flowWindow(2),
-      bridgeOn(false), frameDrop(true), avDiff(0)
+      bridgeOn(false), frameDrop(true)
 {
    switch(sampleFmt) {
       case SAGE_SAMPLE_FLOAT32 :
@@ -363,6 +363,10 @@ int sailConfig::init(char *fname)
       else if (strcmp(token, "RENDERBUFY") == 0) {
          getToken(fp, token);
          resY = atoi(token);
+      }
+      else if (strcmp(token, "TOTALFRAMES") == 0) {
+    	  getToken(fp, token);
+    	  totalFrames = atoi(token);
       }
    }
 

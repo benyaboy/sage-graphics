@@ -58,12 +58,14 @@ int wavConverter::readHeader(int& nchan, long& samrate, int& nframes, sageSample
    
    char id[4];
    long size;      //32 bit value to hold file size
+   char temp[10];
    
    // 16 bit values : short
    // 32 bit values : long
    bool done = false;
    
    fread(id, sizeof(char), 4, fileID); //read in first four bytes
+
    /** strange facts:: id has strange string more... so......i also did strangely....*/
    if ((id[0] =='R') && (id[1] =='I') && (id[2] =='F') && (id[3] =='F')) { // RIFF
       //we had 'RIFF' let's continue
@@ -74,17 +76,17 @@ int wavConverter::readHeader(int& nchan, long& samrate, int& nframes, sageSample
          //this is probably a wave file since it contained "WAVE"
          fread(id, sizeof(char), 4, fileID); //read in 4 bytes "fmt ";
          if ((id[0] == 'f') && (id[1] == 'm') && (id[2] == 't'))  { // fmt 
-            //fread(&formatLength, sizeof(long),1,fileID);
-            fread(&formatLength, 4,1,fileID);
+            fread(&formatLength, sizeof(unsigned int),1,fileID);
+            //fread(&formatLength, 4,1,fileID);
 
             fread(&formatTag, sizeof(short), 1, fileID); //check mmreg.h (i think?) for other 
             // possible format tags like ADPCM
             fread(&channels, sizeof(short),1,fileID); //1 mono, 2 stereo
          
-            //fread(&sampleRate, sizeof(long), 1, fileID); //like 44100, 22050, etc...
-            //fread(&avgBytesSec, sizeof(long), 1, fileID);
-            fread(&sampleRate, 4, 1, fileID); //like 44100, 22050, etc...
-            fread(&avgBytesSec, 4, 1, fileID);
+            fread(&sampleRate, sizeof(unsigned int), 1, fileID); //like 44100, 22050, etc...
+            fread(&avgBytesSec, sizeof(unsigned int), 1, fileID);
+           // fread(&sampleRate, 4, 1, fileID); //like 44100, 22050, etc...
+           //fread(&avgBytesSec, 4, 1, fileID);
          
             fread(&blockAlign, sizeof(short), 1, fileID); 
             fread(&bitsPerSample, sizeof(short), 1, fileID); //8 bit or 16 bit file?

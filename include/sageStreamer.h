@@ -102,6 +102,9 @@ protected:
 
    pthread_t thId;
 
+   int avDiff; /**< AV sync */
+   double frameInterval; /**< for AV sync */
+
    /**
     * invokes streamLoop
     */
@@ -154,6 +157,9 @@ public:
     */
    virtual void setNwConfig(sageNwConfig &nc) { nwCfg = nc; }
    inline void shutdown() { streamerOn = false; }
+
+   void setAvDiff(int avd, double fi) { avDiff = avd; frameInterval = fi;}
+   int getAvDiff() { return avDiff; }
 };
 
 /**

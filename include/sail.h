@@ -151,6 +151,16 @@ private:
    int checkSyncServer();
    int generateSageBlocks();
    
+
+   /**
+    * FPS - sungwon
+    */
+   struct timeval _fpsS;
+   struct timeval _fpsE;
+   double _frameInterval;
+   double _fps;
+   bool _fpsCoin;
+
 public:
    sail();
    ~sail();

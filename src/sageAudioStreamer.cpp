@@ -76,6 +76,8 @@ int sageAudioStreamer::connectToRcv(sageToken &tokenBuf, bool localPort)
       params[i].active = false;
       //params[i].sInfo = NULL;
 
+      fprintf(stderr, "SAS::%s() : rcvNodeNum %d, rcvIP %s, nodeID %d, \n", __FUNCTION__, rcvNodeNum, rcvIP, params[i].nodeID);
+
       char regMsg[REG_MSG_SIZE];
       sprintf(regMsg, "%d %d %d %d %d %d %d %d %d %d %d", config.streamType, winID,
                         config.nodeNum, blockSize, config.syncType, (int)config.sampleFmt, 
@@ -84,8 +86,12 @@ int sageAudioStreamer::connectToRcv(sageToken &tokenBuf, bool localPort)
       //cout << "------------> " << regMsg << endl;
 
       params[i].rcvID = nwObj->connect(rcvIP, regMsg);
+      if ( params[i].rcvID > 0 ) {
+      	   fprintf(stderr, "sageAudioStreamer::%s() : connection established\n", __FUNCTION__);
+         }
    }
-   std::cout << rcvNodeNum <<      " connections are established" << std::endl;
+   //std::cout << rcvNodeNum <<      " connections are established" << std::endl;
+
 
    return 0;
 }
@@ -114,6 +120,7 @@ int sageAudioStreamer::sendControlBlock(int flag, int cond)
          sageAudioBlock ctrlBlock; // ?????
          ctrlBlock.setFlag(flag);
          ctrlBlock.setFrameID(frameID);
+         //printf(".. %d\n", ctrlBlock.gframeID);
 
 			//ctrlBlock.setTimeStamp(timestamp.tv_sec, timestamp.tv_usec);
 
@@ -206,6 +213,9 @@ int sageAudioStreamer::streamAudioData()
 	aBlock.setTimeStamp(bufferBlock->timestamp_s, bufferBlock->timestamp_u);
 	//std::cout << "audio time stamp : " << bufferBlock->timestamp_s << " " << bufferBlock->timestamp_u << std::endl;
 
+	//fprintf(stderr,"sageAudioStreamer::%s() : frame %d \n", __FUNCTION__, bufferBlock->gframeIndex);
+
+
    aBlock.setgFrameID(bufferBlock->gframeIndex);
 
    aBlock.updateBufferHeader();
@@ -265,7 +275,8 @@ int sageAudioStreamer::streamLoop()
          }
          pthread_mutex_unlock(reconfigMutex);
       }
-      
+
+
       if (streamAudioData() < 0) {
          streamerOn = false;
          //std::cout << "pt1" << std::endl;

@@ -78,8 +78,12 @@ int displayNode::computeDimension()
    return 0;
 }
 
+/**
+ * framePerBuffer determines the size of a block, thus the total number of audio blocks
+ * gFrameIndex is not accurate enough to ensure AVsync when the total # of audio block is smaller than the total # of video frames
+ */
 audioNode::audioNode() :
-   sampleFmt(SAGE_SAMPLE_FLOAT32), samplingRate(44100), channels(2), framePerBuffer(2048), deviceId(-1)
+   sampleFmt(SAGE_SAMPLE_FLOAT32), samplingRate(44100), channels(2), framePerBuffer(512), deviceId(-1)
 {
    memset((void *)ip, 0, SAGE_IP_LEN);
    streamIPs.clear();
