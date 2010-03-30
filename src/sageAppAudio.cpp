@@ -165,7 +165,7 @@ int sageAppAudio::processData()
 				//std::cout << "gframeIndex(from calcurate) : " << bufferBlock->gframeIndex << " " << This->totalLoadedFrames << " blockIndex=" << blockIndex << " " << This->totalBlocks << std::endl;
 			}
 			*/
-			bufferBlock->gframeIndex = sageAudioModule::_instance->getgFrameNum();
+			block->gframeIndex = sageAudioModule::_instance->getgFrameNum();
 
 			block->reformatted = 1;   
 			buffer->updateWriteIndex();
