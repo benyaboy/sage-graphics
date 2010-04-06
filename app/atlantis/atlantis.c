@@ -513,9 +513,6 @@ main(int argc, char **argv)
     glutAttachMenu(GLUT_RIGHT_BUTTON);
     glPixelStorei(GL_PACK_ALIGNMENT,1);
     
-    ff= fopen("log_atlantis", "w+");
-    fclose(ff);
-
         //glutFullScreen();
 
 	if (rgbBuffer)
