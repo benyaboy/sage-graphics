@@ -1,6 +1,21 @@
+# Machine specific settings
+MACHINE=$(shell uname -s)
+   #Darwin  MacOSX
+   #Linux   linux
+   #Solaris SunOS
+
+ARCHITECTURE=$(shell uname -m)
+   #i386  MacOSX
+   #i686    Linux 32bit
+   #x86_64  Linux 64bit
+   #ia64    Linux Itanium 64bit
+   #ppc64   Linux PPC PS3
+
+ifneq ($(MACHINE), Darwin)
+GLSL_YUV=1
+endif
 # To enable audio, uncomment the following line
 #AUDIO=1
-#GLSL_YUV=1
 #SAIL_ONLY=1
 #SUN_GCC=1
 FS_CONSOLE=fsConsole
@@ -53,19 +68,6 @@ else
   GLEW_CFLAGS=
   GLSL_YUV_DEFINE=
 endif
-
-# Machine specific settings
-MACHINE=$(shell uname -s)
-   #Darwin  MacOSX
-   #Linux   linux
-   #Solaris SunOS
-
-ARCHITECTURE=$(shell uname -m)
-   #i386  MacOSX
-   #i686    Linux 32bit
-   #x86_64  Linux 64bit
-   #ia64    Linux Itanium 64bit
-   #ppc64   Linux PPC PS3
 
 ifeq ($(MACHINE), Darwin)
   # SAIL library name
