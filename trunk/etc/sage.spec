@@ -1,7 +1,7 @@
 Summary: SAGE Scalable Adaptive Graphics Environment
 Name: sage-graphics
 Version: 3.2
-Release: 171
+Release: 174
 Source0: %{name}-%{version}.tar.gz
 License: BSD
 Group: Graphics/Streaming
@@ -13,7 +13,7 @@ BuildRequires: gcc-c++, libSDL-devel, libreadline6, readline-devel, freeglut, fr
 Requires: libjpeg, libSDL-1_2-0
 %endif
 %if 0%{?suse_version} == 1120
-BuildRequires: gcc-c++, libSDL-1_2-0, libSDL-devel, libreadline6, readline-devel, libncurses6, ncurses-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, libMagickWand2
+BuildRequires: gcc-c++, libSDL-1_2-0, libSDL-devel, libreadline6, readline-devel, libncurses6, ncurses-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libMagickWand2
 %endif
 %if 0%{?suse_version} == 1110
 BuildRequires: gcc, gcc43, gcc-c++, gcc43-c++, SDL, SDL-devel, libreadline5, libncurses5, readline-devel, ncurses-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libMagickWand1
