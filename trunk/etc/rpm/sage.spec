@@ -1,7 +1,7 @@
 Summary: SAGE Scalable Adaptive Graphics Environment
 Name: sage-graphics
 Version: 3.2
-Release: 174
+Release: 176
 Source0: %{name}-%{version}.tar.gz
 License: BSD
 Group: Graphics/Streaming
@@ -9,35 +9,35 @@ Provides: sage
 BuildRoot: %{_tmppath}/%{name}-%{version}-root 
 
 %if 0%{?suse_version} > 1120
-BuildRequires: gcc-c++, libSDL-devel, libreadline6, readline-devel, freeglut, freeglut-devel, ImageMagick, ImageMagick-devel, libMagickWand2, libjpeg-devel
+BuildRequires: gcc-c++, libSDL-devel, libreadline6, readline-devel, freeglut, freeglut-devel, ImageMagick, ImageMagick-devel, libjpeg-devel, glew-devel
 Requires: libjpeg, libSDL-1_2-0
 %endif
 %if 0%{?suse_version} == 1120
-BuildRequires: gcc-c++, libSDL-1_2-0, libSDL-devel, libreadline6, readline-devel, libncurses6, ncurses-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libMagickWand2
+BuildRequires: gcc-c++, libSDL-1_2-0, libSDL-devel, libreadline6, readline-devel, libncurses6, ncurses-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libMagickWand2, glew-devel
 %endif
 %if 0%{?suse_version} == 1110
-BuildRequires: gcc, gcc43, gcc-c++, gcc43-c++, SDL, SDL-devel, libreadline5, libncurses5, readline-devel, ncurses-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libMagickWand1
+BuildRequires: gcc, gcc43, gcc-c++, gcc43-c++, SDL, SDL-devel, libreadline5, libncurses5, readline-devel, ncurses-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libMagickWand1, glew-devel
 %endif
 %if 0%{?suse_version} == 1100
-BuildRequires: gcc, gcc43, gcc-c++, gcc43-c++, SDL, SDL-devel, libreadline5, libncurses5, readline-devel, ncurses-devel,freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libMagickWand1
+BuildRequires: gcc, gcc43, gcc-c++, gcc43-c++, SDL, SDL-devel, libreadline5, libncurses5, readline-devel, ncurses-devel,freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libMagickWand1, glew-devel
 %endif
 %if 0%{?centos_version} > 500
-BuildRequires: gcc, gcc-c++, SDL, SDL-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel
+BuildRequires: gcc, gcc-c++, SDL, SDL-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel, glew-devel
 %endif
 %if 0%{?fedora} == 10
-BuildRequires: gcc, gcc-c++, SDL, SDL-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel
+BuildRequires: gcc, gcc-c++, SDL, SDL-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel, glew-devel
 %endif
 %if 0%{?fedora} == 11
-BuildRequires: gcc, gcc-c++, SDL, SDL-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel
+BuildRequires: gcc, gcc-c++, SDL, SDL-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel, glew-devel
 %endif
 %if 0%{?fedora} == 12
-BuildRequires: gcc, gcc-c++, SDL, SDL-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel
+BuildRequires: gcc, gcc-c++, SDL, SDL-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel, glew-devel
 %endif
 %if 0%{?rhel_version} == 406
-BuildRequires: gcc, gcc-c++, SDL, SDL-devel, ncurses, ncurses-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel
+BuildRequires: gcc, gcc-c++, SDL, SDL-devel, ncurses, ncurses-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, glew-devel
 %endif
 %if 0%{?rhel_version} == 501
-BuildRequires: gcc, gcc-c++, SDL, SDL-devel, ncurses, ncurses-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel
+BuildRequires: gcc, gcc-c++, SDL, SDL-devel, ncurses, ncurses-devel, readline, readline-devel, freeglut, freeglut-devel, libjpeg, libjpeg-devel, ImageMagick, ImageMagick-devel, libXmu, libXmu-devel, libXi, libXi-devel, glew-devel
 %endif
 
 #!BuildIgnore: post-build-checks
