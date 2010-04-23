@@ -66,8 +66,11 @@ sageBridge::sageBridge(int argc, char **argv) : syncPort(0), syncGroupID(0), aud
       allocPolicy(ALLOC_SINGLE_NODE)
 {
 	nwCfg = new sageNwConfig;
+	/*
 	for (int i=0; i<MAX_INST_NUM; i++)
 		appInstList[i] = NULL;
+		*/
+	appInstList.clear();
 	instNum = 0;   
 	
 	if (argc < 2) {  // master mode with default configuration file
@@ -310,8 +313,9 @@ int sageBridge::initNetworks()
    nwCfg->blockSize = 9000;
    nwCfg->groupSize = 65536;
    sageUdpModule *sendObj = new sageUdpModule;
-   sendObj->init(SAGE_SEND, 0, *nwCfg);
+   sendObj->init(SAGE_SEND, 0, *nwCfg); // starts sageUdpModule::sendingThread()
    shared->sendObj = (streamProtocol *)sendObj;
+   fprintf(stderr,"sageBridge::%s() : UDP sending object init-ed", __FUNCTION__);
 
    tcpObj = new sageTcpModule;
    if (tcpObj->init(SAGE_RCV, streamPort, *nwCfg) == 1) {
@@ -319,8 +323,7 @@ int sageBridge::initNetworks()
       bridgeEnd = true;
       return -1;
    }
-   
-   sage::printLog("SAGE Bridge : tcp network object was initialized successfully " );
+   sage::printLog("sageBridge::%s() : tcp network object was initialized.", __FUNCTION__ );
    
    udpObj = new sageUdpModule;
    if (udpObj->init(SAGE_RCV, streamPort+(int)SAGE_UDP, *nwCfg) == 1) {
@@ -328,14 +331,12 @@ int sageBridge::initNetworks()
       bridgeEnd = true;
       return -1;
    }
-   
-   sage::printLog("SAGE Bridge : udp network object was initialized successfully" );
+   sage::printLog("sageBridge::%s() : udp network object was initialized.", __FUNCTION__ );
 
    pthread_t thId;
    nwCheckThreadParam *param = new nwCheckThreadParam;
    param->This = this;
    param->nwObj = tcpObj;
-   
    if (pthread_create(&thId, 0, nwCheckThread, (void*)param) != 0) {
       sage::printLog("sageBridge::initNetwork : can't create network checking thread");
          return -1;
@@ -466,6 +467,7 @@ int sageBridge::findMinLoadNode()
 int sageBridge::regApp(sageMessage &msg, int clientID)
 {
    char *data = (char *)msg.getData();
+   fprintf(stderr, "sageBridge::%s() : msg [%s], clientID %d\n", __FUNCTION__, data, clientID);
    
    if (master) {
       appInstance *inst = new appInstance(data, instNum, shared);
@@ -478,7 +480,7 @@ int sageBridge::regApp(sageMessage &msg, int clientID)
       }   
       else  {
          int selNode = findMinLoadNode();
-         sage::printLog("sageBridge : allocate app to node %d", selNode);
+         sage::printLog("sageBridge::%s() : allocate app to node %d", __FUNCTION__, selNode);
          inst->allocateNodes(allocPolicy, selNode);
       }   
       
@@ -496,11 +498,15 @@ int sageBridge::regApp(sageMessage &msg, int clientID)
             sprintf(regStr, "%s %d %d", data, inst->nodeNum, sGroup->getSyncID());
       }
       
+      fprintf(stderr, "sageBridge::%s() : distributing BRIDGE_APP_REG message. regStr[%s] \n", __FUNCTION__, regStr);
+
       msgInf->distributeMessage(BRIDGE_APP_REG, instNum, regStr, slaveList, slaveNum);
       
+
+
       char sailInitMsg[TOKEN_LEN];
-      sprintf(sailInitMsg, "%d %d %d %d", instNum , nwCfg->rcvBufSize,
-            nwCfg->sendBufSize, nwCfg->mtuSize);
+      sprintf(sailInitMsg, "%d %d %d %d", instNum , nwCfg->rcvBufSize, nwCfg->sendBufSize, nwCfg->mtuSize);
+      fprintf(stderr, "sageBridge::%s() : sending SAIL_INIT_MSG [%s] \n", __FUNCTION__, sailInitMsg);
       msgInf->msgToClient(clientID, 0, SAIL_INIT_MSG, sailInitMsg);
       
       if (inst->waitNodes == 0) {
@@ -650,27 +656,30 @@ int sageBridge::shutdownAllApps()
 
 int sageBridge::initStreams(char *msg, streamProtocol *nwObj)
 {
-   int senderID, instID, frameRate, streamType;
-      
-   sscanf(msg, "%d %d %d %d", &senderID, &streamType, &frameRate, &instID);
-   
-   std::cout << "sender " << senderID << " connected to node " << shared->nodeID << std::endl;
+	int senderID, instID, frameRate, streamType;
+
+	sscanf(msg, "%d %d %d %d", &senderID, &streamType, &frameRate, &instID);
+
+	//std::cout << "sender " << senderID << " connected to node " << shared->nodeID << std::endl;
+	fprintf(stderr,"sageBridge::%s() : msg [%s]\n", __FUNCTION__, msg);
 
 	int index;
-   appInstance *inst = findApp(instID, index);
-   if (inst) {
-      if (!inst->initialized)
-         inst->init(msg, nwObj);
-      std::cout << "node " << shared->nodeID << " init instance" << std::endl;         
-      int streamNum = inst->addStream(senderID);
-      std::cout << "node " << shared->nodeID << " add stream" << std::endl;
-   }
-   else {
-      sage::printLog("sageBridge::initStreams : invalid instance ID");
-      return -1;
-   }
-   
-   return 0;
+	appInstance *inst = findApp(instID, index);
+	if (inst) {
+		if (!inst->initialized)
+			inst->init(msg, nwObj);
+
+		//std::cout << "node " << shared->nodeID << " init instance" << std::endl;
+
+		int streamNum = inst->addStream(senderID);
+		//std::cout << "node " << shared->nodeID << " add stream" << std::endl;
+	}
+	else {
+		sage::printLog("sageBridge::initStreams : invalid instance ID");
+		return -1;
+	}
+
+	return 0;
 }
 
 syncGroup* sageBridge::addSyncGroup()
@@ -815,7 +824,7 @@ int sageBridge::shareApp(char *msgData, int clientID)
          return -1;
          
       int newIdx = connectToFSManager(inst, fsIP, fsPort);
-      sage::printLog("connected to fsManager %s:%d", fsIP, fsPort);
+      sage::printLog("sageBridge::%s() : connected to fsManager %s:%d", __FUNCTION__, fsIP, fsPort);
       
       syncGroup *sGroup = NULL;
       if (inst->nodeNum > 1)
@@ -828,7 +837,7 @@ int sageBridge::shareApp(char *msgData, int clientID)
       
       //sage::printLog("added sync group %d for app instance %d", syncID, inst->instID);
       inst->addStreamer(newIdx, orgIdx, sGroup);
-      sage::printLog("new streamer added for %s:%d", fsIP, fsPort);      
+      sage::printLog("sageBridge::%s() : new streamer added for %s:%d", __FUNCTION__, fsIP, fsPort);
       
       char msgStr[TOKEN_LEN];
       sprintf(msgStr, "%d %d %d %d", inst->instID, orgIdx, newIdx, syncID);
@@ -926,7 +935,7 @@ int sageBridge::parseMessage(sageMessage &msg, int clientID)
          
          case BRIDGE_APP_INST_READY : {
             int instID = msg.getDest();
-				int index;
+			int index;
             appInstance *inst = findApp(instID, index);
    
             if (inst) {
