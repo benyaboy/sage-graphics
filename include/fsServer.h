@@ -51,6 +51,10 @@
 
 class fsManager;
 
+/**
+ * read messages from UI and APPs
+ * pass them to appropriate component
+ */
 class fsServer {
 private:
    QUANTAnet_tcpServer_c *sysServer;
