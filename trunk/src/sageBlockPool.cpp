@@ -539,6 +539,9 @@ void sageBlockGroup::clearBlocks()
 
 void sageBlockGroup::clear()
 {
+#ifdef DEBUG_MEMORY
+	fprintf(stderr, "SBG::clear() : delete pixel blocks in this group\n");
+#endif
    buf->setBlockingFlag(false);
    sagePixelBlock *pBlock;
    while (pBlock = front()) {
@@ -549,6 +552,9 @@ void sageBlockGroup::clear()
 
 sageBlockGroup::~sageBlockGroup()
 {
+#ifdef DEBUG_MEMORY
+	fprintf(stderr, "SBG::~SBG()\n");
+#endif
    if (buf) {
       if (memAlloc)
          clear();
@@ -575,6 +581,9 @@ sageBlockBuf::sageBlockBuf(int bufSize, int grpSize, int blkSize, char opt) : wa
    int bScale = 1;
 
    //std::cout << "buf size " << bufSize << "  group size " << grpSize << "  block size " << blkSize << std::endl;
+#ifdef DEBUG_MEMORY
+   fprintf(stderr, "sageBlockBuf::sageBlockBuf(bufSize %d, grpSize %d, blkSize %d) : %d blocks, bufLen(number of SBGs) %d\n", bufSize, grpSize, blkSize, blockNum, bufLen);
+#endif
 
    if (opt & BUF_CTRL_GROUP) {
       ctrlPool = new sageCircBufSingle(bufLen, true);
@@ -955,16 +964,32 @@ void sageBlockBuf::getBufInfo(char *bufStatus)
 
 sageBlockBuf::~sageBlockBuf()
 {
-   if (clear(buf))
-      delete buf;
+   if (clear(buf)) {
+#ifdef DEBUG_MEMORY
+	   fprintf(stderr, "sageBlockBuf::~sageBlockBuf() : delete buf\n");
+#endif
+	   delete buf;
+   }
 
-   if (clear(dataPool))
+   if (clear(dataPool)) {
+#ifdef DEBUG_MEMORY
+	   fprintf(stderr, "sageBlockBuf::~sageBlockBuf() : delete dataPool\n");
+#endif
       delete dataPool;
+   }
 
-   if (clear(vacantPool))
+   if (clear(vacantPool)) {
+#ifdef DEBUG_MEMORY
+	   fprintf(stderr, "sageBlockBuf::~sageBlockBuf() : delete vacantPool\n");
+#endif
       delete vacantPool;
+   }
 
-   if (clear(ctrlPool))
+   if (clear(ctrlPool)) {
+#ifdef DEBUG_MEMORY
+	   fprintf(stderr, "sageBlockBuf::~sageBlockBuf() : delete ctrlPool\n");
+#endif
       delete ctrlPool;
+   }
 }
 
