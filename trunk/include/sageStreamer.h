@@ -115,6 +115,9 @@ protected:
    /**
     * called by sageStreamer::initNetworks()
     * it calls nwObj->connect()
+    *
+    * this function makes connection between sender(SAIL) and receivers(SDM)
+    * sends 1KByte of regMsg to receivers
     */
    virtual int connectToRcv(sageToken &tokenBuf, bool localPort = false);
    virtual void setupBlockPool() {}
