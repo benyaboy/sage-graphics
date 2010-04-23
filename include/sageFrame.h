@@ -60,7 +60,7 @@ protected:
    sagePixelBlock *blocks;
    int idx;
    int numCol, numRow, subBlockNum;
-   int pixelSize;
+   int pixelSize; // Byte per pixel
    int memWidth;
    sageBlockPartition *partition;
    
@@ -75,7 +75,17 @@ public:
    int generateBlocks(int rowOrd);
    int generateSubFrame(sageRect &subRect, sageSubFrame &sFrame);
    bool updateBlockConfig() { return false; }
+
+   /**
+    * override virtual function
+    */
    int updateBufferHeader() { return 0; }
+
+   /**
+    * for sagenext, embed frame number
+    */
+   int updateBufferHeader(int fnum);
+
    ~sageBlockFrame();
    
    friend class sageSubFrame;
