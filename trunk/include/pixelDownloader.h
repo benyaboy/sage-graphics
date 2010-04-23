@@ -149,6 +149,11 @@ protected:
    int updateType;
    bool passiveUpdate;
 
+   /**
+    * stream coming from bridge and it's actually parallel app
+    */
+   bool fromBridgeParallel;
+
    std::deque<char *> configQueue;
 
    //int sendPerformanceInfo();

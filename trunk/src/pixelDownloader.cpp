@@ -111,18 +111,44 @@ pixelDownloader::pixelDownloader() : reportRate(1), updatedFrame(0), curFrame(0)
 	m_initialized(false)
 {
    perfTimer.reset();
+
+   // is this from bridge and actually parallel app?
+   fromBridgeParallel = false;
 }
 
 int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, bool sync, int sl)
 {
+	/* from sageStreamer::connectToRcv()
+	char regMsg[REG_MSG_SIZE];
+	      sprintf(regMsg, "%d %d %d %d %d %d %d %d %d %d %d %d",
+	    		  config.streamType,
+	    		  config.frameRate,
+	    		  winID,
+	    		  config.groupSize,
+	    		  blockSize,
+	    		  config.nodeNum,
+	    		  (int)config.pixFmt,
+	    		  config.blockX,
+	    		  config.blockY,
+	    		  config.totalWidth,
+	    		  config.totalHeight,
+	    		  config.fromBridge);
+
+	      */
    char *msgPt = sage::tokenSeek(msg, 3);
    sscanf(msgPt, "%d %d %d", &instID, &groupSize, &blockSize);
 
    int blockX, blockY, imgWidth, imgHeight;
    sagePixFmt pixFmt;
+   int temp = 0;
 
    msgPt = sage::tokenSeek(msg, 7);
-   sscanf(msgPt, "%d %d %d %d %d", (int *)&pixFmt, &blockX, &blockY, &imgWidth, &imgHeight);
+   sscanf(msgPt, "%d %d %d %d %d %d", (int *)&pixFmt, &blockX, &blockY, &imgWidth, &imgHeight, &temp);
+   if ( temp ) fromBridgeParallel = true;
+
+   if ( fromBridgeParallel ) {
+	   fprintf(stderr,"PDL::%s() : fromBridgeParallel true\n", __FUNCTION__);
+   }
 
    if (partition) {
 	   delete partition;
@@ -531,7 +557,7 @@ int pixelDownloader::fetchSageBlocks()
     		  }
     	  } // end of foreach block
 
-    	  if ( recv->getSenderNum() == 1 ) {
+    	  if ( !fromBridgeParallel && recv->getSenderNum() == 1 ) {
     		  if ( partition && frameBlockNum >= partition->tableEntryNum() ) { // whole frame received
     			  useLastBlock = true; // setting flag for swapMontages to be executed, since END_FRAME
     			  proceedSwap = true;
@@ -701,6 +727,8 @@ int pixelDownloader::setDepth(float depth)
 
 pixelDownloader::~pixelDownloader()
 {
+	fprintf(stderr, "[%d,%d] PDL::~PDL()\n", shared->nodeID, instID);
+
    for (int i=0; i<tileNum; i++) {
       montagePair &monPair = montageList[i];
       sageMontage* mon = monPair.getFrontMon();
