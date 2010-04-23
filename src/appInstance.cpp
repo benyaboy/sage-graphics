@@ -75,6 +75,8 @@ appInstance::appInstance(char *msgStr, int id, bridgeSharedData *sh) : instID(id
    slaveLoss = 0.0;
    packetLoss = 0;
    perfTimer.reset();
+
+   numOfSenders = 1;
 }
 
 appInstance::~appInstance()
@@ -110,19 +112,53 @@ int appInstance::allocateNodes(int policy, int nID)
    return 0;
 }
 
+/**
+ * from sageBridge::initStreams()
+ */
 int appInstance::init(char *msg, streamProtocol *nwObj)
 {   
+	/*
+	sprintf(regMsg, "%d %d %d %d %d %d %d %d %d %d %d %d",
+	    		  config.streamType,
+	    		  config.frameRate,
+	    		  winID,
+	    		  config.groupSize,
+	    		  blockSize,
+	    		  config.nodeNum,
+	    		  (int)config.pixFmt,
+	    		  config.blockX,
+	    		  config.blockY,
+	    		  config.totalWidth,
+	    		  config.totalHeight,
+	    		  config.fromBridgeParallel); */
+	//sageBridge::initStreams() : msg [2 103 60 1 131072 12416 4 5 64 64 800 800 0]
+
    initialized = true;   
 
-   int dummy;   
+   int dummy;
+   sscanf(msg, "%d %d %d %d %d %d %d %d %d %d",
+		   &dummy,
+		   &sConfig.streamType,
+		   &sConfig.frameRate,
+		   &dummy,
+		   &groupSize,
+		   &blockSize,
+		   &numOfSenders,
+		   (int *)&sConfig.pixFmt,
+		   &sConfig.blockX,
+		   &sConfig.blockY
+		   );
+
+   /*
    char *msgPt = sage::tokenSeek(msg, 1);
    sscanf(msgPt, "%d %d", &sConfig.streamType, &sConfig.frameRate);
    
    msgPt = sage::tokenSeek(msg, 4);
    sscanf(msgPt, "%d %d", &groupSize, &blockSize);   
    
-   msgPt = sage::tokenSeek(msg, 7);
-   sscanf(msgPt, "%d %d %d", (int *)&sConfig.pixFmt, &sConfig.blockX, &sConfig.blockY);
+   msgPt = sage::tokenSeek(msg, 6);
+   sscanf(msgPt, "%d %d %d %d", &numOfSenders, (int *)&sConfig.pixFmt, &sConfig.blockX, &sConfig.blockY);
+   */
    
    std::cout << "block buffer size " << shared->bufSize << std::endl;
    
@@ -164,6 +200,9 @@ int appInstance::addStreamer(int fsIdx, int orgIdx, syncGroup *sGroup, int syncI
    
    bridgeStreamer *streamer = NULL;
    sConfig.protocol = shared->protocol;
+
+   if ( numOfSenders > 1 )
+	   sConfig.fromBridgeParallel = true; //sungwon
       
    if (shared->protocol == SAGE_TCP)
       streamer = new bridgeStreamer(sConfig, blockBuf, NULL);

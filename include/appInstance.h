@@ -102,6 +102,11 @@ protected:
    float accLoss, slaveLoss;
    int  reportCnt;
    
+   /**
+    * if greater than 1 , then it's parallel app
+    */
+   int numOfSenders;
+
    int sendPerformanceInfo();
    int addStreamer(int fsIdx, int orgIdx = 0, syncGroup *sGroup = NULL, int syncID = 0);
    
@@ -112,7 +117,16 @@ protected:
 public:
    appInstance(char *msgStr, int id, bridgeSharedData *sh);
    ~appInstance();
+
+   /**
+    * sageBridget::initStreams()
+    * receiver buffer(sageBlockBuf) and sageReceiver object is created here
+    */
    int init(char *msg, streamProtocol *nwObj);
+
+   /**
+    * bridgeStreamer object is created here
+    */
    int addStream(int senderID);
    void fillAppInfo(char *msgStr);
    int connectToFSManager();

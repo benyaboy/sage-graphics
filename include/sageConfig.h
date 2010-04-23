@@ -65,7 +65,7 @@ public:
    sageCompressType compression;
    int  frameRate;
    int  syncMode;
-   int  streamType;
+   int  streamType; // SAGE_BLOCK_HARD_SYNC, NO_SYNC
    int  streamerID;
    int  groupSize;
    int  maxBandwidth;  // maximum hardware bandwidth of sending node
@@ -94,9 +94,11 @@ public:
    
    int  syncPolicy, syncID;
    syncGroup *sGroup;
-      
    sageSyncClient *syncClientObj;
    
+   bool sagenext;
+   bool fromBridgeParallel;
+
    streamerConfig();
 };   
 

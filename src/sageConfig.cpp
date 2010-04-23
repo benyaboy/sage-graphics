@@ -69,6 +69,9 @@ streamerConfig::streamerConfig() : rank(0), resX(0), resY(0), rowOrd(TOP_TO_BOTT
          break;
    }
 
+   sagenext = false;
+   fromBridgeParallel = false;
+
 }
 
 sailConfig::sailConfig() : nwID(1), fsPort(0), syncPort(0), msgPort(0), appID(0), 
@@ -375,6 +378,12 @@ int sailConfig::init(const char *fname)
 		else if (strcmp(token, "RENDERBUFY") == 0) {
 			getToken(fp, token);
 			resY = atoi(token);
+		}
+		else if (strcmp(token, "SAGENEXT") == 0 ) {
+			getToken(fp, token);
+			if ( atoi(token) == 1 ) {
+				sagenext = true;
+			}
 		}
 	}
 	
