@@ -123,6 +123,28 @@ int sageBlockFrame::generateSubFrame(sageRect &rect, sageSubFrame &s)
    return 0;
 }
 
+/**
+ * sagenext
+ */
+int sageBlockFrame::updateBufferHeader(int fnum) {
+	if (!buffer) {
+		sage::printLog("sageBlockFrame::%s() : buffer is null", __FUNCTION__);
+		return -1;
+	}
+
+	memset(buffer, 0, BLOCK_HEADER_SIZE);
+
+	// frameNumber, pixelSize, memwidth, bufSize
+	int headerLen = sprintf(buffer, "%d %d %d %d", fnum, pixelSize, memWidth, bufSize);
+
+	if (headerLen >= BLOCK_HEADER_SIZE) {
+		sage::printLog("sageBlockFrame::%s() : block header exceeds the maximum length %d Byte", __FUNCTION__, BLOCK_HEADER_SIZE);
+		return -1;
+	}
+
+	return 0;
+}
+
 sageBlockFrame::~sageBlockFrame()
 {
    if (blocks) {
