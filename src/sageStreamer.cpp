@@ -89,10 +89,13 @@ int sageStreamer::initNetworks(char *data, bool localPort)
    char token[TOKEN_LEN];
    sageToken tokenBuf(data);
    tokenBuf.getToken(token);
+
+   // e.g.   rcvStreamPort 22000,  rcvNodeNum 1  131.193.78.140   0
       
    //std::cout << "connection info " << data << std::endl;
    
    int rcvPort = atoi(token) + (int)config.protocol;
+   fprintf(stderr, "sageStreamer::%s() : rcvPort = %d + %d = %d\n", __FUNCTION__, atoi(token), (int)config.protocol, rcvPort);
    
    sageTcpModule *tcpObj;
    sageUdpModule *udpObj;
@@ -100,13 +103,13 @@ int sageStreamer::initNetworks(char *data, bool localPort)
    switch (config.protocol) {
       case SAGE_TCP :
          tcpObj = new sageTcpModule;
-         tcpObj->init(SAGE_SEND, rcvPort, nwCfg);
+         tcpObj->init(SAGE_SEND, rcvPort, nwCfg); // does nothing
          nwObj = (streamProtocol *)tcpObj;
          sage::printLog("sageStreamer::initNetworks : initialize TCP object"); 
          break;
       case SAGE_UDP :
          udpObj = new sageUdpModule;
-         udpObj->init(SAGE_SEND, rcvPort, nwCfg);
+         udpObj->init(SAGE_SEND, rcvPort, nwCfg); // start sendingThread
          nwObj = (streamProtocol *)udpObj;
          sage::printLog("sageStreamer::initNetworks : initialize UDP object");
          break;
@@ -118,13 +121,14 @@ int sageStreamer::initNetworks(char *data, bool localPort)
          break;   
    }      
 
-   sage::printLog("sageStreamer : network object was initialized successfully");
+   sage::printLog("sageStreamer::%s() : network object was initialized successfully", __FUNCTION__);
    
    connectToRcv(tokenBuf, localPort);
    setupBlockPool();
    nwObj->setFrameRate((double)config.frameRate);
    streamTimer.reset();
    
+   // starts the streamLoop
    if (pthread_create(&thId, 0, nwThread, (void*)this) != 0) {
       sage::printLog("sageBlockStreamer : can't create nwThread");
    }
@@ -132,38 +136,57 @@ int sageStreamer::initNetworks(char *data, bool localPort)
    return 0;
 }
 
-int sageStreamer::connectToRcv(sageToken &tokenBuf, bool localPort)
+int sageStreamer::connectToRcv(sageToken &tokenBuf, bool localPort /* = false */)
 {
    char token[TOKEN_LEN];
    tokenBuf.getToken(token);
    rcvNodeNum = atoi(token);
    
    params = new streamParam[rcvNodeNum];
+
    for (int i=0; i<rcvNodeNum; i++) {
       char rcvIP[SAGE_IP_LEN];
       tokenBuf.getToken(rcvIP);
+
       if (localPort) {
          tokenBuf.getToken(token);
          int port = atoi(token) + (int)config.protocol;
          nwObj->setConfig(port);
-         sage::printLog("Connecting to %s:%d", rcvIP, port);
+         sage::printLog("sageStreamer::%s() : Connecting to %s:%d, port is %d+%d",__FUNCTION__, rcvIP, port, atoi(token), (int)config.protocol);
       }
+
       tokenBuf.getToken(token);
       params[i].nodeID = atoi(token);
       params[i].active = false;
       
       char regMsg[REG_MSG_SIZE];
-      sprintf(regMsg, "%d %d %d %d %d %d %d %d %d %d %d", config.streamType, 
-         config.frameRate, winID, config.groupSize, blockSize, config.nodeNum, (int)config.pixFmt, 
-         config.blockX, config.blockY, config.totalWidth, config.totalHeight);
-      params[i].rcvID = nwObj->connect(rcvIP, regMsg);
+      sprintf(regMsg, "%d %d %d %d %d %d %d %d %d %d %d %d",
+    		  config.streamType,
+    		  config.frameRate,
+    		  winID,
+    		  config.groupSize,
+    		  blockSize,
+    		  config.nodeNum,
+    		  (int)config.pixFmt,
+    		  config.blockX,
+    		  config.blockY,
+    		  config.totalWidth,
+    		  config.totalHeight,
+    		  config.fromBridgeParallel);
+
+      fprintf(stderr,"sageStreamer::%s() : connecting to rcv(s) with the msg [%s]\n", __FUNCTION__, regMsg);
+
+      // nwObj->connect() returns vector index. and the vector hold socketDescriptor
+      // so, params[i].rcvID represents vector index for the corresponding receiver.
+      params[i].rcvID = nwObj->connect(rcvIP, regMsg); // returns receiver ID
+
       if (params[i].rcvID >= 0)
-         sage::printLog("Connected to %s", rcvIP);
+         sage::printLog("sageStreamer::%s() : Connected to %s", __FUNCTION__, rcvIP);
       else
-         sage::printLog("Failed to connect to %s", rcvIP);   
+         sage::printLog("sageStreamer::%s() : Failed to connect to %s", __FUNCTION__, rcvIP);
    }
    
-   sage::printLog("%d connections are established", rcvNodeNum);
+   sage::printLog("sageStreamer::%s() : %d connections are established", __FUNCTION__, rcvNodeNum);
       
    return 0;
 }

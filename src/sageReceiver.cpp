@@ -352,12 +352,13 @@ int sagePixelReceiver::readData()
 		} // end if (nextFrame)
 	} // end while
 
-   sage::printLog("sagePixelReceiver::readData() : exit reading thread");
+   fprintf(stderr, "[%d,%d] sagePixelReceiver::readData() : exit.\n", shared->nodeID, instID);
    return 0;
 }
 
 sagePixelReceiver::~sagePixelReceiver()
 {
+	fprintf(stderr,"[%d,%d] sagePixelReceiver::%s()\n", shared->nodeID, instID, __FUNCTION__);
    endFlag = true;
    blockBuf->releaseLock();
 
@@ -369,5 +370,5 @@ sagePixelReceiver::~sagePixelReceiver()
    pthread_join(thId, NULL);
 
    delete [] streamList;
-   sage::printLog("[%d,%d] sagePixelReceiver shutdown", shared->nodeID, instID);
+
 }
