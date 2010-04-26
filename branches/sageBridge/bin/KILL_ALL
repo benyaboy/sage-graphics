@@ -1,0 +1,6 @@
+#!/bin/sh
+
+for node in `cat tileNodes.list`
+do
+	ssh -fx $node "killall -9  fsManager sageDisplayManager JuxtaView JuxtaSCUI bplay-noglut init_magic_frames VNCViewer render atlantis atlantis-mpi checker" 
+done

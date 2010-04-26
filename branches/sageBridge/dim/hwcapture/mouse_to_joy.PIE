@@ -1,0 +1,310 @@
+//////////////////////////////////////////////////////////////////////////////////
+//
+// DIM - A Direct Interaction Manager for SAGE
+// Copyright (C) 2007 Electronic Visualization Laboratory,
+// University of Illinois at Chicago
+//
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// 
+//  * Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+//  * Redistributions in binary form must reproduce the above
+//    copyright notice, this list of conditions and the following disclaimer
+//    in the documentation and/or other materials provided with the distribution.
+//  * Neither the name of the University of Illinois at Chicago nor
+//    the names of its contributors may be used to endorse or promote
+//    products derived from this software without specific prior written permission.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Direct questions, comments etc about SAGE UI to www.evl.uic.edu/cavern/forum
+//
+// Author: Ratko Jagodic
+//        
+////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+// A script for converting 5 mouse-like devices on the system to 5 virtual joysticks
+// For use with the device manager for SAGE
+//
+// Author: Ratko Jagodic
+// Date:   April, 2007
+//
+/////////////////////////////////////////////////////////////////////////////////////
+
+
+// minimze upon startup
+//if var.minimized == 0
+//   MinimizePIE()
+//   var.minimized = 1
+//end if
+
+
+// when converting to joystick -1 <-> 1 axis values, we will
+// blank out the region -drift <-> +drift and start mapping
+// the values at +-var.drift up to +-1
+var.drift= 0.001 //001
+var.range= 400
+
+// mouse1 <-> ppjoy1
+   var.dx_1 = RemoveUnits(mouse1.DirectInputX) - var.oldX_1
+   var.dy_1 = RemoveUnits(mouse1.DirectInputY) - var.oldY_1
+
+   var.oldX_1 = RemoveUnits(mouse1.DirectInputX)
+   var.oldY_1 = RemoveUnits(mouse1.DirectInputY)
+   PPJoy1.analog0 = MapRange(var.dx_1, -var.range,var.range, -1,1)
+   PPJoy1.analog1 = MapRange(var.dy_1, -var.range,var.range, -1,1)
+   /*if Sign(var.dx_1) == -1 then
+      PPJoy1.analog0 = EnsureMapRange(var.dx_1, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dx_1)== 1 then
+      PPJoy1.analog0 = EnsureMapRange(var.dx_1, 1,var.range, var.drift,1)
+   else
+      PPJoy1.analog0 = 0
+   endif
+
+   if Sign(var.dy_1) == -1 then
+      PPJoy1.analog1 = EnsureMapRange(var.dy_1, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dy_1)== 1 then
+      PPJoy1.analog1 = EnsureMapRange(var.dy_1, 1,var.range, var.drift,1)
+   else
+      PPJoy1.analog1 = 0
+   endif
+       */
+   PPJoy1.digital1 = mouse1.LeftButton
+   PPJoy1.digital2 = mouse1.RightButton
+   PPJoy1.digital3 = mouse1.MiddleButton
+   mouse1.DirectInputX = 0
+   mouse1.DirectInputY = 0
+
+
+// mouse2 <-> ppjoy2
+   var.dx_2 = RemoveUnits(mouse2.DirectInputX) - var.oldX_2
+   var.dy_2 = RemoveUnits(mouse2.DirectInputY) - var.oldY_2
+
+   var.oldX_2 = RemoveUnits(mouse2.DirectInputX)
+   var.oldY_2 = RemoveUnits(mouse2.DirectInputY)
+
+   if Sign(var.dx_2) == -1 then
+      PPJoy2.analog0 = EnsureMapRange(var.dx_2, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dx_2)== 1 then
+      PPJoy2.analog0 = EnsureMapRange(var.dx_2, 1,var.range, var.drift,1)
+   else
+      PPJoy2.analog0 = 0
+   endif
+
+   if Sign(var.dy_2) == -1 then
+      PPJoy2.analog1 = EnsureMapRange(var.dy_2, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dy_2)== 1 then
+      PPJoy2.analog1 = EnsureMapRange(var.dy_2, 1,var.range, var.drift,1)
+   else
+      PPJoy2.analog1 = 0
+   endif
+
+   PPJoy2.digital1 = mouse2.LeftButton
+   PPJoy2.digital2 = mouse2.RightButton
+   PPJoy2.digital3 = mouse2.MiddleButton
+   mouse2.DirectInputX = 0
+   mouse2.DirectInputY = 0
+
+
+// mouse3 <-> ppjoy3
+   var.dx_3 = RemoveUnits(mouse3.DirectInputX) - var.oldX_3
+   var.dy_3 = RemoveUnits(mouse3.DirectInputY) - var.oldY_3
+
+   var.oldX_3 = RemoveUnits(mouse3.DirectInputX)
+   var.oldY_3 = RemoveUnits(mouse3.DirectInputY)
+
+   if Sign(var.dx_3) == -1 then
+      PPJoy3.analog0 = EnsureMapRange(var.dx_3, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dx_3)== 1 then
+      PPJoy3.analog0 = EnsureMapRange(var.dx_3, 1,var.range, var.drift,1)
+   else
+      PPJoy3.analog0 = 0
+   endif
+
+   if Sign(var.dy_3) == -1 then
+      PPJoy3.analog1 = EnsureMapRange(var.dy_3, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dy_3)== 1 then
+      PPJoy3.analog1 = EnsureMapRange(var.dy_3, 1,var.range, var.drift,1)
+   else
+      PPJoy3.analog1 = 0
+   endif
+
+   PPJoy3.digital1 = mouse3.LeftButton
+   PPJoy3.digital2 = mouse3.RightButton
+   PPJoy3.digital3 = mouse3.MiddleButton
+   mouse3.DirectInputX = 0
+   mouse3.DirectInputY = 0
+
+
+// mouse4 <-> ppjoy4
+   var.dx_4 = RemoveUnits(mouse4.DirectInputX) - var.oldX_4
+   var.dy_4 = RemoveUnits(mouse4.DirectInputY) - var.oldY_4
+
+   var.oldX_4 = RemoveUnits(mouse4.DirectInputX)
+   var.oldY_4 = RemoveUnits(mouse4.DirectInputY)
+
+   if Sign(var.dx_4) == -1 then
+      PPJoy4.analog0 = EnsureMapRange(var.dx_4, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dx_4)== 1 then
+      PPJoy4.analog0 = EnsureMapRange(var.dx_4, 1,var.range, var.drift,1)
+   else
+      PPJoy4.analog0 = 0
+   endif
+
+   if Sign(var.dy_4) == -1 then
+      PPJoy4.analog1 = EnsureMapRange(var.dy_4, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dy_4)== 1 then
+      PPJoy4.analog1 = EnsureMapRange(var.dy_4, 1,var.range, var.drift,1)
+   else
+      PPJoy4.analog1 = 0
+   endif
+
+   PPJoy4.digital1 = mouse4.LeftButton
+   PPJoy4.digital2 = mouse4.RightButton
+   PPJoy4.digital3 = mouse4.MiddleButton
+   mouse4.DirectInputX = 0
+   mouse4.DirectInputY = 0
+
+
+// mouse5 <-> ppjoy5
+   var.dx_5 = RemoveUnits(mouse5.DirectInputX) - var.oldX_5
+   var.dy_5 = RemoveUnits(mouse5.DirectInputY) - var.oldY_5
+
+   var.oldX_5 = RemoveUnits(mouse5.DirectInputX)
+   var.oldY_5 = RemoveUnits(mouse5.DirectInputY)
+
+   if Sign(var.dx_5) == -1 then
+      PPJoy5.analog0 = EnsureMapRange(var.dx_5, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dx_5)== 1 then
+      PPJoy5.analog0 = EnsureMapRange(var.dx_5, 1,var.range, var.drift,1)
+   else
+      PPJoy5.analog0 = 0
+   endif
+
+   if Sign(var.dy_5) == -1 then
+      PPJoy5.analog1 = EnsureMapRange(var.dy_5, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dy_5)== 1 then
+      PPJoy5.analog1 = EnsureMapRange(var.dy_5, 1,var.range, var.drift,1)
+   else
+      PPJoy5.analog1 = 0
+   endif
+
+   PPJoy5.digital1 = mouse5.LeftButton
+   PPJoy5.digital2 = mouse5.RightButton
+   PPJoy5.digital3 = mouse5.MiddleButton
+   mouse5.DirectInputX = 0
+   mouse5.DirectInputY = 0
+
+
+// mouse6 <-> ppjoy6
+   var.dx_6 = RemoveUnits(mouse6.DirectInputX) - var.oldX_6
+   var.dy_6 = RemoveUnits(mouse6.DirectInputY) - var.oldY_6
+
+   var.oldX_6 = RemoveUnits(mouse6.DirectInputX)
+   var.oldY_6 = RemoveUnits(mouse6.DirectInputY)
+
+   if Sign(var.dx_6) == -1 then
+      PPJoy6.analog0 = EnsureMapRange(var.dx_6, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dx_6)== 1 then
+      PPJoy6.analog0 = EnsureMapRange(var.dx_6, 1,var.range, var.drift,1)
+   else
+      PPJoy6.analog0 = 0
+   endif
+
+   if Sign(var.dy_6) == -1 then
+      PPJoy6.analog1 = EnsureMapRange(var.dy_6, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dy_6)== 1 then
+      PPJoy6.analog1 = EnsureMapRange(var.dy_6, 1,var.range, var.drift,1)
+   else
+      PPJoy6.analog1 = 0
+   endif
+
+   PPJoy6.digital1 = mouse6.LeftButton
+   PPJoy6.digital2 = mouse6.RightButton
+   PPJoy6.digital3 = mouse6.MiddleButton
+   mouse6.DirectInputX = 0
+   mouse6.DirectInputY = 0
+
+
+
+// mouse7 <-> ppjoy7
+   var.dx_7 = RemoveUnits(mouse7.DirectInputX) - var.oldX_7
+   var.dy_7 = RemoveUnits(mouse7.DirectInputY) - var.oldY_7
+
+   var.oldX_7 = RemoveUnits(mouse7.DirectInputX)
+   var.oldY_7 = RemoveUnits(mouse7.DirectInputY)
+
+   if Sign(var.dx_7) == -1 then
+      PPJoy7.analog0 = EnsureMapRange(var.dx_7, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dx_7)== 1 then
+      PPJoy7.analog0 = EnsureMapRange(var.dx_7, 1,var.range, var.drift,1)
+   else
+      PPJoy7.analog0 = 0
+   endif
+
+   if Sign(var.dy_7) == -1 then
+      PPJoy7.analog1 = EnsureMapRange(var.dy_7, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dy_7)== 1 then
+      PPJoy7.analog1 = EnsureMapRange(var.dy_7, 1,var.range, var.drift,1)
+   else
+      PPJoy7.analog1 = 0
+   endif
+
+   PPJoy7.digital1 = mouse7.LeftButton
+   PPJoy7.digital2 = mouse7.RightButton
+   PPJoy7.digital3 = mouse7.MiddleButton
+   mouse7.DirectInputX = 0
+   mouse7.DirectInputY = 0
+
+
+
+// mouse8 <-> ppjoy8
+   var.dx_8 = RemoveUnits(mouse8.DirectInputX) - var.oldX_8
+   var.dy_8 = RemoveUnits(mouse8.DirectInputY) - var.oldY_8
+
+   var.oldX_8 = RemoveUnits(mouse8.DirectInputX)
+   var.oldY_8 = RemoveUnits(mouse8.DirectInputY)
+
+   if Sign(var.dx_8) == -1 then
+      PPJoy8.analog0 = EnsureMapRange(var.dx_8, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dx_8)== 1 then
+      PPJoy8.analog0 = EnsureMapRange(var.dx_8, 1,var.range, var.drift,1)
+   else
+      PPJoy8.analog0 = 0
+   endif
+
+   if Sign(var.dy_8) == -1 then
+      PPJoy8.analog1 = EnsureMapRange(var.dy_8, -var.range,1, -1,-var.drift)
+   elseif Sign(var.dy_8)== 1 then
+      PPJoy8.analog1 = EnsureMapRange(var.dy_8, 1,var.range, var.drift,1)
+   else
+      PPJoy8.analog1 = 0
+   endif
+
+   PPJoy8.digital1 = mouse8.LeftButton
+   PPJoy8.digital2 = mouse8.RightButton
+   PPJoy8.digital3 = mouse8.MiddleButton
+   mouse8.DirectInputX = 0
+   mouse8.DirectInputY = 0
+
+mouse.Swallow = true
+
+
+

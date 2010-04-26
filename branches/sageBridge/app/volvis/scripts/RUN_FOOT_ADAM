@@ -1,0 +1,7 @@
+killall volvis
+
+#scylla - standalone
+#./volvis -v Foot 10.1.1.111 Foot -a 2.08 -d 64 64 64 
+
+mpirun -machinefile .gige.2b2 -np 5 $PWD/volvis -v Foot optiAdam.dat Foot -a 1 -sp 1 1 1 -d 128 128 128 -n $PWD/machines.dat.evl2b2
+

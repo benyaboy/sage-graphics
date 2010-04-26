@@ -1,0 +1,6 @@
+#!/bin/sh
+
+for node in `cat .nodes`
+do
+        ssh -fx $node "killall -9 VRA VRA_UI" 
+done

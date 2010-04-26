@@ -1,0 +1,4 @@
+#mpirun -np 9  $PWD/volvis -i 'Step*-100' optiLocal.dat 0.001953125 -v 'Step*-vol256' optiRemote.dat Step15-vol256 -a 2.2 -d 256 256 256 -n $PWD/machines.dat
+
+mpirun -machinefile .gige -np 16 $PWD/volvis -i 'Step*-100' optiLocalIP.dat 0.001953125 -v 'Step*-vol256' optiLocalIP.dat Step15-vol256 -a 1 -d 256 256 256 -n $PWD/machines.dat
+
