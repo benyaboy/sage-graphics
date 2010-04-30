@@ -450,7 +450,7 @@ void* sageDisplayManager::refreshThread(void *args) {
    sageDisplayManager *This = (sageDisplayManager *)args;
 
    while (!This->rcvEnd) {
-      This->shared->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
+      This->shared->eventQueue->appendEvent(EVENT_REFRESH_SCREEN);
       sage::usleep(DISPLAY_REFRESH_INTERVAL);
    }
 
@@ -469,7 +469,7 @@ void* sageDisplayManager::msgCheckThread(void *args)
       msg = new sageMessage;
       if (This->rcvMessageBlk(*msg) > 0 && !This->rcvEnd) {
          //std::cout << "message arrive" << std::endl;
-         This->shared->eventQueue->sendEvent(EVENT_NEW_MESSAGE, 0, (void *)msg);
+         This->shared->eventQueue->appendEvent(EVENT_NEW_MESSAGE, 0, (void *)msg);
       }
    }
 
@@ -511,7 +511,7 @@ void* sageDisplayManager::syncCheckThread(void *args)
 			/**
 			* This is important !
 			*/
-			This->shared->eventQueue->sendEventToFront(syncEvent);
+			This->shared->eventQueue->prependEvent(syncEvent);
 		}
 	}
 
@@ -586,7 +586,7 @@ void* sageDisplayManager::nwCheckThread(void *args)
       while (!This->rcvEnd) {
          senderID = nwObj->checkConnections(regMsg);
          if (senderID >= 0 && !This->rcvEnd) {
-            This->shared->eventQueue->sendEvent(EVENT_NEW_CONNECTION, regMsg, (void *)nwObj);
+            This->shared->eventQueue->appendEvent(EVENT_NEW_CONNECTION, regMsg, (void *)nwObj);
          }
       }
    }
