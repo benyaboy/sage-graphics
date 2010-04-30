@@ -228,7 +228,7 @@ void* sageAudioManager::msgCheckThread(void *args)
       msg = new sageMessage;
       if (This->rcvMessageBlk(*msg) > 0 && !This->rcvEnd) {
          //std::cout << "----> message arrive" << std::endl;
-         This->eventQueue->sendEvent(EVENT_NEW_MESSAGE, 0, (void *)msg);
+         This->eventQueue->appendEvent(EVENT_NEW_MESSAGE, 0, (void *)msg);
       }   
    }
    
@@ -247,7 +247,7 @@ void* sageAudioManager::syncCheckThread(void *args)
       char *syncMsg = syncEvent->eventMsg;
       if (This->syncClientObj->waitForSync(syncMsg) == 0) {
          //std::cout << "rcv sync " << syncEvent->eventMsg << std::endl;
-         This->eventQueue->sendEvent(syncEvent);
+         This->eventQueue->appendEvent(syncEvent);
       }   
    }
    
@@ -276,7 +276,7 @@ void* sageAudioManager::refreshThread(void *args)
    sageAudioManager *This = (sageAudioManager *)args;
    
    while (!This->rcvEnd) {
-      This->eventQueue->sendEvent(EVENT_REFRESH_SCREEN);
+      This->eventQueue->appendEvent(EVENT_REFRESH_SCREEN);
       sage::usleep(16666);  // 1/60fps = 0.016666sec/frame
    }
    
@@ -336,7 +336,7 @@ void* sageAudioManager::nwCheckThread(void *args)
       while (!This->rcvEnd) {
          senderID = nwObj->checkConnections(regMsg);
          if (senderID >= 0 && !This->rcvEnd) {
-            This->eventQueue->sendEvent(EVENT_NEW_CONNECTION, regMsg, (void *)nwObj);
+            This->eventQueue->appendEvent(EVENT_NEW_CONNECTION, regMsg, (void *)nwObj);
          }   
       }
    }
