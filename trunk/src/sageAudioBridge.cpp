@@ -342,7 +342,7 @@ void* sageAudioBridge::nwCheckThread(void *args)
 		while (!This->bridgeEnd) {
 			senderID = nwObj->checkConnections(regMsg);
 			if (senderID >= 0 && !This->bridgeEnd) {
-            This->shared->eventQueue->sendEvent(EVENT_AUDIO_CONNECTION, regMsg, (void *)nwObj);
+            This->shared->eventQueue->appendEvent(EVENT_AUDIO_CONNECTION, regMsg, (void *)nwObj);
             std::cout << "detect new connection " << regMsg << std::endl;
 				//This->initStreams(regMsg, nwObj);
 			}

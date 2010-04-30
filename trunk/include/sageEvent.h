@@ -124,10 +124,10 @@ public:
    sageEventQueue();
 
    sageEvent* getEvent();  // get event from the queue
-   void sendEvent(sageEvent* event);
-   void sendEvent(int type, char *msg = NULL, void *param = NULL);
-   void sendEvent(int type, int info, void *param = NULL);
-   void sendEventToFront(sageEvent* event);
+   void appendEvent(sageEvent* event);
+   void appendEvent(int type, char *msg = NULL, void *param = NULL);
+   void appendEvent(int type, int info, void *param = NULL);
+   void prependEvent(sageEvent* event);
 
    bool isEmpty()  { return (eventQueue.size() == 0); }
    ~sageEventQueue();
