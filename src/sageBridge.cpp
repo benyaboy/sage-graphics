@@ -368,7 +368,7 @@ void* sageBridge::msgCheckThread(void *args)
             
       if (clientID >= 0 && !This->bridgeEnd) {
          //std::cout << "read a message" << std::endl;
-         This->shared->eventQueue->sendEvent(EVENT_NEW_MESSAGE, clientID, (void *)msg);
+         This->shared->eventQueue->appendEvent(EVENT_NEW_MESSAGE, clientID, (void *)msg);
       }   
    }
    
@@ -405,7 +405,7 @@ void* sageBridge::nwCheckThread(void *args)
          senderID = nwObj->checkConnections(regMsg);
          if (!This->bridgeEnd) {
             if (senderID >= 0)
-               This->shared->eventQueue->sendEvent(EVENT_NEW_CONNECTION, regMsg, (void *)nwObj);
+               This->shared->eventQueue->appendEvent(EVENT_NEW_CONNECTION, regMsg, (void *)nwObj);
             else
                break;   
          }
@@ -920,7 +920,7 @@ int sageBridge::parseMessage(sageMessage &msg, int clientID)
                msgInf->distributeMessage(msg, slaveList, slaveNum);
             
             shutdownAllApps();
-            shared->eventQueue->sendEvent(EVENT_BRIDGE_SHUTDOWN);
+            shared->eventQueue->appendEvent(EVENT_BRIDGE_SHUTDOWN);
             break;
          }         
       

@@ -87,7 +87,6 @@ sageEvent* sageEventQueue::getEvent()
    pthread_mutex_lock(queueLock);
 
    while (isEmpty()) {
-      //std::cerr << "=== waiting for new events === " << std::endl;
       pthread_cond_wait(notEmpty, queueLock);
    }
 
@@ -99,7 +98,7 @@ sageEvent* sageEventQueue::getEvent()
    return event;
 }
 
-void sageEventQueue::sendEvent(sageEvent* event)
+void sageEventQueue::appendEvent(sageEvent* event)
 {
    pthread_mutex_lock(queueLock);
    eventQueue.push_back(event);
@@ -107,27 +106,25 @@ void sageEventQueue::sendEvent(sageEvent* event)
    pthread_cond_signal(notEmpty);
 }
 
-void sageEventQueue::sendEventToFront(sageEvent* event)
+void sageEventQueue::prependEvent(sageEvent* event)
 {
-
    pthread_mutex_lock(queueLock);
    eventQueue.push_front(event);
    pthread_mutex_unlock(queueLock);
    pthread_cond_signal(notEmpty);
-
 }
 
-void sageEventQueue::sendEvent(int type, char *msg, void *p)
+void sageEventQueue::appendEvent(int type, char *msg, void *p)
 {
    sageEvent *event = new sageEvent(type, msg, p);
-   sendEvent(event);
+   appendEvent(event);
 }
 
-void sageEventQueue::sendEvent(int type, int info, void *p)
+void sageEventQueue::appendEvent(int type, int info, void *p)
 {
    sageEvent *event = new sageEvent(type, NULL, p);
    sprintf(event->eventMsg, "%d", info);
-   sendEvent(event);
+   appendEvent(event);
 }
 
 sageEventQueue::~sageEventQueue()

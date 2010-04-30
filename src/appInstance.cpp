@@ -258,7 +258,7 @@ int appInstance::sendPerformanceInfo()
                   float frameRate = (float)((streamerList[i]->getFrameCount())*1000000.0/elapsedTime);
                   streamerList[i]->resetFrameCounter();
                   sprintf(msgStr, "%d %7.2f %7.2f %7.2f", fsList[i], totalBandWidth, frameRate, 0.0);
-                  shared->eventQueue->sendEvent(EVENT_MASTER_PERF_INFO, msgStr);
+                  shared->eventQueue->appendEvent(EVENT_MASTER_PERF_INFO, msgStr);
                }   
             }   
          }
@@ -279,7 +279,7 @@ int appInstance::sendPerformanceInfo()
             //std::cout << "frame token " << frameToken.getBuffer() << std::endl;
                      
             sprintf(msgStr, "%d %7.2f %7.2f %d %s", instID, obsBandWidth, 0.0, tokenCnt, frameToken.getBuffer());
-            shared->eventQueue->sendEvent(EVENT_SLAVE_PERF_INFO, msgStr);
+            shared->eventQueue->appendEvent(EVENT_SLAVE_PERF_INFO, msgStr);
          }
 
          char bufInfo[TOKEN_LEN];
@@ -295,7 +295,7 @@ int appInstance::sendPerformanceInfo()
                if (fsList[i] >= 0) {
                   //std::cout << "slave frame rate " << slaveFRate[i] << std::endl;
                   sprintf(msgStr, "%d %7.2f %7.2f %7.2f", fsList[i], slaveBandWidth, slaveFRate[i], 0.0);
-                  shared->eventQueue->sendEvent(EVENT_MASTER_PERF_INFO, msgStr);
+                  shared->eventQueue->appendEvent(EVENT_MASTER_PERF_INFO, msgStr);
                }
             }   
          }
@@ -487,7 +487,7 @@ int appInstance::shutdownAllStreams()
 {
    for (int i=0; i<=maxStreamerIdx; i++) {
       if (shared->nodeID == 0 && fsList[i] >= 0)
-         shared->eventQueue->sendEvent(EVENT_APP_SHUTDOWN, fsList[i]);
+         shared->eventQueue->appendEvent(EVENT_APP_SHUTDOWN, fsList[i]);
          
       if (streamerList[i]) {
          streamerList[i]->shutdown();

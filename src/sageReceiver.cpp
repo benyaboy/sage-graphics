@@ -106,7 +106,7 @@ int sagePixelReceiver::addStream(int senderID)
       pthread_cond_signal(&connectionDone);
       pthread_mutex_unlock(&streamLock);
 
-      shared->eventQueue->sendEvent(EVENT_APP_CONNECTED, instID);
+      shared->eventQueue->appendEvent(EVENT_APP_CONNECTED, instID);
    }
 
    return streamIdx;
@@ -208,7 +208,7 @@ int sagePixelReceiver::readData()
 
 							// generate the receive event
 							if (blockBuf->isWaitingData())
-								shared->eventQueue->sendEvent(EVENT_READ_BLOCK, instID);
+								shared->eventQueue->appendEvent(EVENT_READ_BLOCK, instID);
 						}
 						else {
 #ifdef DEBUG_RECEIVER
@@ -326,7 +326,7 @@ int sagePixelReceiver::readData()
 				//std::cout << "finish frame " << std::endl;
 
 				if (blockBuf->isWaitingData())
-					shared->eventQueue->sendEvent(EVENT_READ_BLOCK, instID);
+					shared->eventQueue->appendEvent(EVENT_READ_BLOCK, instID);
 				updated = false;
 			}
 
@@ -348,7 +348,7 @@ int sagePixelReceiver::readData()
 
 			//std::cout << "pt3" << std::endl;
 			if (blockBuf->isWaitingData())
-				shared->eventQueue->sendEvent(EVENT_READ_BLOCK, instID);
+				shared->eventQueue->appendEvent(EVENT_READ_BLOCK, instID);
 		} // end if (nextFrame)
 	} // end while
 
