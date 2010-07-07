@@ -667,10 +667,8 @@ int sageAudioManager::stopPerformanceReport(sageMessage *msg)
 
 int main(int argc, char **argv)
 {
-#ifdef WIN32
-   // Initialize Winsock
-   WSADATA wsaData;
-   WSAStartup(MAKEWORD(2,2), &wsaData);
+#if defined(WIN32)
+   sage::win32Init();
 #endif
    sage::initUtil();
 

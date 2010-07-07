@@ -54,12 +54,13 @@
 #include <time.h>
 #include <assert.h>
 
-#ifdef WIN32
+
+#if defined(WIN32)
    #include <io.h>
    #include <process.h>
 
    #define _WIN32_WINNT    0x0501  // Macro for getting the switchToThread() to work
-   #ifdef N_PLAT_NLM
+   #if defined(N_PLAT_NLM)
       #include <ws2nlm.h>
    #else
       #include <winsock2.h>

@@ -61,6 +61,10 @@ int main(int argc, char *argv[])
    char token[TOKEN_LEN];
    bool flag = true;
 
+#if defined(WIN32)
+   sage::win32Init();
+#endif
+	   
    suil uiLib;
    if (argc == 2)
       uiLib.init(argv[1]);

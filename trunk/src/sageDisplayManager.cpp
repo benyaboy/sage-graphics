@@ -787,6 +787,7 @@ int sageDisplayManager::clearDisplay(int instID)
       strcpy(str_config, CLEAR_STR);
 		reconfigStr.push_back(str_config);
    }
+	return 1;
 }
 
 int sageDisplayManager::changeBGColor(sageMessage *msg)

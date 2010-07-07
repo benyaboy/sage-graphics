@@ -43,10 +43,15 @@
 
 int main(int argc, char *argv[])
 {
+#if defined(WIN32)
+   sage::win32Init();
+#endif
+
    fsManager fsm;
 
+   sage::printLog("fsManager: SAGE version [%s]", SAGE_VERSION);
+   
    if (argc > 1) {
-      sage::printLog("fsManager: SAGE version [%s]", SAGE_VERSION);
       sage::printLog("fsManager: using configuration file [%s]\n", argv[1]);
       if (fsm.init(argv[1]) < 0)
          exit(-1);
