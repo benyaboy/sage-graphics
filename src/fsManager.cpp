@@ -245,7 +245,6 @@ int fsManager::init(const char *conf_file)
 			getToken(fileFsConf, token);
 			rInfo.syncLevel = atoi(token); // SUNGWON
 		}
-		
 		if (!tokenAcquired)
 			tokenIdx = getToken(fileFsConf, token);
 	}

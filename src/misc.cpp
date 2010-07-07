@@ -38,6 +38,7 @@
  *
  *****************************************************************************/
 
+#include <string>
 #include "misc.h"
 #include <errno.h>
 #include <sched.h>
@@ -56,7 +57,12 @@ struct timeval tv_start;
 #endif
 
 #if defined(WIN32)
-#include <sys\timeb.h>
+#include <sys/timeb.h>
+
+
+#include <sys/types.h>
+#include <sys/stat.h>
+
 
 int
 gettimeofday(struct timeval *tp, void *tzp)
@@ -718,12 +724,14 @@ data_path::data_path(std::string subdir)
 	if (!sageDir) {
 		sage::printLog("data_path: cannot find the environment variable SAGE_DIRECTORY");
 	}
-    std::string homedir = std::string( getenv("HOME") ) + "/.sageConfig/" + subdir;
     std::string sagedir = std::string( sageDir ) + "/sageConfig/" + subdir;
     // First search in current directory
     path.push_back( "." );
+#if !defined(WIN32)
+	std::string homedir = std::string( getenv("HOME") ) + std::string("/.sageConfig/") + subdir;
     // Then search in ~/.sageConfig/ directory
     path.push_back( homedir );
+#endif
     // Finally search in SAGE_DIRECTORY/sageConfig directory
     path.push_back( sagedir );
 }

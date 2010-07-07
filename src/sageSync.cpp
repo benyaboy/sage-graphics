@@ -42,6 +42,9 @@
 #include "sageSync.h"
 #include "sageBuf.h"
 
+#if defined(WIN32)
+#define MSG_WAITALL  0x8
+#endif
 
 int syncGroup::init(int startFrame, int p, int groupID, int frameRate, int sNum)
 {

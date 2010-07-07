@@ -44,6 +44,11 @@
 #include "sageBlock.h"
 #include "sageBlockPool.h"
 
+#if defined(WIN32)
+#include <winsock2.h>
+#include <mswsock.h>
+#endif
+
 streamFlowData::streamFlowData(sageCircBuf *buf) : frameRate(60.0), configID(0), nextFrameSize(3072),
       frameSize(3072), winIdx(-1), returnPlace(NULL), nextWindowTime(0.0), startTime(0.0),
       totalSentSize(0), blockSize(0), active(true), closed(false), firstRound(true)
@@ -489,8 +494,8 @@ int sageUdpModule::send(int id, sagePixelBlock *spb)
       iovs[1].len = dataBufSize;
 
       DWORD WSAFlags = 0;
-      ::WSASend(sockFd, iovs, 2, (DWORD*)&sendSize,
-            WSAFlags, NULL, NULL);
+      int udpSockFd = udpRcvList[id];
+      ::WSASend(udpSockFd, iovs, 2, (DWORD*)&sendSize, WSAFlags, NULL, NULL);
       #else
       struct iovec iovs[2];
       iovs[0].iov_base = spb->getBuffer();
@@ -778,7 +783,7 @@ int sageUdpModule::recv(int id, sagePixelBlock *spb, int pidx)
    
 //std::cerr << "data buf size " << dataBufSize << std::endl;   
    
-   #ifdef WIN32
+#if defined(WIN32)
    WSABUF iovs[2];
    iovs[0].buf = packetHeader;
    iovs[0].len = BLOCK_HEADER_SIZE;
@@ -786,9 +791,9 @@ int sageUdpModule::recv(int id, sagePixelBlock *spb, int pidx)
    iovs[1].len = dataBufSize;
 
    DWORD WSAFlags = 0;
-   ::WSARead(udpSockFd, iovs, 2, (DWORD*)&recvSize,
-         WSAFlags, NULL, NULL);
-   #else
+   //::WSARead(udpSockFd, iovs, 2, (DWORD*)&recvSize, WSAFlags, NULL, NULL);
+   WSARecv(udpSockFd, iovs, 2, (DWORD*)&recvSize, &WSAFlags, NULL, NULL);
+#else
    struct iovec iovs[2];
    iovs[0].iov_base = packetHeader;
    iovs[0].iov_len = BLOCK_HEADER_SIZE;
@@ -803,8 +808,7 @@ int sageUdpModule::recv(int id, sagePixelBlock *spb, int pidx)
 
    recvSize = ::recvmsg(udpSockFd, &blockMsgHdr, MSG_WAITALL);
 //std::cerr << "msg read size " << recvSize << std::endl;   
-
-   #endif
+#endif
    
    if (recvSize < 0) {
       perror("sageUdpModule::recv :"); 
@@ -822,11 +826,13 @@ int sageUdpModule::skipBlock(int id, int pidx)
    int packetDataSize = config.mtuSize - BLOCK_HEADER_SIZE;
    int dataPt = packetDataSize*pidx;
    int dataBufSize = MIN(blockDataSize - dataPt, packetDataSize);
-   char dummy[config.blockSize];
    int udpSockFd = udpSendList[id];
    int recvSize;
-   
-   #ifdef WIN32
+
+   //char dummy[config.blockSize];
+   char dummy[BLOCK_HEADER_SIZE];
+
+#if defined(WIN32)
    WSABUF iovs[2];
    iovs[0].buf = dummy;
    iovs[0].len = BLOCK_HEADER_SIZE;
@@ -834,9 +840,9 @@ int sageUdpModule::skipBlock(int id, int pidx)
    iovs[1].len = dataBufSize;
 
    DWORD WSAFlags = 0;
-   ::WSARead(udpSockFd, iovs, 2, (DWORD*)&recvSize,
-         WSAFlags, NULL, NULL);
-   #else
+   //::WSARead(udpSockFd, iovs, 2, (DWORD*)&recvSize, WSAFlags, NULL, NULL);
+   WSARecv(udpSockFd, iovs, 2, (DWORD*)&recvSize, &WSAFlags, NULL, NULL);
+#else
    struct iovec iovs[2];
    iovs[0].iov_base = dummy;
    iovs[0].iov_len = BLOCK_HEADER_SIZE;
@@ -850,7 +856,7 @@ int sageUdpModule::skipBlock(int id, int pidx)
    blockMsgHdr.msg_iovlen = 2;
 
    recvSize = ::recvmsg(udpSockFd, &blockMsgHdr, MSG_WAITALL);
-   #endif
+#endif
    
    
    if (recvSize < 0) {

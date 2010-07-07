@@ -66,6 +66,10 @@ long getnumber( char *str );
 
 #if defined(WIN32)
 int gettimeofday(struct timeval *, void *);
+
+#pragma warning( disable : 4244) // time_t and long mismatch
+#pragma warning( disable : 4267) // size_t and int mismatch
+#pragma warning( disable : 4018) // '<' : signed/unsigned mismatch
 #endif
 
 namespace sage {
