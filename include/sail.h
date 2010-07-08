@@ -137,8 +137,10 @@ private:
     * and for each client, calls readClientMsg() followed by parseMessage()
     *
 	*/
+
+   pthread_t msgThreadID;
    static void* msgThread(void *args);
-   static void* nwThread(void *args);
+
    int checkSyncServer();
    int generateSageBlocks();
    
@@ -194,8 +196,9 @@ public:
    int bindFrameBufferObject();  // bind the FBO of SAIL
    int releaseFrameBufferObject();  // back to regular frame buffer
    int transferFBO();      // transfer pixels written into FBO to SAGE
-      
-   friend class graphicStreamer;
+   
+   inline bool isSailOn() { return sailOn; }
+   
    friend class envInterface;
 };
 

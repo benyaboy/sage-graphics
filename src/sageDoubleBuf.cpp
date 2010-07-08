@@ -110,14 +110,14 @@ int sageDoubleBuf::swapBuffer()
    pthread_mutex_lock(bufLock);
    
    while(queueLen > 0) {
-      //std::cerr << "wait not full signal " << std::endl;
       pthread_cond_wait(notFull, bufLock);
    }
 
-   bufID = 1 - bufID;
-   //std::cout << "swap buffer" << std::endl;
-     
-   queueLen++;
+   if (queueLen == 0) {
+      bufID = 1 - bufID;
+      queueLen++;
+   }
+   
    pthread_mutex_unlock(bufLock);
    pthread_cond_signal(notEmpty);
 
@@ -133,6 +133,15 @@ int sageDoubleBuf::resendBuffer(int num)
    pthread_cond_signal(notEmpty);
       
    return 0;
+}
+
+void sageDoubleBuf::releaseLocks()
+{
+   pthread_mutex_lock(bufLock);
+   queueLen = -1;
+   pthread_cond_signal(notEmpty);
+   pthread_cond_signal(notFull);
+   pthread_mutex_unlock(bufLock);
 }
 
 sageDoubleBuf::~sageDoubleBuf()

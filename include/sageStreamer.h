@@ -156,7 +156,7 @@ public:
     * sageBlockGroup object is created here
     */
    virtual void setNwConfig(sageNwConfig &nc) { nwCfg = nc; }
-   inline void shutdown() { streamerOn = false; }
+   virtual void shutdown() { streamerOn = false; }
    inline bool isStreamerOn() { return streamerOn; }
 };
 
@@ -200,6 +200,7 @@ public:
     * creates sageBlockGroup object and assigns it to the member variable sageBlockGroup *nbg
     */
    virtual void setNwConfig(sageNwConfig &nc);
+   void shutdown(); 
    ~sageBlockStreamer();
 };
 
@@ -224,7 +225,7 @@ public:
    
    int initNetworks(char *data, bool localPort = false);
    int storeStreamConfig(char *msgStr);
-   int shutdown();
+   void shutdown();
    //void setBlockMutex(pthread_mutex_t *mutex) { blockMutex = mutex; }
    
    ~bridgeStreamer() {}

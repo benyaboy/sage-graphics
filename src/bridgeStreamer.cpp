@@ -314,7 +314,7 @@ int bridgeStreamer::sendControlBlock(int flag, int cond)
    return 0;
 }
 
-int bridgeStreamer::shutdown()
+void bridgeStreamer::shutdown()
 {
    streamerOn = false;
    std::cout << "pt0" << std::endl;
@@ -329,7 +329,5 @@ int bridgeStreamer::shutdown()
    for (int j=0; j<rcvNodeNum; j++)
       nwObj->close(params[j].rcvID, SAGE_SEND);
          
-   sage::printLog("< bridgeStreamer shutdown >"); 
-   
-   return 0;
+   sage::printLog("< bridgeStreamer shutdown >");
 }

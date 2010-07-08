@@ -1598,6 +1598,8 @@ void sageSyncServer::killAllClients()
 
 sageSyncServer :: ~sageSyncServer()
 {
+   syncEnd = true;
+   
 #ifdef WIN32
    closesocket(serverSockFd);
 #else
