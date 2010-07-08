@@ -294,10 +294,24 @@ int sageBlockStreamer::streamLoop()
       doubleBuf->releaseBackBuffer();
       //std::cout << "pt1" << std::endl;
    }   
+
+   // for quiting other processes waiting a sync signal
+   if (config.nodeNum > 1) {
+      config.syncClientObj->sendSlaveUpdate(frameID);
+   }
    
    sage::printLog("sageStreamer : network thread exit");
    
    return 0;
+}
+
+void sageBlockStreamer::shutdown()
+{ 
+   streamerOn = false; 
+   if (doubleBuf)
+      doubleBuf->releaseLocks();
+      
+   pthread_join(thId, NULL);
 }
 
 sageBlockStreamer::~sageBlockStreamer()

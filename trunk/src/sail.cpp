@@ -83,7 +83,7 @@ sail::sail() : winID(0), bufID(0), sailOn(false), audioOn(false), sGroup(NULL), 
 
 sail::~sail()
 {
-   //shutdown();
+   pthread_join(msgThreadID, NULL);
 
 #ifdef SAGE_AUDIO
    if (audioStreamer) {
@@ -113,6 +113,10 @@ sail::~sail()
    if (pixelStreamer) {
       delete pixelStreamer;
       pixelStreamer = NULL;
+   }
+
+   if (syncServerObj) {
+      delete syncServerObj;
    }
 }
 
@@ -389,9 +393,7 @@ int sail::init(sailConfig &conf)
    }
 #endif
 
-   pthread_t thId;
-
-   if (pthread_create(&thId, 0, msgThread, (void*)this) != 0) {
+   if (pthread_create(&msgThreadID, 0, msgThread, (void*)this) != 0) {
       sage::printLog("SAIL : can't create msgThread\n");
          return -1;
    }
@@ -426,7 +428,7 @@ int sail::swapBuffer(int mode)
       * (because of semaphore operation on the double buffer b/w sail::swapBuffer() and SBS::streamLoop() )
       * If it blocks permanently, app could never get sageMessage which causes the killing app instance issue.
       * So, if the streaming thread is finished, then swapBuffer() should return with error.
-      */
+      
      if ( ! pixelStreamer->isStreamerOn() ) {
   	   fprintf(stderr,"sail::%s() : streamerOn is false\n", __FUNCTION__);
   	   sageMessage msg;
@@ -436,9 +438,8 @@ int sail::swapBuffer(int mode)
   	   pthread_mutex_unlock(msgMutex);
   	   return -1;
      }
+   */
 
-
-   //std::cout << "pt2" << std::endl;
    doubleBuf->swapBuffer();
 
 #ifdef SAGE_AUDIO
@@ -447,8 +448,6 @@ int sail::swapBuffer(int mode)
       audioModule->setgFrameNum(pixelStreamer->getFrameID());
    }
 #endif
-
-   //std::cout << "pt3" << std::endl;
 
    return 0;
 }
@@ -532,6 +531,7 @@ void* sail::msgThread(void *args)
    while(This->sailOn) {
       if (This->readMessage() < 0) {
          This->shutdown();
+         break;
       }
 
       This->sendPerformanceInfo();
@@ -544,6 +544,8 @@ void* sail::msgThread(void *args)
             if (This->envIntf->readClientMsg(msg, i) > 0) {
                if (This->parseMessage(msg) < 0) {
                   This->shutdown();
+                  msg.destroy();
+                  break;
                }
                msg.destroy();
             }
@@ -578,9 +580,14 @@ int sail::readMessage()
          msg.destroy();
       }
       else if (msg.getCode() >= APP_MESSAGE) {
-#ifdef DEBUG_KILL
+//#ifdef DEBUG_KILL
     	  fprintf(stderr,"sail::readMsg() push_back msg code %d, %s\n", msg.getCode(), (char *)msg.getData());
-#endif
+//#endif
+         if (msg.getCode() == APP_QUIT) {
+            shutdown();
+         }
+         
+         pthread_mutex_lock(msgMutex);
          appMsgQueue.push_back(msg);
          pthread_mutex_unlock(msgMutex);
       }
@@ -896,6 +903,9 @@ int sail::checkMsg(sageMessage &msg, bool blocking)
 
 int sail::shutdown()
 {
+   if (!sailOn)
+      return 0;
+      
    if (config.master) {
       if(envIntf)
       {
@@ -908,8 +918,9 @@ int sail::shutdown()
 
    sailOn = false;
 
-   if (pixelStreamer)
+   if (pixelStreamer) {
       pixelStreamer->shutdown();
+   }   
 
    return 0;
 }

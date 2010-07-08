@@ -77,6 +77,7 @@ public:
    void enQueue()  { queueLen++; }
    bool isEmpty()  { return (queueLen == 0); }
    bool isFirstFrameReady() { return firstFrameReady; }
+   void releaseLocks();
    ~sageDoubleBuf();
 };
 
