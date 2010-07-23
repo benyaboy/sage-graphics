@@ -236,6 +236,7 @@ int sageBlockStreamer::streamPixelData(sageBlockFrame *buf)
    //std::cerr << hostname << " frame " << frameID << " transmitted" << std::endl;
 
    frameID++;
+   frameCounter++;
    //frameID = frameID + 10;
 
 	for (int j=0; j<rcvNodeNum; j++) {

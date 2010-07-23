@@ -701,11 +701,11 @@ int pixelDownloader::evalPerformance(char **frameStr, char **bandStr)
       float obsLoss = (float) (packetLoss * 8.0 / (elapsedTime));
       bandWidth = 0;
       packetLoss = 0;
-      sprintf(*bandStr, "%d %7.2f %7.2f %d", instID, obsBandWidth, obsLoss, frameSize);
+      sprintf(*bandStr, "%d %f %f %d", instID, obsBandWidth, obsLoss, frameSize);
 
       if (displayActive) {
          *frameStr = new char[TOKEN_LEN];
-         float frameRate = (float) (frameCounter.getValue()*1000000.0/elapsedTime);
+         float frameRate = (float) (frameCounter.getValue() * 1000000.0 / elapsedTime);
          frameCounter.reset();
          sprintf(*frameStr, "%d %f", instID, frameRate);
       }
