@@ -75,7 +75,7 @@ displayInstance::displayInstance(fsManager *f, int id, appInExec* app) : fsm(f),
    waitNodes = dispNodeNum;
    rcvFlagCnt = 0;
    
-   sage::printLog("Establishing network connections for streams......");
+   sage::printLog("displayInstance::%s() : Establishing network connections for streams.", __FUNCTION__);
    connectSenders();
    initStreams();
    
@@ -108,7 +108,7 @@ int displayInstance::streamInfoToSender(void)
    msg.setDest(sailClient);
 
    if (fsm->sendMessage(msg) < 0) {
-      sage::printLog("displayInstance : %s(%d) is stuck or shutdown", appExec->appName, winID);
+      sage::printLog("displayInstance::%s() : %s(%d) is stuck or shutdown", __FUNCTION__,  appExec->appName, winID);
       return -1;
    }
    
@@ -148,9 +148,15 @@ int displayInstance::connectSenders()
       }
    }
    
-   int connectMsg = SAIL_CONNECT_TO_RCV;
-   if (fsm->useLocalPort || appExec->portForwarding)
+   int connectMsg;
+   if (fsm->useLocalPort || appExec->portForwarding) {
       connectMsg = SAIL_CONNECT_TO_RCV_PORT;
+      fprintf(stderr, "displayInstance::%s() : winID %d, sending msg SAIL_CONNECT_TO_RCV_PORT. [%s]\n", __FUNCTION__, winID, msgStr);
+   }
+   else {
+	   connectMsg = SAIL_CONNECT_TO_RCV;
+	   fprintf(stderr, "displayInstance::%s() : winID %d, sending msg SAIL_CONNECT_TO_RCV. [%s] \n", __FUNCTION__, winID, msgStr);
+   }
    
    if (fsm->sendMessage(sailClient, connectMsg, msgStr) < 0) {
       sage::printLog("displayInstance : %s(%d) is stuck or shutdown", appExec->appName, winID);
@@ -233,9 +239,14 @@ int displayInstance::changeWindow(sageRect &devRect, int steps)
 int displayInstance::accumulateBandwidth(char *rcvBand)
 {
 	//fprintf(stderr, "displayInstance::%s() : %s\n", __FUNCTION__, rcvBand);
+	//fprintf(stderr, "displayInstance::%s() : DISP_RCV_BANDWIDTH_RPT. msg [%s]\n", __FUNCTION__, rcvBand);
 
+/*
    char token[TOKEN_LEN];
    char *tokenbuf;
+
+   getToken(rcvBand, token, &tokenbuf);
+   int instID = atoi(token);
 
    getToken(rcvBand, token, &tokenbuf);
    float bWidth = atof(token);
@@ -245,22 +256,29 @@ int displayInstance::accumulateBandwidth(char *rcvBand)
 
    getToken(NULL, token, &tokenbuf);
    int fSize = atoi(token);
+   */
+
+	float bWidth = 0.0, pLoss=0.0;
+	int instID=0, fSize=0;
+	sscanf((const char *)rcvBand, "%d %f %f %d", &instID, &bWidth, &pLoss, &fSize);
    
    accBwidth += bWidth;
    accLoss += pLoss;
    accFSize += fSize;
-   
-   //std::cout << "frame size " << fSize << std::endl;
+   //fprintf(stderr, "displayInstance::%s() : winID %d. accBwidth %7.2f, accLoss %7.2f, accFsize %d\n", __FUNCTION__, winID, accBwidth, accLoss, accFSize);
    
    rcvFlagCnt++;
 
    if (rcvFlagCnt >= dispNodeNum) {
       rcvBwidth = accBwidth;
       rcvLoss = accLoss;
+
+      //fprintf(stderr, "displayInstance::%s() : winID %d. rcvFlagCnt %d. rcvBwidth %7.2f, rcvLoss %7.2f\n", __FUNCTION__, winID, rcvFlagCnt, rcvBwidth, rcvLoss);
+
       accBwidth = 0.0;
       accLoss = 0.0;
       rcvFlagCnt = 0;
-      
+
       if (rcvLoss > 0 && appExec->protocol == SAGE_UDP) {
          float newFrameRate = (rcvBwidth*990000.0)/(accFSize*8.0); 
          newFrameRate = MAX(newFrameRate, sendFrate*0.9);
@@ -289,8 +307,10 @@ int displayInstance::accumulateBandwidth(char *rcvBand)
 void displayInstance::reportPerformance(char *sailPerf)
 {
    float packetLoss = 0;
-   if (rcvBwidth + rcvLoss > 0)
+   if (rcvBwidth + rcvLoss > 0) {
       packetLoss = rcvLoss*100/(rcvBwidth + rcvLoss);
+      //fprintf(stderr, "displayInstance::%s() : winID %d.  packetLoss %.3f = {rcvLoss %.3f / (rcvBwidth %.3f + rcvLoss %.3f)} * 100\n", __FUNCTION__, winID, packetLoss, rcvLoss, rcvBwidth, rcvLoss);
+   }
       
    int receiverNum = receiverList.size();   
    
@@ -298,6 +318,8 @@ void displayInstance::reportPerformance(char *sailPerf)
 
    sprintf(msgStr, "%d\nDisplay %7.2f %7.2f %7.2f %d\nRendering %s", winID, 
       rcvBwidth, rcvFrate, packetLoss, receiverNum, sailPerf);
+
+   //fprintf(stderr, "displayInstance::%s() : msgStr. [%s]\n", __FUNCTION__, msgStr);
 
    int uiNum = fsm->uiList.size();
    for (int j=0; j<uiNum; j++) {
@@ -345,15 +367,24 @@ int displayInstance::parseMsg(sageMessage &msg)
          //char token[TOKEN_LEN];
          //getToken((char *)msg.getData(), token);
          //rcvFrate = atof(token);
+
+    	  //fprintf(stderr, "displayInstance::%s() : DISP_RCV_FRATE_RPT. instID %d, rcvFrate %.3f\n", __FUNCTION__, instID, rcvFrate);
          break;
       }
 
       case DISP_RCV_BANDWITH_RPT : {
+    	  /*
+    	  int instID, frameSize;
+    	  double bandwidth, packetloss;
+    	  sscanf((char *)msg.getData(), "%d %7.2f %7.2f %d", &instID, &bandwidth, &packetloss, &frameSize);
+    	  accumulateBandwidth(bandwidth, packetloss, frameSize);
+    	  */
          accumulateBandwidth((char *)msg.getData());
          break;
       }
 
       case DISP_SAIL_PERF_RPT : {
+    	 // fprintf(stderr, "displayInstance::%s() : DISP_SAIL_PERF_RPT. [%s]\n", __FUNCTION__, (char *)msg.getData());
          reportPerformance((char *)msg.getData());
          break;
       }
