@@ -78,7 +78,7 @@ gettimeofday(struct timeval *tp, void *tzp)
 
 int getToken(char *str, char *token)
 {
-   char seps[] = " ,\t\n";
+   char seps[] = " ,\t\r\n";
    static char token_buf[MAX_TOKENS][TOKEN_LEN];
    static int token_num = 0;
    static int token_idx = 0;
@@ -113,7 +113,7 @@ int getToken(char *str, char *token)
 
 int getToken(char *str, char *token, char **buf)
 {
-   char seps[] = " ,\t\n";
+   char seps[] = " ,\t\r\n";
    char *p_token;
 
    if (p_token = strtok_r(str, seps, buf))
@@ -128,7 +128,7 @@ int getToken(char *str, char *token, char **buf)
 
 int getToken(FILE *fp, char *token)
 {
-   char seps[] = " ,\t\n{}()";
+   char seps[] = " ,\t\r\n{}()";
    int token_idx = 0;
 
    int curChar;
@@ -170,7 +170,7 @@ char* sage::tokenSeek(char *buf, int tnum)
       return NULL;
    }
 
-   char seps[] = " ,\t\n{}()";      
+   char seps[] = " ,\t\r\n{}()";      
    int strLen = strlen(buf);
    int tokenCnt = 0;
    bool tokenStart = false;
@@ -422,7 +422,7 @@ sageToken::~sageToken()
 
 int sageToken::getToken(char *token)
 {
-   char seps[] = " ,\t\n\0";
+   char seps[] = " ,\t\r\n\0";
    int tokenIdx = 0;
    int i;
    
