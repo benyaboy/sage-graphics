@@ -983,107 +983,107 @@ int main(int argc, char *argv[])
 
     while((c = getopt(argc, argv, "t:b:r:p:S:F:f:P:L:R:vsmqM:c:n:")) != EOF) {
         switch(c) {
-            case 'c':
-                hostIP = strdup(optarg);
-                break;
+	case 'c':
+	    hostIP = strdup(optarg);
+	    break;
 
-            case 't':
-                nfillers = atoi(optarg);
-                if(nfillers < 1) {
-                    fprintf(stderr, "%s: Need at least 1 reader thread\n",
-                            prog);
-                    exit(1);
-                }
-                break;
+	case 't':
+	    nfillers = atoi(optarg);
+	    if(nfillers < 1) {
+		fprintf(stderr, "%s: Need at least 1 reader thread\n",
+			prog);
+		exit(1);
+	    }
+	    break;
 
-            case 'b':
-                nbufseach = atoi(optarg);
-                if(nbufseach < 2) {
-                    fprintf(stderr, "%s: Need at least 2 buffers per reader thread\n",
-                            prog);
-                    exit(1);
-                }
-                break;
+	case 'b':
+	    nbufseach = atoi(optarg);
+	    if(nbufseach < 2) {
+		fprintf(stderr, "%s: Need at least 2 buffers per reader thread\n",
+			prog);
+		exit(1);
+	    }
+	    break;
 
-            case 'r':
-                readsize = atoi(optarg);
-                if(readsize <= 0 || readsize % getpagesize() != 0) {
-                    fprintf(stderr, "%s: readsize must be a multiple of pagesize (%d)\n",
-                            prog, getpagesize());
-                    exit(1);
-                }
-                break;
+	case 'r':
+	    readsize = atoi(optarg);
+	    if(readsize <= 0 || readsize % getpagesize() != 0) {
+		fprintf(stderr, "%s: readsize must be a multiple of pagesize (%d)\n",
+			prog, getpagesize());
+		exit(1);
+	    }
+	    break;
 
-            case 'p':
-                port = atoi(optarg);	/* Not implemented yet */
-                break;
+	case 'p':
+	    port = atoi(optarg);	/* Not implemented yet */
+	    break;
 
-            case 'P':
-                preloadms = atoi(optarg);
-                break;
+	case 'P':
+	    preloadms = atoi(optarg);
+	    break;
 
-            case 'M':
-                msfudge = atoi(optarg);
-                break;
+	case 'M':
+	    msfudge = atoi(optarg);
+	    break;
 
-            case 'S':
-                skipby = atoi(optarg);
-                if(skipby <= 0) skipby = 1;
-                break;
+	case 'S':
+	    skipby = atoi(optarg);
+	    if(skipby <= 0) skipby = 1;
+	    break;
 
-            case 'F':
-                rateoverride = 1;	/* and fall into ... */
-            case 'f':
-            {
-                double v = atof(optarg);
-                if(strchr(optarg, '!'))
-                    rateoverride = 1;
-                if(strchr(optarg, 'm'))
-                    defaultrate = (int) -v;
-                else if(v>0)
-                    defaultrate = (int) v;
-                else {
-                    fprintf(stderr, "%s: -f %s: expected frame rate (frames/sec) or frame time in milliseconds (with \"m\" suffix).\n",
-                            prog, optarg);
-                    exit(1);
-                }
-            }
-            break;
+	case 'F':
+	    rateoverride = 1;	/* and fall into ... */
+	case 'f':
+	{
+	    double v = atof(optarg);
+	    if(strchr(optarg, '!'))
+		rateoverride = 1;
+	    if(strchr(optarg, 'm'))
+		defaultrate = (int) -v;
+	    else if(v>0)
+		defaultrate = (int) v;
+	    else {
+		fprintf(stderr, "%s: -f %s: expected frame rate (frames/sec) or frame time in milliseconds (with \"m\" suffix).\n",
+			prog, optarg);
+		exit(1);
+	    }
+	}
+	break;
 
-            case 's':
-                stereo = CROSSEYED;
-                break;
+	case 's':
+	    stereo = CROSSEYED;
+	    break;
 
-            case 'm':
-                stereo = MONO;
-                break;
+	case 'm':
+	    stereo = MONO;
+	    break;
 
-            case 'q':
-                stereo = QUADBUFFERED;	/* Not implemented yet! */
-                break;
+	case 'q':
+	    stereo = QUADBUFFERED;	/* Not implemented yet! */
+	    break;
 
-            case 'R':
-                defaultshift = atoi(optarg);
-                shiftoverride = (strchr(optarg, '!') != NULL);
-                break;
+	case 'R':
+	    defaultshift = atoi(optarg);
+	    shiftoverride = (strchr(optarg, '!') != NULL);
+	    break;
 
-            case 'L':
-                defaultshift = -atoi(optarg);
-                shiftoverride = (strchr(optarg, '!') != NULL);
-                break;
+	case 'L':
+	    defaultshift = -atoi(optarg);
+	    shiftoverride = (strchr(optarg, '!') != NULL);
+	    break;
 
-            case 'v':
-                verbose++;
-                break;
+	case 'v':
+	    verbose++;
+	    break;
 
-				case 'n':
-					 nwID = atoi(optarg);
-					 break;
+	case 'n':
+	    nwID = atoi(optarg);
+	    break;
 
-            default:
-                fprintf(stderr, "%s: unknown option -%c\n", prog, c);
-                argc=1;
-                break;
+	default:
+	    fprintf(stderr, "%s: unknown option -%c\n", prog, c);
+	    argc=1;
+	    break;
         }
     }
 
@@ -1109,7 +1109,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-         // ----------------------------
+    // ----------------------------
 
     sageRect hdmovieImageMap;
     hdmovieImageMap.left = 0.0;
@@ -1128,16 +1128,19 @@ int main(int argc, char *argv[])
     if (stereomovie)
         fprintf(stderr, "It's a Stereo Movie !!!\n");
 
-    if (stereomovie)
+    if (stereomovie && (stereo == MONO))
         scfg.resX = mvlist[0].nxtile*mvlist[0].xtile/2; // always in mono
     else
-        scfg.resX = mvlist[0].nxtile*mvlist[0].xtile;
+    scfg.resX = mvlist[0].nxtile*mvlist[0].xtile;
 
     scfg.resY = mvlist[0].nytile*mvlist[0].ytile;
     scfg.imageMap = hdmovieImageMap;
     scfg.rowOrd = BOTTOM_TO_TOP;
     scfg.nwID = nwID;
 
+    if (stereomovie && (stereo == CROSSEYED)) {
+	scfg.winWidth *= 2; // display it twice as wide as a mono movie
+    }
 
     if (mvlist[0].format == RGB565)
     {
@@ -1182,11 +1185,11 @@ int main(int argc, char *argv[])
     startmovie( doloop );
     sageMessage msg;
     int firstClickTime = 0, dir=0;
-	double fps, t1, t2;
+    double fps, t1, t2;
 
     while (1)
     {
-	                 t1 = sage::getTime();
+	t1 = sage::getTime();
 
 	if(!paused)
 	{
@@ -1198,72 +1201,72 @@ int main(int argc, char *argv[])
 	    char* data = (char*) msg.getData();
 
 	    switch (msg.getCode()) {
-		case APP_QUIT : {
-		    std::cout << "Quit by SAGE" << std::endl;
-		    exit(1);
-		    break;
+	    case APP_QUIT : {
+		std::cout << "Quit by SAGE" << std::endl;
+		exit(1);
+		break;
+	    }
+	    case SAGE_EVT_CLICK: {
+		float clickX, clickY;
+		int clickDeviceId, clickButtonId, clickIsDown, clickEvent;
+
+		// Parse message
+		sscanf(data, "%d %f %f %d %d %d",
+		       &clickDeviceId, &clickX, &clickY,
+		       &clickButtonId, &clickIsDown, &clickEvent);
+
+		if(clickIsDown && clickButtonId==1)
+		{
+		    if(!paused)
+			pausemovie();
+		    else
+			resumemovie(doloop);
 		}
-		case SAGE_EVT_CLICK: {
-		    float clickX, clickY;
-		    int clickDeviceId, clickButtonId, clickIsDown, clickEvent;
 
-		    // Parse message
-		    sscanf(data, "%d %f %f %d %d %d",
-			   &clickDeviceId, &clickX, &clickY,
-			   &clickButtonId, &clickIsDown, &clickEvent);
+		// stop the ff or rewind
+		/*else if(!clickIsDown && clickButtonId==1 && dir!=0)
+		  {
+		  dir = 0;
+		  bpio_t *bpio = &playlist[curplay];
+		  bpforward( bpio, playfwd * skipby );
+		  bpsync( bpio );
+		  resumemovie( doloop );
+		  }*/
 
-		    if(clickIsDown && clickButtonId==1)
-		    {
-			if(!paused)
-			    pausemovie();
-			else
-			    resumemovie(doloop);
-		    }
+		break;
+	    }
+		/*case SAGE_EVT_PAN: {
+		  int panDeviceId;
+		  float panX, panY, panDX, panDY, panDZ;
+		  sscanf(data, "%d %f %f %f %f %f",
+		  &panDeviceId, &panX, &panY, &panDX, &panDY, &panDZ);
 
-		    // stop the ff or rewind
-		    /*else if(!clickIsDown && clickButtonId==1 && dir!=0)
-		    {
-			dir = 0;
-			bpio_t *bpio = &playlist[curplay];
-			bpforward( bpio, playfwd * skipby );
-			bpsync( bpio );
-			resumemovie( doloop );
-			}*/
+		  bpio_t *bpio = &playlist[curplay];
 
-		    break;
-		}
-		    /*case SAGE_EVT_PAN: {
-		    int panDeviceId;
-		    float panX, panY, panDX, panDY, panDZ;
-		    sscanf(data, "%d %f %f %f %f %f",
-			   &panDeviceId, &panX, &panY, &panDX, &panDY, &panDZ);
+		  // if we weren't ff or rewinding OR the direction changed...
+		  if (dir == 0 || (panDX < 0 && dir > 0) || (panDX > 0 && dir < 0))
+		  {
+		  if(panDX < 0)
+		  dir = -1;
+		  else
+		  dir = 1;
 
-		    bpio_t *bpio = &playlist[curplay];
+		  bpforward( bpio, dir * 15 );
+		  bpsync( bpio );
+		  resumemovie( doloop );
+		  }
 
-		    // if we weren't ff or rewinding OR the direction changed...
-		    if (dir == 0 || (panDX < 0 && dir > 0) || (panDX > 0 && dir < 0))
-		    {
-			if(panDX < 0)
-			    dir = -1;
-			else
-			    dir = 1;
-
-			bpforward( bpio, dir * 15 );
-			bpsync( bpio );
-			resumemovie( doloop );
-		    }
-
-		    break;
-		    }*/
+		  break;
+		  }*/
 	    }
 	}
 
         //sage::usleep( (1000/defaultrate)*1000 );
-		t2 = sage::getTime();
-		fps = (1000000.0/(t2-t1));
-		if (fps > defaultrate) {
-			sage::usleep( (1000000.0/defaultrate) - (t2-t1)  );
-		}
+	t2 = sage::getTime();
+	fps = (1000000.0/(t2-t1));
+	if (fps > defaultrate) {
+	    sage::usleep( (1000000.0/defaultrate) - (t2-t1)  );
+	}
 
     }
 
