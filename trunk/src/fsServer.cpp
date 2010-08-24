@@ -159,7 +159,7 @@ int fsServer::checkClients()
             msg.destroy();
          }
          else if (status == QUANTAnet_tcpClient_c::CONNECTION_TERMINATED) {
-            std::cout << "fsCore::checkClients() : connection to client " << i+SYSTEM_CLIENT_BASE << " was terminated" << std::endl;
+            std::cout << "fsServer::checkClients() : connection to client " << i+SYSTEM_CLIENT_BASE << " was terminated" << std::endl;
             sysClientList[i] = NULL;
 
             /*
