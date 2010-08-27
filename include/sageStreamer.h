@@ -201,7 +201,7 @@ public:
     */
    virtual void setNwConfig(sageNwConfig &nc);
    void shutdown(); 
-   ~sageBlockStreamer();
+   virtual ~sageBlockStreamer();
 };
 
 class sageBlockBuf;
@@ -228,7 +228,7 @@ public:
    void shutdown();
    //void setBlockMutex(pthread_mutex_t *mutex) { blockMutex = mutex; }
    
-   ~bridgeStreamer() {}
+   virtual ~bridgeStreamer() {}
 };
 
 /**
@@ -252,7 +252,7 @@ public:
 
    sageAudioCircBuf* getBuffer() { return buffer; }
    virtual void setNwConfig(sageNwConfig &nc);
-   ~sageAudioStreamer();
+   virtual ~sageAudioStreamer();
 protected:
    sageAudioBlock aBlock;
    int initializeBlock();
