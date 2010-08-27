@@ -42,6 +42,7 @@
 
 #include "sageTcpModule.h"
 #include "sageBlock.h"
+#include "sageFrame.h"
 #include "sageBlockPool.h"
 #include <fcntl.h>
 
@@ -229,6 +230,31 @@ int sageTcpModule::send(int id, sageBlock *sb, sageApiOption op)
    
    return dataSize;
 }//End of sageTcpModule::send()
+
+/**
+ * sungwon experimental, swexp
+ */
+int sageTcpModule::sendpixelonly(int id, sageBlockFrame *sb) {
+	if (id < 0 || id > rcvList.size()-1) {
+		sage::printLog("sageTcpModule::%s() : invalid receiver ID %d", __FUNCTION__, id);
+		return -1;
+	}
+
+	if (!sb) {
+		sage::printLog("sageTcpModule::%s() : null sage block", __FUNCTION__);
+		return -1;
+	}
+
+	//std::cout << "block size " << sb->getBufSize() << std::endl;
+	// send data
+	assert(sb);
+	int dataSize = sage::send(rcvList[id], sb->getPixelBuffer(), sb->getBufSize() - BLOCK_HEADER_SIZE);
+	if (dataSize < 0) {
+		return -1;
+	}
+
+	return dataSize;
+}
 
 
 int sageTcpModule::sendControl(int id, int frameID, int configID)

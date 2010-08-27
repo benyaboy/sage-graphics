@@ -42,6 +42,7 @@
 
 #include "sageUdpModule.h"
 #include "sageBlock.h"
+#include "sageFrame.h"
 #include "sageBlockPool.h"
 
 #if defined(WIN32)
@@ -343,9 +344,10 @@ int sageUdpModule::connect(char *ip, char *msg)
    serverAddr.sin_family = AF_INET;
    serverAddr.sin_addr.s_addr = inet_addr(ip);
    serverAddr.sin_port = htons(rcvPort);
-   
+
+   fprintf(stderr, "sageUdpModule::%s() : connecting to receiver %s::%d\n", __FUNCTION__, ip, rcvPort);
    if(::connect(clientSockFd, (struct sockaddr *)&serverAddr, sizeof(struct sockaddr)) == -1) {
-      sage::printLog("sageUdpModule::connect()");
+      sage::printLog("sageUdpModule::connect() : connect error");
       return -1;
    }
       
@@ -356,7 +358,7 @@ int sageUdpModule::connect(char *ip, char *msg)
    
    if (msg) {
       if (sage::send(clientSockFd, msg, REG_MSG_SIZE) == -1) {
-         sage::printLog("sageUdpModule::connect()");
+         sage::printLog("sageUdpModule::connect() : send error");
          return -1;
       }   
    }
@@ -411,25 +413,25 @@ int sageUdpModule::connect(char *ip, char *msg)
    int udpPort;
    char addrMsg[TOKEN_LEN];
    
-   //std::cout << "sageUdpModule::connect() : waiting for server..." << std::endl;   
+   std::cout << "sageUdpModule::connect() : waiting for receiver to send udp port number..." << std::endl;   
    if (sage::recv(clientSockFd, (void *)addrMsg, TOKEN_LEN) < 0) {
       sage::printLog("sageUdpModule::connect()");
       return -1;
    }
       
    sscanf(addrMsg, "%d", &udpPort);
-   //std::cout << "sageUdpModule::connect() : UDP server port is " << udpPort << std::endl;
+   std::cout << "sageUdpModule::connect() : receiver UDP port is " << udpPort << std::endl;
    
    serverAddr.sin_port = htons(udpPort);
 
    if (::connect(udpSockFd, (struct sockaddr *)&serverAddr, sizeof(struct sockaddr)) == -1) {
-      sage::printLog("sageUdpModule::connect()");
+      sage::printLog("sageUdpModule::connect() : connect with UDP error");
       return -1;
    }
       
    udpPort = (int)ntohs(udpLocalAddr.sin_port);
    sprintf(addrMsg, "%d", udpPort);
-   //std::cout << "sageUdpModule::connect() : send UDP client port " << udpPort << std::endl;
+   std::cout << "sageUdpModule::connect() : send my UDP port number " << udpPort << std::endl;
    
    if (sage::send(clientSockFd, (void *)addrMsg, TOKEN_LEN) <= 0) {
       sage::printLog("sageUdpModule::connect() - error in sending UDP port");
@@ -529,39 +531,60 @@ int sageUdpModule::send(int id, sagePixelBlock *spb)
 
 int sageUdpModule::send(int id, sageBlock *sb, sageApiOption op)
 {
-   if (id < 0 || id > rcvList.size()-1) {
-      sage::printLog("sageUdpModule::send() : invalid receiver ID");
-      return -1;
-   }
-         
-   if (!sb) {
-      sage::printLog("sageUdpModule::send() : null sage block");
-      return 1;
-   }
+	if (id < 0 || id > rcvList.size()-1) {
+		sage::printLog("sageUdpModule::send() : invalid receiver ID");
+		return -1;
+	}
 
-   int dataSize;   
+	if (!sb) {
+		sage::printLog("sageUdpModule::send() : null sage block");
+		return 1;
+	}
 
-   if (op & SAGE_CONTROL) {
-      int clientSockFd = rcvList[id];
-      if (op & SAGE_BACKWARD)
-         clientSockFd = sendList[id];
+	int dataSize;
 
-      if ((dataSize = sage::send(clientSockFd, sb->getBuffer(), BLOCK_HEADER_SIZE)) < 0)
-         return -1;      
-   }
-   else {
-      //std::cout << "block size " << sb->getBufSize() << "bytes" << std::endl;
+	if (op & SAGE_CONTROL) {
+		int clientSockFd = rcvList[id];
+		if (op & SAGE_BACKWARD)
+			clientSockFd = sendList[id];
 
-      // send data using UDP channel
-      int udpSockFd = udpRcvList[id];
-      dataSize = sage::send(udpSockFd, sb->getBuffer(), sb->getBufSize());
-      if (dataSize < 0)
-         return -1;
-      //std::cout << dataSize << " bytes sent" << std::endl;
-   }
-   
-   return dataSize;   
+		if ((dataSize = sage::send(clientSockFd, sb->getBuffer(), BLOCK_HEADER_SIZE)) < 0)
+			return -1;
+	}
+	else {
+		//std::cout << "block size " << sb->getBufSize() << "bytes" << std::endl;
+
+		// send data using UDP channel
+		int udpSockFd = udpRcvList[id];
+		dataSize = sage::send(udpSockFd, sb->getBuffer(), sb->getBufSize());
+		if (dataSize < 0)
+			return -1;
+		//std::cout << dataSize << " bytes sent" << std::endl;
+	}
+
+	return dataSize;
 }//End of sageUdpModule::send()
+
+int sageUdpModule::sendpixelonly(int id, sageBlockFrame *sb) {
+	if (id < 0 || id > rcvList.size()-1) {
+		sage::printLog("sageUdpModule::%s() : invalid receiver ID %d", __FUNCTION__, id);
+		return -1;
+	}
+
+	if (!sb) {
+		sage::printLog("sageUdpModule::%s() : null sage block", __FUNCTION__);
+		return -1;
+	}
+
+	//std::cout << "block size " << sb->getBufSize() << std::endl;
+	// send data
+	int dataSize = sage::send(udpRcvList[id], sb->getPixelBuffer(), sb->getBufSize() - BLOCK_HEADER_SIZE);
+	if (dataSize < 0) {
+		return -1;
+	}
+
+	return dataSize;
+}
 
 int sageUdpModule::sendControl(int id, int frameID, int configID)
 {

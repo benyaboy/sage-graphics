@@ -69,7 +69,7 @@ streamerConfig::streamerConfig() : rank(0), resX(0), resY(0), rowOrd(TOP_TO_BOTT
          break;
    }
 
-   sagenext = false;
+   swexp = false;
    fromBridgeParallel = false;
 
 }
@@ -379,10 +379,10 @@ int sailConfig::init(const char *fname)
 			getToken(fp, token);
 			resY = atoi(token);
 		}
-		else if (strcmp(token, "SAGENEXT") == 0 ) {
+		else if (strcmp(token, "SWEXP") == 0 ) {
 			getToken(fp, token);
 			if ( atoi(token) == 1 ) {
-				sagenext = true;
+				swexp = true;
 			}
 		}
 	}
