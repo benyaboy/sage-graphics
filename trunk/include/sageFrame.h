@@ -86,7 +86,7 @@ public:
     */
    int updateBufferHeader(int fnum);
 
-   ~sageBlockFrame();
+   virtual ~sageBlockFrame();
    
    friend class sageSubFrame;
 };

@@ -161,7 +161,7 @@ public:
 
    //void recalcBufSize();
 
-   ~sagePixelBlock();
+   virtual ~sagePixelBlock();
 };
 
 /**
@@ -189,7 +189,7 @@ protected:
 public:
    sageAudioBlock();
    sageAudioBlock(int frame, sageSampleFmt type, int byte, int rate, int chan, int framesperbuffer);
-   ~sageAudioBlock();
+   virtual ~sageAudioBlock();
 
    int initBuffer();
    int initBuffer(int size);
