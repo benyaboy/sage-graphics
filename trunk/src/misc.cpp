@@ -90,7 +90,7 @@ int getToken(char *str, char *token)
       token_idx++;
    }   
    else {
-      if (p_token = strtok(str, seps))
+      if ( (p_token = strtok(str, seps)) )
          strcpy(token, p_token);
       else {
          token[0] = '\0';
@@ -116,7 +116,7 @@ int getToken(char *str, char *token, char **buf)
    char seps[] = " ,\t\r\n";
    char *p_token;
 
-   if (p_token = strtok_r(str, seps, buf))
+   if ( (p_token = strtok_r(str, seps, buf)) )
       strcpy(token, p_token);
    else {
       token[0] = '\0';
