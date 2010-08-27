@@ -96,7 +96,7 @@ public:
    syncGroup *sGroup;
    sageSyncClient *syncClientObj;
    
-   bool sagenext;
+   bool swexp; // sungwon experimental
    bool fromBridgeParallel;
 
    streamerConfig();

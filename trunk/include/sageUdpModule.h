@@ -50,6 +50,7 @@
 class sageBlockBuf;
 class sageCircBuf;
 class sageBlockGroup;
+class sageBlockFrame;
 
 class flowHistory {
 public:
@@ -119,6 +120,13 @@ public:
    int checkConnections(char *msg = NULL, sageApiOption op = 0);
    int connect(char* ip, char *msg = NULL);
    int send(int id, sageBlock *sb, sageApiOption op);
+
+
+   /**
+    * sungwon experimental, swexp
+    */
+   int sendpixelonly(int id, sageBlockFrame *sb);
+
    int recv(int id, sageBlock *sb, sageApiOption op);
    int sendControl(int id, int frameID, int configID);
    int sendGrp(int id, sagePixelBlock *sb, int configID);
@@ -132,7 +140,7 @@ public:
    
    int close(int id, int mode = -1);
    int close();
-   ~sageUdpModule();
+   virtual ~sageUdpModule();
 }; 
 
 #endif

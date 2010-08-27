@@ -261,6 +261,21 @@ int sageBlockStreamer::streamLoop()
       sageBlockFrame *buf = (sageBlockFrame *)doubleBuf->getBackBuffer();
       //sage::printLog("\n========= got a frame ==========\n");
       
+      /* sungwon experimental */
+      if ( config.swexp ) {
+    	  //buf->updateBufferHeader(frameID, config.resX, config.resY);
+    	  if ( nwObj->sendpixelonly(0, buf) <= 0 ) {
+    		  streamerOn = false;
+    	  }
+    	  else {
+    		  //fprintf(stderr, "sageBlockStreamer::%s() : frame %d sent \n", __FUNCTION__, frameID);
+    	  }
+    	  doubleBuf->releaseBackBuffer();
+    	  frameID++;
+    	  frameCounter++;
+    	  continue;
+      }
+
       char *msgStr = NULL;
       if (config.nodeNum > 1) {
          config.syncClientObj->sendSlaveUpdate(frameID);

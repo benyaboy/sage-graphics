@@ -52,6 +52,7 @@ class sageBlock;
 class sagePixelBlock;
 class sageBlockPool;
 class sageBlockGroup;
+class sageBlockFrame;
 
 /**
  * sageNwConfig
@@ -160,6 +161,11 @@ public:
    virtual int connect(char* ip, char *msg = NULL) = 0; // for SAGE_SEND or SAGE_BRDIGE mode
 
    virtual int send(int id, sageBlock *sb, sageApiOption op) = 0;
+
+   /**
+       * sungwon experimental, swexp
+       */
+    virtual int sendpixelonly(int id, sageBlockFrame *sb) = 0;
 
    virtual int recv(int id, sageBlock *sb, sageApiOption op) = 0;
 
