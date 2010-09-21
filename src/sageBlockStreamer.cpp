@@ -61,6 +61,14 @@ sageBlockStreamer::sageBlockStreamer(streamerConfig &conf, int pixSize) : compFa
    
    createDoubleBuffer();
    
+   // sungwon exp
+   affinityFlag = false;
+   cpulist.clear();
+   if ( pthread_mutex_init(&affinityMutex, 0) != 0 ) {
+	   perror("pthread_mutex_init");
+   }
+   pthread_mutex_unlock(&affinityMutex);
+
 // gethostname(hostname, SAGE_NAME_LEN);
 }
 
@@ -111,23 +119,30 @@ void sageBlockStreamer::setNwConfig(sageNwConfig &nc)
       }
    }   
 
-   partition = new sageBlockPartition(config.blockX, config.blockY, config.totalWidth,
-      config.totalHeight);
+   if ( config.swexp ) {
+	   partition = 0;
+   }
+   else {
+   partition = new sageBlockPartition(config.blockX, config.blockY, config.totalWidth, config.totalHeight);
    
    sageBlockFrame *buf = (sageBlockFrame *)doubleBuf->getBuffer(0);
    buf->initFrame(partition);
    buf = (sageBlockFrame *)doubleBuf->getBuffer(1);
    buf->initFrame(partition);
-   blockSize = (int)ceil(config.blockX*config.blockY*bytesPerPixel/compFactor)
-      + BLOCK_HEADER_SIZE;
+   blockSize = (int)ceil(config.blockX*config.blockY*bytesPerPixel/compFactor) + BLOCK_HEADER_SIZE;
    partition->initBlockTable();
+   }
 	
    nwCfg.blockSize = blockSize;
    nwCfg.groupSize = config.groupSize;
    nwCfg.maxBandWidth = (double)config.maxBandwidth/8.0; // bytes/micro-second
    nwCfg.maxCheckInterval = config.maxCheckInterval;  // in micro-second
    nwCfg.flowWindow = config.flowWindow;
-   nbg = new sageBlockGroup(blockSize, doubleBuf->bufSize(), GRP_MEM_ALLOC | GRP_CIRCULAR);
+
+   if ( config.swexp )
+	   nbg = 0;
+   else
+	   nbg = new sageBlockGroup(blockSize, doubleBuf->bufSize(), GRP_MEM_ALLOC | GRP_CIRCULAR);
 }
 
 void sageBlockStreamer::setupBlockPool()
@@ -262,6 +277,36 @@ int sageBlockStreamer::streamLoop()
       //sage::printLog("\n========= got a frame ==========\n");
       
       /* sungwon experimental */
+
+      if ( affinityFlag ) {
+    	  cpu_set_t cpuset;
+    	  CPU_ZERO(&cpuset);
+
+    	  pthread_mutex_lock(&affinityMutex);
+    	  std::list<int>::iterator it;
+    	  for ( it=cpulist.begin(); it!=cpulist.end(); it++) {
+    		  CPU_SET((*it), &cpuset);
+    	  }
+    	  affinityFlag = false; // reset flag
+    	  pthread_mutex_unlock(&affinityMutex);
+
+    	  if ( pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset) != 0 ) {
+    		  perror("pthread_setaffinity_np");
+    	  }
+    	  if ( pthread_getaffinity_np(pthread_self(), sizeof(cpuset), &cpuset) != 0 ) {
+    		  perror("pthread_getaffinity_np");
+    	  }
+    	  else {
+    		  fprintf(stderr,"SBS::%s() : cpu affinity : ", __FUNCTION__);
+    		  for (int i=0; i<CPU_SETSIZE; i++) {
+    			  if (CPU_ISSET(i, &cpuset)) {
+    				  fprintf(stderr, "%d ", i);
+    			  }
+    		  }
+    		  fprintf(stderr,"\n");
+    	  }
+      }
+
       if ( config.swexp ) {
     	  //buf->updateBufferHeader(frameID, config.resX, config.resY);
     	  if ( nwObj->sendpixelonly(0, buf) <= 0 ) {
@@ -337,4 +382,25 @@ sageBlockStreamer::~sageBlockStreamer()
       
    if (nwObj)
       delete nwObj;
+
+   pthread_mutex_unlock(&affinityMutex);
+   pthread_mutex_destroy(&affinityMutex);
+}
+
+void sageBlockStreamer::setAffinity(const char *msgdata) {
+	pthread_mutex_lock(&affinityMutex);
+	cpulist.clear();
+
+	int len = 0;
+	sscanf(msgdata, "%d", &len);
+
+	char digit[2];
+	digit[1] = '\0';
+	for (int i=0; i<len; ++i) {
+		if ( msgdata[2+i] == '1' )
+			cpulist.push_back(i);
+	}
+
+	affinityFlag = true; // set flag
+	pthread_mutex_unlock(&affinityMutex);
 }
