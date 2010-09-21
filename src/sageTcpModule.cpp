@@ -248,10 +248,31 @@ int sageTcpModule::sendpixelonly(int id, sageBlockFrame *sb) {
 	//std::cout << "block size " << sb->getBufSize() << std::endl;
 	// send data
 	assert(sb);
-	int dataSize = sage::send(rcvList[id], sb->getPixelBuffer(), sb->getBufSize() - BLOCK_HEADER_SIZE);
-	if (dataSize < 0) {
-		return -1;
+
+
+	int totalsent = 0;
+	int dataSize = 0;
+	char *buf = sb->getPixelBuffer();
+	int frameSize = sb->getBufSize() - BLOCK_HEADER_SIZE;
+	while ( totalsent < frameSize ) {
+
+		if ( frameSize - totalsent < config.groupSize ) {
+			dataSize = sage::send(rcvList[id], buf, frameSize-totalsent);
+		}
+		else {
+			dataSize = sage::send(rcvList[id], buf, config.groupSize);
+		}
+		if (dataSize < 0) { return -1; }
+
+		buf += dataSize;
+
+		totalsent += dataSize;
 	}
+
+		/*
+	int dataSize = sage::send(rcvList[id], sb->getPixelBuffer(), sb->getBufSize() - BLOCK_HEADER_SIZE);
+	if (dataSize < 0) { return -1; }
+	*/
 
 	return dataSize;
 }
