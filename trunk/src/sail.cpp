@@ -78,12 +78,15 @@ sail::sail() : winID(0), bufID(0), sailOn(false), audioOn(false), sGroup(NULL), 
    audioBuffer = NULL;
    audioAppDataHander = NULL;
 #endif
+   msgThreadID = 0;
 
 }
 
 sail::~sail()
 {
-   pthread_join(msgThreadID, NULL);
+	if (msgThreadID) {
+   	pthread_join(msgThreadID, NULL);
+	}
 
 #ifdef SAGE_AUDIO
    if (audioStreamer) {
@@ -127,8 +130,8 @@ int sail::init(sailConfig &conf)
    // check that winWidth and winHeight has been set, if not, it to 500,500
    if (config.winWidth == -1 || config.winHeight == -1)
    {
-       config.winWidth = 500;
-       config.winHeight = 500;
+       config.winWidth = config.resX;
+       config.winHeight = config.resY;
    }
 
 
@@ -854,6 +857,12 @@ int sail::parseMessage(sageMessage &msg)
                sage::printLog("sail::parseMessage : invalid sail slave configuration\n");
          }
          break;
+      }
+      // sungwon experimental
+      case SAIL_SET_RAIL : {
+    	  fprintf(stderr, "sail::%s() : SAIL_SET_RAIL [%s]\n", __FUNCTION__, msgData);
+    	  static_cast<sageBlockStreamer *>(pixelStreamer)->setAffinity(msgData);
+    	  break;
       }
       default :
          sage::printLog("sail::parseMessage() : sail received an invalid message \n");

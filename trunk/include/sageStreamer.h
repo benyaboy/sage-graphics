@@ -51,6 +51,9 @@
 #include "sageTcpModule.h"
 #include "sageUdpModule.h"
 
+// sungwon exp
+#include <list>
+
 #define ALL_CONNECTION       0
 #define ACTIVE_CONNECTION    1
 #define INACTIVE_CONNECTION  2
@@ -188,6 +191,12 @@ protected:
     */
    int streamPixelData(sageBlockFrame *buf);
    
+   // sungwon exp
+   bool affinityFlag;
+   std::list<int> cpulist;
+   pthread_mutex_t affinityMutex;
+
+
 public:
    sageBlockStreamer(streamerConfig &conf, int pixSize);
    
@@ -202,6 +211,9 @@ public:
    virtual void setNwConfig(sageNwConfig &nc);
    void shutdown(); 
    virtual ~sageBlockStreamer();
+
+   // sungwon exp
+   void setAffinity(const char *msgdata);
 };
 
 class sageBlockBuf;
