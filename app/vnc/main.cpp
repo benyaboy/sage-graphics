@@ -119,7 +119,7 @@ main(int argc, char **argv)
     char *passwd;
     sgVNCViewer* vnc;
     sail sageInf; // sail object
-    double rate = 2;  //by default stream at 1fps
+    double rate = 10;  //by default stream at 1fps
 
     aInitialize();
 
