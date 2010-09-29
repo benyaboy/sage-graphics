@@ -33,8 +33,10 @@ VNCViewer::GetArgsAndResources(int argc, char **argv)
         //encodingsString = strdup("tight copyrect");
         //encodingsString = strdup("zlib copyrect");
         //encodingsString = strdup("copyrect hextile");
-    encodingsString = strdup("hextile corre rre raw copyrect");
+    //encodingsString = strdup("hextile corre rre raw copyrect");
         //default : raw copyrect hextile corre rre
+    encodingsString = strdup("tight hextile copyrect");
+
 
     shareDesktop = True;
     viewOnly = False;
@@ -61,8 +63,8 @@ VNCViewer::GetArgsAndResources(int argc, char **argv)
     bumpScrollTime = 25;
     bumpScrollPixels = 20;
 
-    compressLevel   = 4;
-    qualityLevel    = 2;
+    compressLevel   = 6;
+    qualityLevel    = 4;
     useRemoteCursor = False;
 
     if (argc == 2)
