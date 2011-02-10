@@ -279,6 +279,7 @@ int sageBlockStreamer::streamLoop()
       /* sungwon experimental */
 
       if ( affinityFlag ) {
+#if ! defined (__APPLE__)
     	  cpu_set_t cpuset;
     	  CPU_ZERO(&cpuset);
 
@@ -305,6 +306,7 @@ int sageBlockStreamer::streamLoop()
     		  }
     		  fprintf(stderr,"\n");
     	  }
+#endif
       }
 
       if ( config.swexp ) {
