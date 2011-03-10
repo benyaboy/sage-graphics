@@ -58,6 +58,7 @@ endif
 	cp bin/atlantis ${PREFIX}/usr/local/sage/bin
 	cp bin/checker ${PREFIX}/usr/local/sage/bin
 	cp bin/imageviewer ${PREFIX}/usr/local/sage/bin
+	cp bin/pdfviewer ${PREFIX}/usr/local/sage/bin
 	cp bin/bplay-noglut ${PREFIX}/usr/local/sage/bin
 	cp bin/bridgeConsole ${PREFIX}/usr/local/sage/bin
 	cp bin/fsConsole ${PREFIX}/usr/local/sage/bin
@@ -68,6 +69,7 @@ endif
 	cp sageConfig/applications/atlantis.conf ${PREFIX}/usr/local/sage/sageConfig/applications
 	cp sageConfig/applications/bitplayer.conf ${PREFIX}/usr/local/sage/sageConfig/applications
 	cp sageConfig/applications/imageviewer.conf ${PREFIX}/usr/local/sage/sageConfig/applications
+	cp sageConfig/applications/pdfviewer.conf ${PREFIX}/usr/local/sage/sageConfig/applications
 	cp sageConfig/applications/render.conf ${PREFIX}/usr/local/sage/sageConfig/applications
 	cp sageConfig/applications/VNCViewer.conf ${PREFIX}/usr/local/sage/sageConfig/applications
 	cp sageConfig/fsManager.conf ${PREFIX}/usr/local/sage/sageConfig
