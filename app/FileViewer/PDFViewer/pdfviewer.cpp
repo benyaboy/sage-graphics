@@ -67,6 +67,7 @@ byte *rgba = NULL;
 unsigned int width, height;  // image size
 string fileName;    
 float lastX = 0;
+float lastY = 0;
 float dist = 0;
 int numImages = 0;
 int firstPage = 0;
@@ -688,6 +689,87 @@ int main(int argc,char **argv)
 		exit(1);
 		break;
 
+	    case EVT_CLICK:
+		// Click event x and y location normalized to size of window
+		float clickX, clickY;
+
+		// Ckick device Id, button Id, and is down flag
+		int clickDeviceId, clickButtonId, clickIsDown, clickEvent;
+
+		// Parse message
+		sscanf(data, 
+		       "%d %f %f %d %d %d", 
+		       &clickDeviceId, &clickX, &clickY, 
+		       &clickButtonId, &clickIsDown, &clickEvent);
+
+		// record the click position so we know how far we moved
+		if (clickIsDown && clickEvent == EVT_PAN) {
+		    lastX = clickX;
+		    lastY = clickY;
+		}
+
+
+		if (clickIsDown) {
+		    bool doSwap = false;
+		    if (clickButtonId==1)
+			doSwap = MagickPreviousImage(wand);
+		    else if(clickButtonId==2)
+			doSwap = MagickNextImage(wand);
+			
+		    // if everything went well, swap the new page
+		    if (doSwap) {
+			getRGBA();
+			swapBuffer();
+		    }
+		}
+		
+
+		break;
+
+
+	    case EVT_PAN: 
+
+//#if ! defined(USE_POPPLER)
+		// Pan event properties
+		int panDeviceId;
+		bool doSwap = false;
+
+		// Pan event x and y location and change in x, y and z direction
+		// normalized to size of window
+		float startX, startY, panDX, panDY, panDZ;
+		sscanf(data, 
+		       "%d %f %f %f %f %f", 
+		       &panDeviceId, &startX, &startY, &panDX, &panDY, &panDZ);
+		
+		// keep track of distance
+		dist += panDX;
+
+		// we started a new drag
+		if (lastX != startX) {
+		    lastX = startX;
+		    dist = 0;
+		}
+
+		// if we dragged more than a certain distance, change a page
+		else if( fabs(dist) > 0.07 ) {
+		    if (dist > 0)
+			doSwap = MagickPreviousImage(wand);
+		    else
+			doSwap = MagickNextImage(wand);
+
+		    // reset the counter
+		    lastX = startX;
+		    dist = 0;
+
+		    if (doSwap) {
+			getRGBA();
+			swapBuffer();
+			//sprintf(l, "Page %ld of %d", MagickGetImageIndex(wand)+1, numImages);
+		    }
+		}
+//#endif
+
+		break;
 	    }   // end switch
 	}  // end if
     } // end while
