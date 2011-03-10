@@ -193,7 +193,7 @@
 
 // App UI to APP
 #define SAGE_EVT_CLICK            APP_MESSAGE
-#define SAGE_EVT_DOUBLE_CLKICK    (APP_MESSAGE + 1)
+#define SAGE_EVT_DOUBLE_CLICK    (APP_MESSAGE + 1)
 #define SAGE_EVT_MOVE             (APP_MESSAGE + 2)
 #define SAGE_EVT_ANALOG1          (APP_MESSAGE + 3)
 #define SAGE_EVT_PAN              (APP_MESSAGE + 3)
@@ -203,6 +203,19 @@
 #define SAGE_EVT_ZOOM             (APP_MESSAGE + 5)
 #define SAGE_EVT_ARROW            (APP_MESSAGE + 6)
 #define SAGE_EVT_KEY              (APP_MESSAGE + 7)
+
+//aliases
+#define EVT_CLICK            SAGE_EVT_CLICK
+#define EVT_DOUBLE_CLICK     SAGE_EVT_DOUBLE_CLICK
+#define EVT_MOVE             SAGE_EVT_MOVE
+#define EVT_ANALOG1          SAGE_EVT_ANALOG1
+#define EVT_PAN              SAGE_EVT_PAN
+#define EVT_ANALOG2          SAGE_EVT_ANALOG2
+#define EVT_ROTATE           SAGE_EVT_ROTATE
+#define EVT_ANALOG3          SAGE_EVT_ANALOG3
+#define EVT_ZOOM             SAGE_EVT_ZOOM
+#define EVT_ARROW            SAGE_EVT_ARROW
+#define EVT_KEY              SAGE_EVT_KEY
 
 // FSM to APP
 #define APP_QUIT             APP_MESSAGE + 2000

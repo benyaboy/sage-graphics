@@ -263,11 +263,11 @@ class SageSettings(ComponentSettings):
     def __init__(self, componentType):
         ComponentSettings.__init__(self, componentType)
         self.doRun = True
-        self.onStart = "xhost +local:\npython ../dim/dim.py\npython ../dim/hwcapture/localPointer.py localhost 1"  # a string of commands to be executed after shutdown (split by \n)
+        self.onStart = "xhost +local:\npython ../dim/dim.py\npython ../dim/hwcapture/localPointer.py localhost"  # a string of commands to be executed after shutdown (split by \n)
         self.onStop = "fuser -k 19010/tcp"
 
         # things to kill on each node
-        self.toKill = "fsManager sageDisplayManager sageAudioManager svc imageviewer mplayer bplay bplay-noglut VNCViewer render atlantis atlantis-mpi checker"
+        self.toKill = "fsManager sageDisplayManager sageAudioManager svc imageviewer mplayer bplay bplay-noglut VNCViewer render atlantis atlantis-mpi checker pdfviewer"
         
 
     def getStartCommand(self):
