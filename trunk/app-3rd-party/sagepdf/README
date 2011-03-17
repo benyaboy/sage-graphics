@@ -1,0 +1,54 @@
+20110309 CKW
+
+sagepdf is a PDF viewer for a tiled display running SAGE.
+
+Prerequisites to compile include poppler, cairo and gtk+.
+To build the full version, run:
+	make
+
+To install the compiled sagepdf application
+(into $SAGE_DIRECTORY/bin), run:
+	make install
+
+
+To display a PDF on both local and tiled displays,
+run:
+	sagepdf /full/path/to/yourfile.pdf [-show_original] [-page num] [-scale num]
+
+The PDF filename is a mandatory argument; the remainder are optional.
+	-show_original
+means no DXT compression is used
+
+	-page num
+(num is some integer) denotes which page number
+should be displayed at startup
+
+	-scale num
+(num is some integer) denotes a scaling factor
+to be applied _before_ the conversion from pdf to bitmap
+is made for the tiled display (defaults to 4). The
+scaling factor has no effect on the locally displayed
+output.
+
+To run just on the desktop, build with the command:
+	make nosage
+
+No connection to a tiled display is (or can be) made
+when running this version. This may be useful for
+experimenting with just the gui code.
+
+
+Interaction with the local pdf window is, firstly,
+via the keyboard:
+	Home			= go to 1st page
+	End			= go to last page
+	Page Up, Left Arrow	= go back 1 page
+	Page Down, Right Arrow	= go forward 1 page
+
+The local pdf window also responds to the same mouse events
+as the tiled display instance:
+	Left Click	= go forward 1 page
+	Drag Right	= go forward pages while dragging
+	Right Click	= go back 1 page
+	Drag Left	= go back pages while dragging
+

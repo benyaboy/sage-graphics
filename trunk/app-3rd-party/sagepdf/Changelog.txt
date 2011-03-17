@@ -1,0 +1,24 @@
+20110316 CKW - version 0.4
+  - replace all GdkPixbuf operations including poppler_page_render_to_pixbuf()
+    (deprecated since poppler-0.16)
+  - change applications.conf example entry so that DXT won't be used by default
+  - don't render existing page again
+  - when the local window ends, shutdown the SAGE instance of sagepdf too
+
+20110315 CKW - version 0.3
+  - vary width & height args for poppler_page_render_to_pixbuf()
+    depending on poppler version ( > 0.12 )
+  - add display pointer event handling
+  - add same events to local display
+  - add DXT support
+  - fit Makefile into SAGE environment
+  - change args to match pdfviewer but add and use -scale option,
+rather than deriving a scaleFactor from window_width & window_height.
+
+20110311 CKW - version 0.2
+  -  try to ensure the supplied pdf file has an absolute location
+     (and that we have access to read it).
+
+20110309 CKW - Version 0.1
+  - sagepdf is a PDF viewer for a tiled display running SAGE.
+

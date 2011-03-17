@@ -1,0 +1,14 @@
+20110311 CKW
+
+sagepdf has been built and run on a Mac OSX (Leopard).
+Assuming Mac Ports have already been installed and
+sufficient ports have been installed to successfully
+build the SAGE software itself, the further ports
+required to build sagepdf are cairo-devel and poppler
+i.e. run:
+	sudo port install cairo-devel
+	sudo port install poppler
+
+Evrything else, including building sagepdf itself is
+as per the plain README file.
+
