@@ -267,7 +267,7 @@ class SageSettings(ComponentSettings):
         self.onStop = "fuser -k 19010/tcp"
 
         # things to kill on each node
-        self.toKill = "fsManager sageDisplayManager sageAudioManager svc imageviewer mplayer bplay bplay-noglut VNCViewer render atlantis atlantis-mpi checker pdfviewer"
+        self.toKill = "fsManager sageDisplayManager sageAudioManager svc imageviewer mplayer bplay bplay-noglut VNCViewer render atlantis atlantis-mpi checker pdfviewer sagepdf"
         
 
     def getStartCommand(self):
