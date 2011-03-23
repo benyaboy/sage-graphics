@@ -32,14 +32,22 @@
  * Direct questions, comments etc about VNCViewer for SAGE to www.evl.uic.edu/cavern/forum
  *****************************************************************************************/
 
+#if defined(USE_LIBVNC)
+#include <rfb/rfbclient.h>
+#else
 #include "sgVNCViewer.h"
 #include <sys/fcntl.h>
+#endif
 
 // headers for SAGE
 #include "sail.h"
 #include "misc.h"
 #include <time.h>
 #include <unistd.h>
+
+// Global variables
+char *passwd, *server;
+
 
 // Configuration for SAGE, example:
 //	nodeNum 1
@@ -112,12 +120,79 @@ double aTime()
 // Comment/uncomment to use 24bit or 32bit SAGE application stream
 #define VNC_SAGE_USE_24bit 1
 
+#if defined(USE_LIBVNC)
+rfbClient* vnc;
+#else
+sgVNCViewer* vnc;
+#endif
+
+#if defined(USE_LIBVNC)
+
+static rfbBool got_data = FALSE;
+static void signal_handler(int signal)
+{
+    rfbClientLog("Cleaning up.\n");
+}
+
+static rfbBool resize_func(rfbClient* client)
+{
+    static rfbBool first=TRUE;
+    if(!first) {
+        rfbClientLog("I don't know yet how to change resolutions!\n");
+        exit(1);
+    }
+    signal(SIGINT,signal_handler);
+
+    int width=client->width;
+    int height=client->height;
+    int depth=client->format.bitsPerPixel;
+    client->updateRect.x = client->updateRect.y = 0;
+    client->updateRect.w = width; client->updateRect.h = height;
+
+    client->frameBuffer = (uint8_t*)malloc(width*height*depth);
+    memset(client->frameBuffer, 0, width*height*depth);
+
+    rfbClientLog("Allocate %d bytes: %d x %d x %d\n", width*height*depth, width,height,depth);
+    return TRUE;
+}
+
+static void frame_func(rfbClient* client)
+{
+    rfbClientLog("Received a frame\n");
+}
+
+static rfbBool position_func(rfbClient* client, int x, int y)
+{
+    //rfbClientLog("Received a position for %d,%d\n",x,y);
+    return TRUE;
+}
+
+static char *password_func(rfbClient* client)
+{
+    char *str = (char*)malloc(64);
+    memset(str, 0, 64);
+    strncpy(str, passwd, 64);
+    return str;
+}
+
+static void update_func(rfbClient* client,int x,int y,int w,int h)
+{
+    rfbPixelFormat* pf=&client->format;
+    int bpp=pf->bitsPerPixel/8;
+    int row_stride=client->width*bpp;
+
+    got_data = TRUE;
+
+    //rfbClientLog("Received an update for %d,%d,%d,%d.\n",x,y,w,h);
+}
+
+
+#endif
+
 int
 main(int argc, char **argv)
 {
     int winWidth, winHeight, display;
-    char *passwd;
-    sgVNCViewer* vnc;
     sail sageInf; // sail object
     double rate = 10;  //by default stream at 1fps
 
@@ -130,6 +205,7 @@ main(int argc, char **argv)
     }
 
         // VNC Init
+    server    = strdup(argv[1]);
     display   = atoi(argv[2]);
     winWidth  = atoi(argv[3]);
     winHeight = atoi(argv[4]);
@@ -138,10 +214,48 @@ main(int argc, char **argv)
         rate = atoi(argv[6]);
 
 
+#if defined(USE_LIBVNC)
+    // get a vnc client structure (don't connect yet).
+    // bits, channels, bytes
+    vnc = rfbGetClient(8,3,4);
+    vnc->canHandleNewFBSize = FALSE;
+    // to get position update callbacks
+    vnc->appData.useRemoteCursor=TRUE;
+    //vnc->appData.compressLevel=3;
+    //vnc->appData.qualityLevel=5;
+
+    /* open VNC connection */
+    vnc->MallocFrameBuffer=resize_func;
+    vnc->GotFrameBufferUpdate=update_func;
+    vnc->HandleCursorPos=position_func;
+    vnc->GetPassword=password_func;
+    //client->FinishedFrameBufferUpdate=frame_func;
+
+
+    int margc = 2;
+    char *margv[2];
+    margv[0] = strdup("vnc");
+    margv[1] = (char*)malloc(256);
+    memset(margv[1], 0, 256);
+    sprintf(margv[1], "%s:%d", server, display);
+    if(!rfbInitClient(vnc,&margc,margv)) {
+        printf("usage: %s server:port password\n"
+               "VNC client.\n", argv[0]);
+        exit(1);
+    }
+    if (vnc->serverPort==-1)
+        vnc->vncRec->doNotSleep = TRUE; /* vncrec playback */
+
+    winWidth  = vnc->width;
+    winHeight = vnc->height;
+
+#else
+
         // Connection to VNC server:
         //	host, display number, x offset, y offset, width, height, passwd
         //	passwd is by default 'evl123' but a different one can be specified so that one will be used
-    vnc = new sgVNCViewer(argv[1], display, 0,0,winWidth,winHeight, passwd);
+    vnc = new sgVNCViewer(server, display, 0,0,winWidth,winHeight, passwd);
+#endif
 
         // Sage Init
     sailConfig scfg;
@@ -180,6 +294,50 @@ main(int argc, char **argv)
         // Main lopp
     while (1)
     {
+#if defined(USE_LIBVNC)
+        double now = sage::getTime();
+        while ( (sage::getTime() - now) < (1000000/rate)) {
+            int i=WaitForMessage(vnc,100000);
+            if(i<0) {
+                rfbClientLog("VNC error, quit\n");
+                sageInf.shutdown();
+                exit(0);
+            }
+            if(i) {
+                if(!HandleRFBServerMessage(vnc)) {
+                    rfbClientLog("HandleRFBServerMessage quit\n");
+                    sageInf.shutdown();
+                    exit(0);
+                }
+            }
+        }
+
+        // Copy VNC buffer into SAGE buffer
+        buffer    = (unsigned char *) sageInf.getBuffer();
+        vncpixels = (unsigned char *) vnc->frameBuffer;
+
+        for (int k =0 ; k<winWidth*winHeight; k++) {
+            buffer[3*k + 0] = vncpixels[ 4*k + 0];
+            buffer[3*k + 1] = vncpixels[ 4*k + 1];
+            buffer[3*k + 2] = vncpixels[ 4*k + 2];
+        }
+
+
+        // SAGE Swap
+        sageInf.swapBuffer( );
+
+        // Process SAGE messages
+        sageMessage msg;
+        if (sageInf.checkMsg(msg, false) > 0) {
+            switch (msg.getCode()) {
+            case APP_QUIT:
+                sageInf.shutdown();
+                exit(0);
+                break;
+            }
+        }
+#else
+
         if (!vnc->Step())
         {
             sageInf.shutdown();
@@ -216,6 +374,7 @@ main(int argc, char **argv)
                     break;
             }
         }
+#endif
     }
 
     return 1;
