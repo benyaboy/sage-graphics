@@ -711,10 +711,12 @@ int main(int argc,char **argv)
 
 		if (clickIsDown) {
 		    bool doSwap = false;
+#if ! defined(USE_POPPLER)
 		    if (clickButtonId==1)
 			doSwap = MagickPreviousImage(wand);
 		    else if(clickButtonId==2)
 			doSwap = MagickNextImage(wand);
+#endif
 			
 		    // if everything went well, swap the new page
 		    if (doSwap) {
@@ -729,7 +731,6 @@ int main(int argc,char **argv)
 
 	    case EVT_PAN: 
 
-//#if ! defined(USE_POPPLER)
 		// Pan event properties
 		int panDeviceId;
 		bool doSwap = false;
@@ -752,10 +753,12 @@ int main(int argc,char **argv)
 
 		// if we dragged more than a certain distance, change a page
 		else if( fabs(dist) > 0.07 ) {
+#if ! defined(USE_POPPLER)
 		    if (dist > 0)
 			doSwap = MagickPreviousImage(wand);
 		    else
 			doSwap = MagickNextImage(wand);
+#endif
 
 		    // reset the counter
 		    lastX = startX;
@@ -767,7 +770,6 @@ int main(int argc,char **argv)
 			//sprintf(l, "Page %ld of %d", MagickGetImageIndex(wand)+1, numImages);
 		    }
 		}
-//#endif
 
 		break;
 	    }   // end switch
