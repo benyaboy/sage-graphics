@@ -182,7 +182,7 @@ int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, 
    if ( blockBuf ) delete blockBuf;
    if (blockSize>groupSize) {
 	sage::printLog("pixelDownloader> groupSize (%d) smaller than blockSize (%d)", groupSize, blockSize);
-	groupSize = groupSize;
+	groupSize = blockSize;
 	sage::printLog("pixelDownloader> New groupSize (%d)", groupSize);
    }
    blockBuf = new sageBlockBuf(shared->bufSize, groupSize, blockSize, BUF_MEM_ALLOC | BUF_CTRL_GROUP);
