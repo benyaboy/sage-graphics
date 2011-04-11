@@ -421,6 +421,10 @@ void CaptureWindow::onStart()
         scfg.winWidth  = WW;
         scfg.winHeight = HH;
         scfg.imageMap = ishareImageMap;
+	
+	// Copy back the text box into the SAGE variable
+	memset(scfg.fsIP, 0, SAGE_IP_LEN);
+	strncpy(scfg.fsIP, fsip.toAscii().constData(), SAGE_IP_LEN);
 
         if (dxt)
             scfg.pixFmt = PIXFMT_DXT;
