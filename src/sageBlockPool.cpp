@@ -575,10 +575,14 @@ sageBlockBuf::sageBlockBuf(int bufSize, int grpSize, int blkSize, char opt) : wa
             grpSize, blkSize);
       return;
    }
+   int blockNum, bufLen, bScale;
+   if (grpSize>=blkSize)
+       blockNum = grpSize / blkSize; // number of blocks in a blockGroup
+   else
+       sage::printLog("sageBlockBuf::sageBlockBuf> groupsize (%d) smaller than blocksize (%d) (increase groupsize)", grpSize, blkSize);
 
-   int blockNum = grpSize / blkSize; // number of blocks in a blockGroup
-   int bufLen = bufSize / (blockNum * blkSize); // number of blockGroups in a bufSize
-   int bScale = 1;
+   bufLen = bufSize / (blockNum * blkSize); // number of blockGroups in a bufSize
+   bScale = 1;
 
    //std::cout << "buf size " << bufSize << "  group size " << grpSize << "  block size " << blkSize << std::endl;
 #ifdef DEBUG_MEMORY
