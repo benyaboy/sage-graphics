@@ -189,6 +189,8 @@ int sageTcpModule::connect(char *ip, char *msg)
    rcvList.push_back(clientSockFd);
    
    if (config.blockSize > 0 && config.groupSize > 0) {
+	// make sure a block fits in a group
+      if (config.blockSize>config.groupSize) config.groupSize = config.blockSize;
       sageBlockGroup *sbg = new sageBlockGroup(config.blockSize, config.groupSize, GRP_USE_IOV);
       bufList.push_back(sbg);
    }   

@@ -159,6 +159,12 @@ int sageStreamer::connectToRcv(sageToken &tokenBuf, bool localPort /* = false */
       params[i].nodeID = atoi(token);
       params[i].active = false;
       
+	// Check that a group can fit at least one block
+      if (blockSize>config.groupSize) {
+		config.groupSize = blockSize;
+		sage::printLog("sageStreamer::connectToRcv> increased config.groupSize to %d", config.groupSize);
+	}
+
       char regMsg[REG_MSG_SIZE];
       sprintf(regMsg, "%d %d %d %d %d %d %d %d %d %d %d %d",
     		  config.streamType,
