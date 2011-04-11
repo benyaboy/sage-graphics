@@ -1,9 +1,11 @@
 #!/bin/sh
 
-make clean
+make distclean
 rm -fr qshare.app
 rm -fr qshare
 rm -f qshare.zip
+
+qmake -spec macx-g++
 
 make
 
