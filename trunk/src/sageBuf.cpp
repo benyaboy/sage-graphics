@@ -73,7 +73,7 @@ void sageBuf::initArray(int size)
    	   entries[i] = NULL;
    }
    else
-      sage::printLog("sageBuf::initArray : invalid array length");
+      sage::printLog("sageBuf::initArray : invalid array length %d", size);
 }	   
 
 sageBufEntry sageBuf::operator[](int idx)
