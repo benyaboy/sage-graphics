@@ -193,6 +193,7 @@ int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, 
 
    if ( shared->bufSize < groupSize ) {
 	sage::printLog("pixelDownloader> receiver buffer size must be greater than group size. New receiver buffer size (%d)", shared->bufSize);
+	shared->bufSize = groupSize;
    }
 
    blockBuf = new sageBlockBuf(shared->bufSize, groupSize, blockSize, BUF_MEM_ALLOC | BUF_CTRL_GROUP);
