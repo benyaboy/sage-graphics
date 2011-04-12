@@ -64,9 +64,14 @@ void montagePair::swapMontage()
    // when a window is moved or resized, the config of back montage is
    // updated immediately, the front montage is updated when it is swapped
 
+	struct timeval start,end;
    if (renewMontage) {
+	   gettimeofday(&start, 0);
       // copying the config of back montage to front montage
       montage[frontMon]->copyConfig(*montage[1-frontMon]);
+      gettimeofday(&end, 0);
+      fprintf(stderr, "swapMon: %.5f msec\n", 1000 * (((double)end.tv_sec + 0.000001*(double)end.tv_usec) - ((double)start.tv_sec+0.000001*(double)start.tv_usec)));
+
       renewMontage = false;
    }
 
@@ -185,6 +190,11 @@ int pixelDownloader::init(char *msg, dispSharedData *sh, streamProtocol *nwObj, 
 	groupSize = blockSize;
 	sage::printLog("pixelDownloader> New groupSize (%d)", groupSize);
    }
+
+   if ( shared->bufSize < groupSize ) {
+	sage::printLog("pixelDownloader> receiver buffer size must be greater than group size. New receiver buffer size (%d)", shared->bufSize);
+   }
+
    blockBuf = new sageBlockBuf(shared->bufSize, groupSize, blockSize, BUF_MEM_ALLOC | BUF_CTRL_GROUP);
 
    if ( recv ) delete recv;
@@ -440,6 +450,10 @@ int pixelDownloader::downloadPixelBlock(sagePixelBlock *block, montagePair &monP
 
 int pixelDownloader::fetchSageBlocks()
 {
+
+	bool flag = false;
+	struct timeval start,end;
+
    // fetch block data from the block buffer
    sageBlockGroup *sbg;
 
@@ -538,8 +552,12 @@ int pixelDownloader::fetchSageBlocks()
     	  }
 
     	  bandWidth += sbg->getDataSize() + GROUP_HEADER_SIZE;
+    	  if ( curFrame != sbg->getFrameID() ) {flag = true; shared->dl.count++;}
     	  curFrame = sbg->getFrameID();
     	  frameBlockNum += sbg->getBlockNum();
+
+
+
 
     	  for (int i=0; i<sbg->getBlockNum(); i++) {
     		  sagePixelBlock *block = (*sbg)[i];
@@ -552,10 +570,19 @@ int pixelDownloader::fetchSageBlocks()
     		  blockMontageMap *map = (blockMontageMap *)partition->getBlockMap(block->getID());
     		  int bx = block->x, by = block->y;
 
+    		  gettimeofday(&start, 0);
     		  while(map) {
     			  block->translate(map->x, map->y);
     			  //std::cout << "block montage " << map->infoID << " id " << block->getID() << " pos " << block->x << " , " << block->y << std::endl;
+
+    			  /* unpack pixels to framebuffer */
     			  downloadPixelBlock(block, montageList[map->infoID]);
+
+    			  gettimeofday(&end, 0);
+
+    			shared->dl.elapsed += ((double)end.tv_sec + 0.000001*(double)end.tv_usec) - ((double)start.tv_sec+0.000001*(double)start.tv_usec);
+    			  start = end;
+
     			  block->x = bx;
     			  block->y = by;
     			  map = (blockMontageMap *)map->next;
@@ -680,6 +707,8 @@ int pixelDownloader::fetchSageBlocks()
 			}
 			else {
 				// PDL::processSync() will never be called. So let's do swapMontages here.
+				fprintf(stderr, "download a group for frame %d:  %.5f msec\n", updatedFrame, shared->dl.elapsed * 1000.0);
+				shared->dl.elapsed = 0;
 				swapMontages();
 			}
 		} // end of if(proceedSwap)
