@@ -709,7 +709,7 @@ int pixelDownloader::fetchSageBlocks()
 			else {
 				// PDL::processSync() will never be called. So let's do swapMontages here.
 				//fprintf(stderr, "download a group for frame %d:  %.5f msec\n", updatedFrame, shared->dl.elapsed * 1000.0);
-				shared->dl.elapsed = 0;
+				//shared->dl.elapsed = 0;
 				swapMontages();
 			}
 		} // end of if(proceedSwap)
