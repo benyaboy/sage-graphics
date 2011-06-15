@@ -87,6 +87,7 @@ int main(int argc, char *argv[])
 	scfg.rowOrd = BOTTOM_TO_TOP;
 	scfg.master = true;
 	scfg.nwID = 1;
+	scfg.frameRate = rate;
 	 		 
 	sageInf.init(scfg);	 
 	std::cout << "sail initialized " << std::endl;
@@ -99,7 +100,7 @@ int main(int argc, char *argv[])
 		memset(buffer, color, resX*resY*3);
 		sageInf.swapBuffer();
 		buffer = sageInf.getBuffer();
-		color = (color + 1) % 256;	
+		color = (color + 1) % 129;	
 		sageMessage msg;
 		if (sageInf.checkMsg(msg, false) > 0) {
 			switch (msg.getCode()) {
