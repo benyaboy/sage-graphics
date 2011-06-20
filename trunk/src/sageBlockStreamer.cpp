@@ -292,13 +292,14 @@ int sageBlockStreamer::streamLoop()
     	  pthread_mutex_unlock(&affinityMutex);
 
     	  if ( pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset) != 0 ) {
-    		  perror("pthread_setaffinity_np");
+    		  perror("\n\npthread_setaffinity_np\n");
     	  }
+
     	  if ( pthread_getaffinity_np(pthread_self(), sizeof(cpuset), &cpuset) != 0 ) {
     		  perror("pthread_getaffinity_np");
     	  }
     	  else {
-    		  fprintf(stderr,"SBS::%s() : cpu affinity : ", __FUNCTION__);
+    		  fprintf(stderr,"SBS::%s() : current CPU affinity : ", __FUNCTION__);
     		  for (int i=0; i<CPU_SETSIZE; i++) {
     			  if (CPU_ISSET(i, &cpuset)) {
     				  fprintf(stderr, "%d ", i);
@@ -398,9 +399,11 @@ void sageBlockStreamer::setAffinity(const char *msgdata) {
 
 	char digit[2];
 	digit[1] = '\0';
-	for (int i=0; i<len; ++i) {
-		if ( msgdata[2+i] == '1' )
+	for (int i=0; i<len; i++) {
+		if ( msgdata[3+i] == '1' ) {
+			fprintf(stderr,"SBS::setAffinity() : cpu %d is iset in the message\n", i);
 			cpulist.push_back(i);
+		}
 	}
 
 	affinityFlag = true; // set flag
