@@ -123,9 +123,48 @@ sail::~sail()
    }
 }
 
+static int
+sage_gcd ( int a, int b)
+{
+	int c;
+	while ( a!= 0) {
+		c = a; a = b%a; b = c;
+	}
+	return b;
+}
+
 int sail::init(sailConfig &conf)
 {
    config = conf;
+
+   if (config.pixFmt != PIXFMT_DXT) {
+	   // Hack the block sizes
+	   sage::printLog("sail::init() : Pixel block sizes specified: %d x %d", config.blockX, config.blockY);
+	   int nativeWidth = config.resX;
+	   int nativeHeight = config.resY;
+	   int g = sage_gcd(nativeWidth, nativeHeight);
+	   int nbx = nativeWidth / g;
+	   int nby = nativeHeight / g;
+
+	   if ( ((nbx * nby) < 100) && (nbx * nby > 1) ) {
+		   sage::printLog("sail::init() : using GCD approach: gcd[%d, %d] = %d -- %d blocks", nativeWidth, nativeHeight, g, nbx * nby);
+		   config.blockX = g;
+		   config.blockY = g;
+	   }
+	   else {
+		   sage::printLog("sail::init() : using 50 blocks approach");
+		   config.blockX = config.resX / 10;
+		   config.blockY = config.resY / 5;
+		}
+	   sage::printLog("sail::init() : New block sizes: %d x %d", config.blockX, config.blockY);
+
+	   int minGroupSize = BLOCK_HEADER_SIZE + (config.blockX * config.blockY * getPixelSize(config.pixFmt));
+	   if ( config.groupSize < minGroupSize) {
+		   sage::printLog("sail::init() : Adjusting groupsize from %d to %d\n", config.groupSize, minGroupSize);
+		   config.groupSize = minGroupSize;
+	   }
+   }
+
 
    // check that winWidth and winHeight has been set, if not, it to 500,500
    if (config.winWidth == -1 || config.winHeight == -1)
