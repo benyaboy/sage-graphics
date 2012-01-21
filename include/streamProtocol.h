@@ -46,7 +46,8 @@
 
 #include "sageBase.h"
 
-#define REG_MSG_SIZE 1024
+//#define REG_MSG_SIZE 1024
+#define REG_MSG_SIZE 128 // to maintain compatibility with Ratko's UI version
 
 class sageBlock;
 class sagePixelBlock;
