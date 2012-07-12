@@ -1,0 +1,18 @@
+#!/bin/sh
+
+DEST=`pwd`
+
+cd ultragrid
+
+make distclean
+
+./autogen.sh --prefix=$DEST --with-sage=../../..
+
+make clean
+make -j 4
+make install
+
+cd -
+
+/bin/cp bin/uv ../../bin
+
