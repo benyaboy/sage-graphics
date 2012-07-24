@@ -437,6 +437,9 @@ void* sageSyncBBServer :: syncServerThread(void *args)
 
    sockaddr_in clientAddr;
 
+   // wait for fsManager to be ready
+   sage::sleep(3);
+
    while (!This->syncEnd)   {
       // accept connections
       addrLen = sizeof(clientAddr);
@@ -504,6 +507,12 @@ void* sageSyncBBServer::syncBarrierServerThread(void *args)
 
    sockaddr_in clientAddr;
    int sdm = 0;
+
+   //
+   // wait before syncClients are ready to connect
+   // Without this, accept() will return with error EINTR (Interrupted system call)
+   //
+   sage::sleep(2);
 
    while (!This->syncEnd)   {
       // accept connections
